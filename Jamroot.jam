@@ -17,7 +17,9 @@ lib boost_python ;
 
 project
   : requirements
-    <library>boost_python
+    <include>C:/boost/include/
+    <library>C:/Boost/lib/libboost_python3-mgw64-mt-1_65.a
+    <cxxflags>"-D_hypot=hypot -DBOOST_PYTHON_STATIC_LIB"
     <address-model>64
 ;
 

@@ -1,28 +1,20 @@
-ifndef __AST_HPP__
+#ifndef __AST_HPP__
 #define __AST_HPP__
 
 
 #include <memory>
 #include <array>
-#include <typeeinfo>
+#include <typeinfo>
 #include <iostream>
 #include "visitor.hpp"
 
 namespace AST{
-template< typename T, size_t N >
+template< size_t N >
 class Node;  
 
-using NodeTerminal = Node<Terminal, 0>;
-
-template<typename T> 
-using NodeUnaryOp  = Node<T, 1>;
-
-template<typename T> 
-using NodeBinaryOp = Node<T, 2>;
-
-class Alternative : Visitable<>::extends<  > {};
-  class Sequence: isitable<>::extends<  > {};
-class Terminal : Visitable<>::extends<  > {};
+using NodeTerminal = Node<0>;
+using NodeUnaryOp  = Node<1>;
+using NodeBinaryOp = Node<2>;
 
 class INode;
 
@@ -31,17 +23,19 @@ using node_ptr = std::shared_ptr< const INode >;
 class NodeVisitor 
 : public IVisitor< 
   NodeTerminal
-, NodeBinaryOp< Alternative >
-, NodeBinaryOp< Sequence > 
+, NodeUnaryOp
+, NodeBinaryOp
+, class Alternative
+, class Sequence
+, class Regex
 > {  };
 
 class INode 
 : public IVisitable< NodeVisitor >{
 public:
   virtual node_ptr clone() const = 0;
-  virtual ~INode() =
+  virtual ~INode() = 0;
 };
-
   
 class Rule{
 public:  
@@ -54,9 +48,9 @@ private:
   node_ptr node_;
 };
 
-template< typename T, size_t N >
-class Rule::Node
-: public Rule::INode
+template< size_t N >
+class Node
+: public INode
 {  
 public:
   virtual node_ptr clone() const override{
@@ -64,28 +58,41 @@ public:
   } 
 
   template< typename... Ts>
-  Node( const T& v, Ts&&... Vs)
-  : value_(v)
-  , rules_(std::forward<Ts>(Vs)...)
+  Node( Ts&&... Vs)
+  : rules_(std::forward<Ts>(Vs)...)
   {  }
   
-  T value_; 
-  std::array< std::shared_ptr< const INode >, N > rules_;
+  std::array< node_ptr, N > rules_;
 };
 
-
-/*class NodePrinter 
+class NodePrinter 
 : public NodeVisitor{
 public:
-  virtual void visit( Terminal& Node ) override;
-  virtual void visit( const Terminal& Node ) override;
+  virtual void visit( Regex& Node ) override;
+  virtual void visit( const Regex& Node ) override;
   
   virtual void visit( Alternative& Node ) override;  
   virtual void visit( const Alternative& Node ) override;
   
   virtual void visit( Sequence& Node ) override;  
   virtual void visit( const Sequence& Node ) override;
-};*/
+
+  virtual void visit( NodeTerminal& Node ) override;
+  virtual void visit( const NodeTerminal& Node ) override;
+  
+  virtual void visit( NodeUnaryOp& Node ) override;
+  virtual void visit( const NodeUnaryOp& Node ) override;
+  
+  virtual void visit( NodeBinaryOp& Node ) override;
+  virtual void visit( const NodeBinaryOp& Node ) override;
+
+private:
+  template< typename T >
+  void visit_children( T&& node ){
+    for( auto& node : node.rules_ )
+      node->accept(*this);
+  }
+};
 
 }
 #endif // __AST_HPP__
