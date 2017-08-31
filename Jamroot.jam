@@ -23,14 +23,14 @@ project
     <address-model>64
 ;
 
-rule run-test ( test-name : sources + )
+rule run-test ( test-name : sources + : requirements + )
 {
   import testing ;
   testing.make-test run-pyd : $(sources) : : $(test-name) ;
 }
 
 python-extension hello_ext : module.cpp AST.cpp ;
-run-test hello : hello_ext hello.py ;
+run-test hello : hello_ext hello.py : <pyd>hello_ext ;
 
 alias test : hello ;
 explicit test ;
