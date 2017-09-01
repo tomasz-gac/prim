@@ -21,6 +21,7 @@ void NodePrinter::operator()( const Alternative& node ) {
   visit_children( node );
 }
 
+  
 void NodePrinter::operator()( Sequence& node ) {
   std::cout << "Sequence node" << std::endl;    
   visit_children( node );
