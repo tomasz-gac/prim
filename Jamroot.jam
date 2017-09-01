@@ -18,19 +18,19 @@ lib boost_python ;
 project
   : requirements
     <include>C:/boost/include/
-    <library>C:/Boost/lib/libboost_python3-mgw64-mt-1_65.a
+    <library>C:/Boost/lib/libboost_python3-mgw63-mt-1_65.a
     <cxxflags>"-D_hypot=hypot -DBOOST_PYTHON_STATIC_LIB"
     <address-model>64
 ;
 
-rule run-test ( test-name : sources + : requirements + )
+rule run-test ( test-name : sources + )
 {
   import testing ;
   testing.make-test run-pyd : $(sources) : : $(test-name) ;
 }
 
 python-extension hello_ext : module.cpp AST.cpp ;
-run-test hello : hello_ext hello.py : <pyd>hello_ext ;
+run-test hello : hello_ext hello.py : ;
 
 alias test : hello ;
 explicit test ;

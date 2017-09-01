@@ -5,11 +5,11 @@
 
 char const* greet()
 {
-    AST::Rule rule;
-    auto b2 = rule | rule;
-    //AST::NodePrinter printer;
-    //b2.accept( printer );
-    return "hello, world";
+  auto rule = AST::Rule::make<AST::Regex>();
+  auto b2 = rule | rule;
+  AST::NodePrinter printer;
+  b2.accept( printer );
+  return "hello, world";
 }
 
 BOOST_PYTHON_MODULE(hello_ext)
