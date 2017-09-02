@@ -29,14 +29,6 @@ public:
   using node_ptr = std::shared_ptr< const INode >;
 
 public:
-  // template< size_t N >
-  // class Node;  
-
-  // using NodeTerminal = Node<0>;
-  // using NodeUnary  = Node<1>;
-  // using NodeBinary = Node<2>;
-
-public:
   class NodeVisitor
     : public IVisitor<Ts>...
   {
@@ -47,16 +39,17 @@ public:
     }
   };
 
+private:
   template< typename F >
   class VisitorAdapter;
   
   template< typename F, typename U, typename... Us >
   class VisitorAdapter_impl;
 
+public:
   template< typename F >
   static VisitorAdapter<F> adaptVisitor( const F& f );
   
-public:
   class INode
     : public std::enable_shared_from_this<INode>
   {
@@ -68,12 +61,18 @@ public:
 
     virtual ~INode() = default;
   };
-
-  template< typename Derived >
-  class Node
-    : public INode
+private:
+  template< typename Derived, typename Base >
+  class node_impl
+    : public Base
   {
   public:
+    static_assert( std::is_base_of< INode, Base >::value, "Base has to be derived from INode");
+    static_assert( disjunction< std::is_same< Derived, Ts >... >::value, "Type not supported by Tree." );
+
+    template< typename T >
+    using Node = node_impl< T, Derived >;
+    
     virtual void accept( NodeVisitor& v )       override { v.dispatch( static_cast<       Derived& >( *this )); }
     virtual void accept( NodeVisitor& v ) const override { v.dispatch( static_cast< const Derived& >( *this )); }
     
@@ -81,7 +80,10 @@ public:
       return  static_cast<const Derived*>(this)->shared_from_this();
     }
   };
-
+public:
+  template< typename Derived >
+  using Node = node_impl< Derived, INode >;
+  
   template< typename T, typename... Us >
   static Tree make( Us&&... Vs ){
     static_assert( disjunction< std::is_same< T, Ts >... >::value, "Type not supported by Tree." );

@@ -6,7 +6,7 @@
 char const* greet()
 {
   auto rule = AST::Rule::make<AST::Regex>();
-  auto b2 = rule | rule;
+  auto b2 = rule & rule;
   AST::NodePrinter printer;
   b2.accept( printer );
   return "hello, world";

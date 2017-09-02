@@ -21,7 +21,7 @@ namespace AST{
   };
   
   class Sequence
-    : public Rule::Node<Alternative>
+    : public Rule::Node<Sequence>
   {
   public:
     Sequence(  const Rule::INode& lhs, const Rule::INode& rhs ){
