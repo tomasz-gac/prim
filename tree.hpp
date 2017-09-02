@@ -15,25 +15,30 @@ public:
   virtual ~IVisitor() = default;
 };
 
+
+template<class...> struct disjunction : std::false_type { };
+template<class B1> struct disjunction<B1> : B1 { };
+template<class B1, class... Bn>
+struct disjunction<B1, Bn...> 
+  : std::conditional<bool(B1::value), B1, disjunction<Bn...>>::type  { };
+
 template< typename... Ts >
 class Tree{
 public:
   class INode;
   using node_ptr = std::shared_ptr< const INode >;
-public:
-  template< size_t N >
-  class Node;  
 
-  using NodeTerminal = Node<0>;
-  using NodeUnary  = Node<1>;
-  using NodeBinary = Node<2>;
+public:
+  // template< size_t N >
+  // class Node;  
+
+  // using NodeTerminal = Node<0>;
+  // using NodeUnary  = Node<1>;
+  // using NodeBinary = Node<2>;
 
 public:
   class NodeVisitor
     : public IVisitor<Ts>...
-    , public IVisitor<NodeTerminal>
-    , public IVisitor<NodeUnary>
-    , public IVisitor<NodeBinary>
   {
   public:
     template< typename T >
@@ -52,36 +57,34 @@ public:
   static VisitorAdapter<F> adaptVisitor( const F& f );
   
 public:
-  class INode{
+  class INode
+    : public std::enable_shared_from_this<INode>
+  {
   public:
     virtual void accept( NodeVisitor& )       = 0;
     virtual void accept( NodeVisitor& ) const = 0;
 
-    virtual node_ptr clone() const = 0;
+    virtual node_ptr ref() const = 0;
 
     virtual ~INode() = default;
   };
 
-  template< size_t N >
+  template< typename Derived >
   class Node
-    : public INode, public std::enable_shared_from_this<Node<N>>
-  {  
+    : public INode
+  {
   public:
-    virtual void accept( NodeVisitor& v )       override { v.dispatch( *this ); }
-    virtual void accept( NodeVisitor& v ) const override { v.dispatch( *this ); }
+    virtual void accept( NodeVisitor& v )       override { v.dispatch( static_cast<       Derived& >( *this )); }
+    virtual void accept( NodeVisitor& v ) const override { v.dispatch( static_cast< const Derived& >( *this )); }
     
-    virtual node_ptr clone() const override{ return  this->shared_from_this(); }
-
-    // template< typename... Us>
-    // Node( Us&&... Vs)
-    //   : rules_(std::forward<Us>(Vs)...)
-    // {  }
-  
-    std::array< node_ptr, N > rules_;
+    virtual node_ptr ref() const override{
+      return  static_cast<const Derived*>(this)->shared_from_this();
+    }
   };
 
   template< typename T, typename... Us >
   static Tree make( Us&&... Vs ){
+    static_assert( disjunction< std::is_same< T, Ts >... >::value, "Type not supported by Tree." );
     auto rule = Tree();
     rule.node_.reset( new T( std::forward<Us>(Vs)... ) );
     return rule;
@@ -135,14 +138,14 @@ public:
   template< typename T >
   void visit( T&& v ){ f_( std::forward<T>(v) ); }
 
-  virtual void visit(       NodeTerminal& n ) override { f_( n ); }
-  virtual void visit( const NodeTerminal& n ) override { f_( n ); }
+  // virtual void visit(       NodeTerminal& n ) override { f_( n ); }
+  // virtual void visit( const NodeTerminal& n ) override { f_( n ); }
 
-  virtual void visit(       NodeUnary& n ) override { f_( n ); }
-  virtual void visit( const NodeUnary& n ) override { f_( n ); }
+  // virtual void visit(       NodeUnary& n ) override { f_( n ); }
+  // virtual void visit( const NodeUnary& n ) override { f_( n ); }
 
-  virtual void visit(       NodeBinary& n ) override { f_( n ); }
-  virtual void visit( const NodeBinary& n ) override { f_( n ); }
+  // virtual void visit(       NodeBinary& n ) override { f_( n ); }
+  // virtual void visit( const NodeBinary& n ) override { f_( n ); }
 
   VisitorAdapter( F f ) : f_(f) {};
 private:

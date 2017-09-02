@@ -31,32 +31,32 @@ void NodePrinter::operator()( const Sequence& node ) {
   visit_children( node );
 }
 
-void NodePrinter::operator()( Rule::NodeTerminal& node ) {
-  std::cout << "NodeTerminal node" << std::endl;    
-  visit_children( node );
-}  
-void NodePrinter::operator()( const Rule::NodeTerminal& node ) {
-  std::cout << "const NodeTerminal node" << std::endl;
-  visit_children( node );
-}
+// void NodePrinter::operator()( Rule::NodeTerminal& node ) {
+//   std::cout << "NodeTerminal node" << std::endl;    
+//   visit_children( node );
+// }  
+// void NodePrinter::operator()( const Rule::NodeTerminal& node ) {
+//   std::cout << "const NodeTerminal node" << std::endl;
+//   visit_children( node );
+// }
 
-void NodePrinter::operator()( Rule::NodeUnary& node ) {
-  std::cout << "NodeUnary node" << std::endl;    
-  visit_children( node );
-}  
-void NodePrinter::operator()( const Rule::NodeUnary& node ) {
-  std::cout << "const NodeUnary node" << std::endl;
-  visit_children( node );
-}
+// void NodePrinter::operator()( Rule::NodeUnary& node ) {
+//   std::cout << "NodeUnary node" << std::endl;    
+//   visit_children( node );
+// }  
+// void NodePrinter::operator()( const Rule::NodeUnary& node ) {
+//   std::cout << "const NodeUnary node" << std::endl;
+//   visit_children( node );
+// }
 
-void NodePrinter::operator()( Rule::NodeBinary& node ) {
-  std::cout << "NodeBinary node" << std::endl;    
-  visit_children( node );
-}  
-void NodePrinter::operator()( const Rule::NodeBinary& node ) {
-  std::cout << "const NodeBinary node" << std::endl;
-  visit_children( node );
-}
+// void NodePrinter::operator()( Rule::NodeBinary& node ) {
+//   std::cout << "NodeBinary node" << std::endl;    
+//   visit_children( node );
+// }  
+// void NodePrinter::operator()( const Rule::NodeBinary& node ) {
+//   std::cout << "const NodeBinary node" << std::endl;
+//   visit_children( node );
+// }
 
 
 }
