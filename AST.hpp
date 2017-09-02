@@ -50,11 +50,11 @@ namespace AST{
      void operator()( Sequence& Node );  
      void operator()( const Sequence& Node );
 
-     // void operator()( Rule::NodeTerminal& Node );
-     // void operator()( const Rule::NodeTerminal& Node );
+     void operator()( Rule::NodeTerminal& Node );
+     void operator()( const Rule::NodeTerminal& Node );
   
-     // void operator()( Rule::NodeUnary& Node );
-     // void operator()( const Rule::NodeUnary& Node );
+     void operator()( Rule::NodeUnary& Node );
+     void operator()( const Rule::NodeUnary& Node );
   
      void operator()( Rule::NodeBinary& Node );
      void operator()( const Rule::NodeBinary& Node );
