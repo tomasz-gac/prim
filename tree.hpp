@@ -3,8 +3,8 @@
 
 #include <memory>
 #include <array>
+#include <vector>
 #include <type_traits>
-#include "tree.hpp"
 
 template< typename T >
 class IVisitor{
@@ -26,10 +26,10 @@ template< typename... Ts >
 class Tree{
 public:
   class INode;
-  using node_ptr = std::shared_ptr< const INode >;
+  using node_ptr = std::shared_ptr< INode >;
 
 public:
-  class NodeVisitor
+  class INodeVisitor
     : public IVisitor<Ts>...
   {
   public:
@@ -46,6 +46,15 @@ private:
   template< typename F, typename U, typename... Us >
   class VisitorAdapter_impl;
 
+  template< typename Derived, typename Base >
+  class extend_CRTP;
+
+  template< size_t N, typename Derived >
+  struct Static_CRTP;
+
+  template< typename Derived >
+  struct Dynamic_CRTP;
+
 public:
   template< typename F >
   static VisitorAdapter<F> adaptVisitor( const F& f );
@@ -54,54 +63,99 @@ public:
     : public std::enable_shared_from_this<INode>
   {
   public:
-    virtual void accept( NodeVisitor& )       = 0;
-    virtual void accept( NodeVisitor& ) const = 0;
+    template< typename Derived >
+    using extend = extend_CRTP< Derived, INode >;
 
-    virtual node_ptr ref() const = 0;
+    template< size_t N, typename Derived >
+    using Static = Static_CRTP< N, Derived >;
+
+    template< typename Derived >
+    using Unary = Static_CRTP< 1, Derived >;
+
+    template< typename Derived >
+    using Binary = Static_CRTP< 2, Derived >;
+
+    template< typename Derived >
+    using Dynamic = Dynamic_CRTP< Derived >;
+
+    virtual void accept( INodeVisitor& )       = 0;
+    virtual void accept( INodeVisitor& ) const = 0;
+
+    virtual node_ptr ref()         = 0;
+    virtual node_ptr clone() const = 0;
 
     virtual ~INode() = default;
   };
+  
 private:
   template< typename Derived, typename Base >
-  class node_impl
+  class extend_CRTP
     : public Base
   {
   public:
     static_assert( std::is_base_of< INode, Base >::value, "Base has to be derived from INode");
     static_assert( disjunction< std::is_same< Derived, Ts >... >::value, "Type not supported by Tree." );
 
+    using Base::Base;
+
     template< typename T >
-    using Node = node_impl< T, Derived >;
+    using extend = extend_CRTP< T, Derived >;
     
-    virtual void accept( NodeVisitor& v )       override { v.dispatch( static_cast<       Derived& >( *this )); }
-    virtual void accept( NodeVisitor& v ) const override { v.dispatch( static_cast< const Derived& >( *this )); }
+    virtual void accept( INodeVisitor& v )       override { v.dispatch( static_cast<       Derived& >( *this )); }
+    virtual void accept( INodeVisitor& v ) const override { v.dispatch( static_cast< const Derived& >( *this )); }
     
-    virtual node_ptr ref() const override{
-      return  static_cast<const Derived*>(this)->shared_from_this();
+    virtual node_ptr ref() override{
+      return static_cast<Derived*>(this)->shared_from_this();
+    }
+
+    virtual node_ptr clone() const override{
+      return std::make_shared<Derived>( static_cast<const Derived&>(*this) );
     }
   };
-public:
+
+  template< size_t N, typename Derived >
+  struct Static_CRTP
+    : public extend_CRTP< Derived, INode >
+  {
+    std::array< node_ptr, N > children;
+  };
+  
   template< typename Derived >
-  using Node = node_impl< Derived, INode >;
+  struct Dynamic_CRTP
+    : public extend_CRTP< Derived, INode >
+  {
+    std::vector< node_ptr > children;
+  };
   
+public:
   template< typename T, typename... Us >
-  static Tree make( Us&&... Vs ){
+  static
+  Tree make( Us&&... Vs ){
     static_assert( disjunction< std::is_same< T, Ts >... >::value, "Type not supported by Tree." );
-    auto rule = Tree();
-    rule.node_.reset( new T( std::forward<Us>(Vs)... ) );
-    return rule;
+    return Tree( new T( std::forward<Us>(Vs)... ) );
   }
-  template< typename V >
-  void accept( V& visitor ) const {
-    auto deref = adaptVisitor( visitor );
-    node_->accept( deref );
-  }
+
+  void accept( INodeVisitor& visitor )       { node_->accept( visitor ); }
+  void accept( INodeVisitor& visitor ) const { node_->accept( visitor ); }
   
-  INode& node()       { return *node_; }
+        INode& node()       { return *node_; }
   const INode& node() const { return *node_; }
 
+  Tree( const Tree& other )
+    : node_( other.node_->ref() )
+  {  }
+
+  Tree( Tree&& other )
+    : node_( std::move( other.node_ ) )
+  {  }
+  
 private:  
-  Tree() = default;
+  Tree() = delete;
+  Tree( INode*&& node )
+  {
+    node_.reset(node);
+  }
+  
   node_ptr node_;
 };
 
@@ -121,7 +175,7 @@ public:
 template< typename... Ts >
 template< typename F, typename U >
 class Tree<Ts...>::VisitorAdapter_impl< F, U >
-  : public Tree<Ts...>::NodeVisitor
+  : public Tree<Ts...>::INodeVisitor
 {
   using VA = Tree<Ts...>::VisitorAdapter<F>;
 public:
@@ -140,24 +194,15 @@ public:
   template< typename T >
   void visit( T&& v ){ f_( std::forward<T>(v) ); }
 
-  // virtual void visit(       NodeTerminal& n ) override { f_( n ); }
-  // virtual void visit( const NodeTerminal& n ) override { f_( n ); }
-
-  // virtual void visit(       NodeUnary& n ) override { f_( n ); }
-  // virtual void visit( const NodeUnary& n ) override { f_( n ); }
-
-  // virtual void visit(       NodeBinary& n ) override { f_( n ); }
-  // virtual void visit( const NodeBinary& n ) override { f_( n ); }
-
   VisitorAdapter( F f ) : f_(f) {};
-private:
+
   F f_;
 };
 
 template< typename... Ts >
 template< typename F >
-Tree<Ts...>::VisitorAdapter<F> Tree<Ts...>::adaptVisitor( const F& f ){
-  return {f};
+Tree<Ts...>::VisitorAdapter<F>Tree<Ts...>::adaptVisitor( const F& f ){
+  return { f };
 }
 
 #endif // __TREE_HPP__
