@@ -13,7 +13,7 @@ std::string ReprVisitor::visit( const Alternative& node ) {
     auto v = fork();
     auto av = Rule::adaptVisitor( v );
     std::cout << "ident = " + std::to_string(av.f_.depth_);
-    node->accept( av );
+    node.accept( av );
     text += "\n" + v.result; 
   }
 
@@ -27,7 +27,7 @@ std::string ReprVisitor::visit( const Sequence& node ) {
     auto v = fork();
     auto av = Rule::adaptVisitor( v );
     std::cout << "ident = " + std::to_string(av.f_.depth_);
-    node->accept( av );
+    node.accept( av );
     text += "\n" + v.result; 
   }
  

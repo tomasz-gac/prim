@@ -3,6 +3,7 @@
 
 #include "AST.hpp"
 #include <vector>
+#include <iostream>
 #include <algorithm>
 #include <string>
 

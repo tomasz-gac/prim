@@ -49,12 +49,6 @@ private:
   template< typename Derived, typename Base >
   class extend_CRTP;
 
-  template< size_t N, typename Derived >
-  struct Static_CRTP;
-
-  template< typename Derived >
-  struct Dynamic_CRTP;
-
 public:
   template< typename F >
   static VisitorAdapter<F> adaptVisitor( const F& f );
@@ -66,23 +60,10 @@ public:
     template< typename Derived >
     using extend = extend_CRTP< Derived, INode >;
 
-    template< size_t N, typename Derived >
-    using Static = Static_CRTP< N, Derived >;
-
-    template< typename Derived >
-    using Unary = Static_CRTP< 1, Derived >;
-
-    template< typename Derived >
-    using Binary = Static_CRTP< 2, Derived >;
-
-    template< typename Derived >
-    using Dynamic = Dynamic_CRTP< Derived >;
-
     virtual void accept( INodeVisitor& )       = 0;
     virtual void accept( INodeVisitor& ) const = 0;
 
-    virtual node_ptr ref()         = 0;
-    virtual node_ptr clone() const = 0;
+    virtual Tree clone() const = 0;
 
     virtual ~INode() = default;
   };
@@ -104,30 +85,36 @@ private:
     virtual void accept( INodeVisitor& v )       override { v.dispatch( static_cast<       Derived& >( *this )); }
     virtual void accept( INodeVisitor& v ) const override { v.dispatch( static_cast< const Derived& >( *this )); }
     
-    virtual node_ptr ref() override{
-      return static_cast<Derived*>(this)->shared_from_this();
-    }
-
-    virtual node_ptr clone() const override{
-      return std::make_shared<Derived>( static_cast<const Derived&>(*this) );
+    virtual Tree clone() const override{
+      return Tree( new Derived( static_cast<const Derived&>(*this) ) );
     }
   };
-
+public:
   template< size_t N, typename Derived >
-  struct Static_CRTP
+  struct Static
     : public extend_CRTP< Derived, INode >
   {
-    std::array< node_ptr, N > children;
+    template< typename... Us >
+    Static( Us&&... vs )
+      : children{ std::forward<Us>(vs)... }
+    {  }
+    
+    std::array< Tree, N > children;
   };
   
   template< typename Derived >
-  struct Dynamic_CRTP
+  struct Dynamic
     : public extend_CRTP< Derived, INode >
   {
-    std::vector< node_ptr > children;
+    std::vector< Tree > children;
   };
-  
-public:
+
+  template< typename Derived >
+  using Unary = Static< 1, Derived >;
+
+  template< typename Derived >
+  using Binary = Static< 2, Derived >;
+
   template< typename T, typename... Us >
   static
   Tree make( Us&&... Vs ){
@@ -141,8 +128,13 @@ public:
         INode& node()       { return *node_; }
   const INode& node() const { return *node_; }
 
+  Tree& operator=( Tree other  ){
+    node_ = other.node_;
+    return *this;
+  }
+
   Tree( const Tree& other )
-    : node_( other.node_->ref() )
+    : node_( other.node_ )
   {  }
 
   Tree( Tree&& other )
@@ -151,8 +143,7 @@ public:
   
 private:  
   Tree() = delete;
-  Tree( INode*&& node )
-  {
+  Tree( INode*&& node ){
     node_.reset(node);
   }
   
