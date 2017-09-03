@@ -51,7 +51,7 @@ private:
 
 public:
   template< typename F >
-  static VisitorAdapter<F> adaptVisitor( const F& f );
+  static VisitorAdapter<F> adaptVisitor( F& f );
   
   class INode
     : public std::enable_shared_from_this<INode>
@@ -185,14 +185,14 @@ public:
   template< typename T >
   void visit( T&& v ){ f_( std::forward<T>(v) ); }
 
-  VisitorAdapter( F f ) : f_(f) {};
+  VisitorAdapter( F& f ) : f_(f) {};
 
-  F f_;
+  F& f_;
 };
 
 template< typename... Ts >
 template< typename F >
-Tree<Ts...>::VisitorAdapter<F>Tree<Ts...>::adaptVisitor( const F& f ){
+Tree<Ts...>::VisitorAdapter<F>Tree<Ts...>::adaptVisitor( F& f ){
   return { f };
 }
 
