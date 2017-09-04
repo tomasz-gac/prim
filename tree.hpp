@@ -79,11 +79,17 @@ private:
 
     using Base::Base;
 
+    extend_CRTP( const extend_CRTP& ) = delete;
+    extend_CRTP() = default;
+
     template< typename T >
     using extend = extend_CRTP< T, Derived >;
     
-    virtual void accept( INodeVisitor& v )       override { v.dispatch( static_cast<       Derived& >( *this )); }
-    virtual void accept( INodeVisitor& v ) const override { v.dispatch( static_cast< const Derived& >( *this )); }
+    virtual void accept( INodeVisitor& v ) override
+    { v.dispatch( static_cast<       Derived& >( *this )); }
+
+    virtual void accept( INodeVisitor& v ) const override
+    { v.dispatch( static_cast< const Derived& >( *this )); }
     
     virtual Tree clone() const override{
       return Tree( new Derived( static_cast<const Derived&>(*this) ) );
@@ -98,14 +104,30 @@ public:
     Static( Us&&... vs )
       : children{ std::forward<Us>(vs)... }
     {  }
-    
+
+    Static( const Static& other )
+      : children( other.children ) // shallow copy
+    {
+      for( auto& child : children )
+	child = child.node().clone();
+    }
+
     std::array< Tree, N > children;
   };
+
   
   template< typename Derived >
   struct Dynamic
     : public extend_CRTP< Derived, INode >
   {
+    Dynamic() = default;
+    Dynamic( Dynamic&& ) = default;
+    Dynamic( const Dynamic& other ){
+      children.reserve( other.children.size() );
+      for( auto& child : other.children )
+	children.push_back( child.node().clone() );
+    }
+
     std::vector< Tree > children;
   };
 
@@ -173,7 +195,7 @@ public:
   virtual void visit(       U& v ) override { static_cast<VA*>(this)->visit(v); }
   virtual void visit( const U& v ) override { static_cast<VA*>(this)->visit(v); }
 
-  ~VisitorAdapter_impl() = default;
+  virtual ~VisitorAdapter_impl() = default;
 };
 
 template< typename... Ts >

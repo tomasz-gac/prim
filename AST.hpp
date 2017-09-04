@@ -21,8 +21,11 @@ namespace AST{
       : Rule::Binary<Sequence>( lhs, rhs )
     {  }
   };
-  struct Regex : public Rule::INode::extend<Regex>
-  {  };
+  struct Regex : public Rule::INode::extend<Regex>{
+  public:
+    Regex( const Regex& ){}
+    Regex(){}
+  };
 
   inline Rule operator|( Rule   lhs, Rule   rhs ){
     return Rule::make<Alternative>( std::move(lhs), std::move(rhs));

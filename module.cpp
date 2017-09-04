@@ -8,6 +8,8 @@ char const* greet()
 {
   auto rule = AST::Rule::make<AST::Regex>();
   auto b2 = rule & rule | rule;
+  auto b3 = b2.node().clone();
+  b2 = b2 & b3;
   AST::ReprVisitor printer;
   auto av = AST::Rule::adaptVisitor( printer );
   b2.accept( av );
