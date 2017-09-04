@@ -1,7 +1,7 @@
 #ifndef __AST_HPP__
 #define __AST_HPP__
 
-#include "tree.hpp"
+#include "tree/tree.hpp"
  
 namespace AST{
   using Rule = Tree< class Alternative, class Sequence, class Regex >;

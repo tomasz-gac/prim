@@ -7,11 +7,11 @@ std::string ReprVisitor::visit( const  Regex& node ) {
 }
 
 std::string ReprVisitor::visit( const Alternative& node ) {
-  return "<Alternative>" + visitChildren( node.children.cbegin(), node.children.cend() );
+  return "<Alternative>" + visitChildren( node );
 }
 
 std::string ReprVisitor::visit( const Sequence& node ) {
-  return "<Sequence>" + visitChildren( node.children.cbegin(), node.children.cend() );
+  return "<Sequence>" + visitChildren( node );
 }
 
 }

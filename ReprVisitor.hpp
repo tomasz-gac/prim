@@ -41,16 +41,28 @@ namespace AST{
     std::string result;
     
   private:
-    template< typename InputIt >
-    std::string visitChildren( InputIt begin, InputIt end ){
+    template< typename T >
+    std::string visitChildren( const T& node ){
       auto text = std::string();
-      for( auto& it = begin; it != end; ++it ){
-	auto av = Rule::adaptVisitor( *this );
-	it->accept( av );
-	text += "\n" + this->result;
+      for( auto it = children_cbegin(node); it != children_cend( node ); ++it ){
+    	auto av = Rule::adaptVisitor( *this );
+    	it->accept( av );
+    	text += "\n" + this->result;
       }
       return text;
     }
+
+    
+    // template< typename InputIt >
+    // std::string visitChildren( InputIt begin, InputIt end ){
+    //   auto text = std::string();
+    //   for( auto& it = begin; it != end; ++it ){
+    // 	auto av = Rule::adaptVisitor( *this );
+    // 	it->accept( av );
+    // 	text += "\n" + this->result;
+    //   }
+    //   return text;
+    // }
     
     std::string ident() const {
       if( depth_ == 0 ) return std::string();
