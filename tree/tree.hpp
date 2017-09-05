@@ -76,8 +76,8 @@ public:
         INode& node()       { return *node_; }
   const INode& node() const { return *node_; }
 
-        INode* operator->()       { return *node_; }
-  const INode* operator->() const { return *node_; }
+        INode* operator->()       { return &*node_; }
+  const INode* operator->() const { return &*node_; }
 
   Tree& operator=( Tree other ){
     node_ = other.node_;

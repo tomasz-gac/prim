@@ -2,24 +2,34 @@
 #define __CLONE_VISITOR_HPP__
 
 #include "tree.hpp"
-#include <vector>
+#include <unordered_map>
 
 template< typename T >
 class CloneVisitor;
 
-
 template< typename... Ts >
 class CloneVisitor< Tree<Ts... > >{
 private:
-  using Tree = Tree<Ts...>;
+  using Tree  = Tree<Ts...>;
+  using INode = typename Tree::INode;
 public:
   template< typename T >
-  void operator()( const T& node ){
-    // TODO : finish
-    auto( it = children_begin( node ); it != children_end( node ); ++it ){
-      *it = it->clone();
-      auto adapter = Tree::adaptVisitor( *this );
-      it->accept( adapter );
+  void operator()( T& node ){
+    
+    for( auto child_it = children_begin( node ); child_it != children_end( node ); ++child_it ){
+      const INode* originalNodeAddress = &(child_it->node());
+
+      auto match = visited_.find( originalNodeAddress );
+      
+      if( match == visited_.cend() ){ // uniqie node
+	auto clone = (*child_it)->clone();
+	visited_[ originalNodeAddress ] = clone;
+	*child_it = clone;
+	auto adapter = Tree::adaptVisitor( *this );
+	child_it->accept( adapter );
+      } else {			// node already cloned
+	*child_it = *(match.second); 	// no recursion - already copied this branch
+      }
     }
     
     
@@ -33,7 +43,7 @@ public:
   
 
 private:
-  std::vector< const Tree*> visited_;
+  std::unordered_map< const INode*, Tree > visited_; // original node -> cloned tree
 };
 
 
