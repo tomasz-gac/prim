@@ -19,7 +19,11 @@ public:
   public:
     template< typename T >
     void dispatch( T& object ){
-      static_cast< tree_impl__::IVisitor<typename std::remove_const<T>::type>*>(this)->visit( object );
+      static_cast<
+	tree_impl__::IVisitor<
+	  typename std::remove_const<T>::type
+	  >*
+	>(this)->visit( object );
     }
   };
 
@@ -69,9 +73,16 @@ public:
     static_assert( disjunction< std::is_same< T, Ts >... >::value, "Type not supported by Tree." );
     return Tree( new T( std::forward<Us>(Vs)... ) );
   }
-
-  void accept( INodeVisitor& visitor )       { node_->accept( visitor ); }
-  void accept( INodeVisitor& visitor ) const { node_->accept( visitor ); }
+  void accept( INodeVisitor& visitor )       {
+    // using non_const_accept = void (INode::*)( INodeVisitor& ); // accept
+    // ((*node_).*non_const_accept(&(*node_).accept))( visitor );
+    node_->accept( visitor );
+  }
+  void accept( INodeVisitor& visitor ) const {
+    // using const_accept = void (INode::*)( INodeVisitor& ) const; // const accept
+    // ((*node_).*const_accept(&(*node_).accept))( visitor );
+    node_->accept( visitor );
+  }
   
         INode& node()       { return *node_; }
   const INode& node() const { return *node_; }
@@ -108,10 +119,10 @@ class Tree<Ts...>::VisitorAdapter_impl
 {
   using VA = Tree<Ts...>::VisitorAdapter<F>;
 public:
-  virtual void visit(       U& v ) override { static_cast<VA*>(this)->visit(v); }
-  virtual void visit( const U& v ) override { static_cast<VA*>(this)->visit(v); }
+  virtual void visit(       U& v ) override { std::cout << "U&" << std::endl; static_cast<VA*>(this)->visit(v); }
+  virtual void visit( const U& v ) override { std::cout << "const U&" << std::endl; static_cast<VA*>(this)->visit(v); }
 
-  ~VisitorAdapter_impl() = default;
+  virtual ~VisitorAdapter_impl() = default;
 };
 
 template< typename... Ts >
@@ -121,8 +132,8 @@ class Tree<Ts...>::VisitorAdapter_impl< F, U >
 {
   using VA = Tree<Ts...>::VisitorAdapter<F>;
 public:
-  virtual void visit(       U& v ) override { static_cast<VA*>(this)->visit(v); }
-  virtual void visit( const U& v ) override { static_cast<VA*>(this)->visit(v); }
+  virtual void visit(       U& v ) override { std::cout << "U&" << std::endl; static_cast<VA*>(this)->visit(v); }
+  virtual void visit( const U& v ) override { std::cout << "const U&" << std::endl; static_cast<VA*>(this)->visit(v); }
 
   virtual ~VisitorAdapter_impl() = default;
 };
@@ -133,8 +144,11 @@ class Tree<Ts...>:: VisitorAdapter
   : public VisitorAdapter_impl< F, Ts... >
 {
 public:
+  template< typename > class print_type;
   template< typename T >
-  void visit( T&& v ){ f_( std::forward<T>(v) ); }
+  void visit( T& v ){
+    f_( v );
+  }
 
   VisitorAdapter( F& f ) : f_(f) {};
 
@@ -143,7 +157,7 @@ public:
 
 template< typename... Ts >
 template< typename F >
-Tree<Ts...>::VisitorAdapter<F>Tree<Ts...>::adaptVisitor( F& f ){
+Tree<Ts...>::VisitorAdapter<F> Tree<Ts...>::adaptVisitor( F& f ){
   return { f };
 }
 

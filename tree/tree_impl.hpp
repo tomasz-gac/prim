@@ -42,12 +42,19 @@ namespace tree_impl__{
 
       template< typename T >
       using extend = Extend< Tree<Ts...>, T, Derived >;
-    
+      template< typename > struct print_type;
+      
       virtual void accept( INodeVisitor& v ) override
-      { v.dispatch( static_cast<       Derived& >( *this )); }
+      {
+	static_cast< IVisitor< Derived >& >(v)
+	  .visit( static_cast< Derived& >(*this) );
+      }
 
       virtual void accept( INodeVisitor& v ) const override
-      { v.dispatch( static_cast< const Derived& >( *this )); }
+      {
+	static_cast< IVisitor< Derived >& >(v)
+	  .visit( static_cast< const Derived& >(*this) );
+      }
     
       virtual Tree<Ts...> clone() const override{
 	return Tree<Ts...>( new Derived( static_cast<const Derived&>(*this) ) );

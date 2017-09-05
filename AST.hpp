@@ -35,5 +35,15 @@ namespace AST{
     return Rule::make<Sequence>( std::move(lhs), std::move(rhs));
   }
 
+  inline Rule* children_begin( Regex& ){ return nullptr; }
+  inline Rule* children_end( Regex& ){ return nullptr; }
+  inline const Rule* children_cbegin( const Regex& ){ return nullptr; }
+  inline const Rule* children_cend( const Regex& ){ return nullptr; }
+  inline Rule* children_rbegin( Regex& ){ return nullptr; }
+  inline Rule* children_rend( Regex& ){ return nullptr; }
+  inline const Rule* children_crbegin( const Regex& ){ return nullptr; }
+  inline const Rule* children_crend( const Regex& ){ return nullptr; }
+
+  
 }
 #endif // __AST_HPP__

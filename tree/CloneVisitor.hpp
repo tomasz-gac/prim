@@ -14,31 +14,37 @@ private:
   using INode = typename Tree::INode;
 public:
   template< typename T >
-  void operator()( T& node ){
-    
-    for( auto child_it = children_begin( node ); child_it != children_end( node ); ++child_it ){
-      const INode* originalNodeAddress = &(child_it->node());
-
-      auto match = visited_.find( originalNodeAddress );
-      
-      if( match == visited_.cend() ){ // uniqie node
-	auto clone = (*child_it)->clone();
-	visited_[ originalNodeAddress ] = clone;
-	*child_it = clone;
-	auto adapter = Tree::adaptVisitor( *this );
-	child_it->accept( adapter );
-      } else {			// node already cloned
-	*child_it = *(match.second); 	// no recursion - already copied this branch
-      }
+  // typename std::enable_if< !std::is_const< T >::value, void >::type
+  void
+  operator()( T& node ){
+    for( auto it = children_cbegin( node ); it != children_cend( node ); ++it ) {
+      auto adapter = Tree::adaptVisitor( *this );
+      it->accept( adapter );
     }
+    
+    // for( auto child_it = children_begin( node ); child_it != children_end( node ); ++child_it ){
+    //   const INode* originalNodeAddress = &(child_it->node());
+
+    //   auto match = visited_.find( originalNodeAddress );
+      
+    //   if( match == visited_.cend() ){ // uniqie node
+    // 	auto clone = (*child_it)->clone();
+    // 	visited_[ originalNodeAddress ] = clone;
+    // 	*child_it = clone;
+    // 	auto adapter = Tree::adaptVisitor( *this );
+    // 	child_it->accept( adapter );
+    //   } else {			// node already cloned
+    // 	*child_it = match->second; 	// no recursion - already copied this branch
+    //   }
+    // }
     
     
   }
 
   CloneVisitor( Tree cloned )
     : result( cloned->clone() )
-  { }
-  
+  {
+  };  
   Tree result;
   
 
