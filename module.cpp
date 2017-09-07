@@ -9,13 +9,10 @@ char const* greet()
 {
   auto rule = AST::Rule::make<AST::Regex>();
   auto b2 = rule & (rule | rule);
-  //  auto cv = CloneVisitor< AST::Rule >( b2 );
-  //  auto adapter = AST::Rule::adaptVisitor( cv );
-  //  cv.result.accept( adapter );
-
-  //  auto b3 = cv.result; // b2.node().clone();
-  b2 = b2 & b2;
-  ReprVisitor printer( b2 );
+  auto b3 = clone(b2); // b2.node().clone();
+  b2 = b2 & b3;
+  ReprVisitor printer;
+  printer.visit( b2 );
   std::cout << printer.result << std::endl;
   return "hello, world";
 }

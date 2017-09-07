@@ -113,5 +113,61 @@ children_crend( const tree_impl__::CRTP::Dynamic< Tree< Ts... >, Derived >& node
   return node.children.crend();
 }
 
+template< typename... Ts, typename Derived >
+inline
+Tree<Ts...>* 
+children_begin( tree_impl__::CRTP::Terminal< Tree<Ts...>, Derived >& ){
+  return nullptr;
+}
+
+template< typename... Ts, typename Derived >
+inline
+Tree<Ts...>* 
+children_end( tree_impl__::CRTP::Terminal< Tree<Ts...>, Derived >& ){
+  return nullptr;
+}
+
+template< typename... Ts, typename Derived >
+inline
+const Tree<Ts...>* 
+children_cbegin( const tree_impl__::CRTP::Terminal< Tree<Ts...>, Derived >& ){
+  return nullptr;
+}
+
+template< typename... Ts, typename Derived >
+inline
+const Tree<Ts...>* 
+children_cend( const tree_impl__::CRTP::Terminal< Tree<Ts...>, Derived >& ){
+  return nullptr;
+}
+
+template< typename... Ts, typename Derived >
+inline
+Tree<Ts...>* 
+children_rbegin( tree_impl__::CRTP::Terminal< Tree<Ts...>, Derived >& ){
+  return nullptr;
+}
+
+template< typename... Ts, typename Derived >
+inline
+Tree<Ts...>* 
+children_rend( tree_impl__::CRTP::Terminal< Tree<Ts...>, Derived >& ){
+  return nullptr;
+}
+
+template< typename... Ts, typename Derived >
+inline
+const Tree<Ts...>* 
+children_crbegin( const tree_impl__::CRTP::Terminal< Tree<Ts...>, Derived >& ){
+  return nullptr;
+}
+
+template< typename... Ts, typename Derived >
+inline
+const Tree<Ts...>* 
+children_crend( const tree_impl__::CRTP::Terminal< Tree<Ts...>, Derived >& ){
+  return nullptr;
+}
+
 
 #endif // __CHILDREN_ITERATORS_IMPL_HPP__

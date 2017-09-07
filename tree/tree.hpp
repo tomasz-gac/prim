@@ -10,48 +10,14 @@
 template< typename... Ts >
 class Tree{
 public:
-  class INode;
+  using IVisitor       = ::IVisitor<       Tree >;
+  using IVisitor_const = ::IVisitor< const Tree >;
   
-public:
-  class IVisitor
-    : public tree_impl__::IVisitor_impl<typename std::remove_const<Ts>::type >...
-  {  };
+  using INode = ::INode< Tree >;
 
-  class IVisitor_const
-    : public tree_impl__::IVisitor_impl< typename std::add_const<Ts>::type >...
-  {  };
-
-private:
-  template< typename F >
-  class Adapter;
+  template< typename Derived >
+  using Terminal = tree_impl__::CRTP::Terminal< Tree, Derived >;
   
-  template< typename F >
-  class Adapter_const;
-  
-  template< typename F, typename U, typename... Us >
-  class Adapter_impl;
-
-public:
-  template< typename F >
-  static Adapter<F> adapt( F& f );
-  
-  template< typename F >
-  static Adapter_const<F> adapt_const( F& f );
-  
-public:
-  class INode{
-  public:
-    template< typename Derived >
-    using extend = tree_impl__::CRTP::Extend< Tree, Derived, INode >;
-
-    virtual void accept( IVisitor& )       = 0;
-    virtual void accept( IVisitor_const& ) const = 0;
-
-    virtual Tree clone() const = 0;
-
-    virtual ~INode() = default;
-  };
-
   template< typename Derived >
   using Unary = tree_impl__::CRTP::Static< Tree, Derived, 1 >;
 
@@ -74,13 +40,9 @@ public:
     return Tree( new T( std::forward<Us>(Vs)... ) );
   }
   void accept( IVisitor& visitor )       {
-    // using non_const_accept = void (INode::*)( IVisitor& ); // accept
-    // ((*node_).*non_const_accept(&(*node_).accept))( visitor );
     node_->accept( visitor );
   }
   void accept( IVisitor_const& visitor ) const {
-    // using const_accept = void (INode::*)( IVisitor& ) const; // const accept
-    // ((*node_).*const_accept(&(*node_).accept))( visitor );
     node_->accept( visitor );
   }
   
@@ -89,6 +51,12 @@ public:
 
         INode* operator->()       { return &*node_; }
   const INode* operator->() const { return &*node_; }
+
+  template< typename F >
+  static Adapter<       Tree, F> adapt( F& f );
+
+  template< typename F  >
+  static Adapter< const Tree, F> adapt_const( F& f );
 
   Tree& operator=( Tree other ){
     node_ = other.node_;
@@ -112,74 +80,17 @@ private:
   std::shared_ptr< INode > node_;
 };
 
-template< typename... Ts >
-template< typename F, typename U, typename... Us >
-class Tree<Ts...>::Adapter_impl
-  : public Adapter_impl< F, Us... >
-{
-public:
-  virtual void visit( U& v ) override { static_cast<F*>(this)->visit(v); }
-
-  virtual ~Adapter_impl() = default;
-};
-
-template< typename... Ts >
-template< typename F, typename U >
-class Tree<Ts...>::Adapter_impl< F, U >
-  : public std::conditional<
-  std::is_const<U>::value
-  , Tree<Ts...>::IVisitor_const
-  , Tree<Ts...>::IVisitor
-  >::type
-{
-public:
-  virtual void visit( U& v ) override { static_cast<F*>(this)->visit(v); }
-
-  virtual ~Adapter_impl() = default;
-};
 
 template< typename... Ts >
 template< typename F >
-class Tree<Ts...>::Adapter
-  : public Adapter_impl< Adapter<F>, typename std::remove_const<Ts>::type... >
-{
-public:
-  template< typename T >
-  void visit( T& v ){
-    f_( v );
-  }
-
-  Adapter( F& f ) : f_(f) {};
-
-  F& f_;
-};
-
-template< typename... Ts >
-template< typename F >
-class Tree<Ts...>::Adapter_const
-  : public Adapter_impl< Adapter_const<F>, typename std::add_const<Ts>::type... >
-{
-public:
-  template< typename T >
-  void visit( T& v ){
-    f_( v );
-  }
-
-  Adapter_const( F& f ) : f_(f) {};
-
-  F& f_;
-};
-
-template< typename... Ts >
-template< typename F >
-Tree<Ts...>::Adapter<F> Tree<Ts...>::adapt( F& f ){
+Adapter<Tree<Ts...>, F> Tree<Ts...>::adapt( F& f ){
   return { f };
 }
 
 template< typename... Ts >
 template< typename F >
-Tree<Ts...>::Adapter_const<F> Tree<Ts...>::adapt_const( F& f ){
-  return { f };
+Adapter<const Tree<Ts...>, F> Tree<Ts...>::adapt_const( F& f ){
+  return {f};
 }
 
 #include "children_iterator_impl.hpp"

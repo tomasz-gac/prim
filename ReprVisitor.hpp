@@ -1,13 +1,14 @@
 #ifndef __REPR_VISITOR_HPP__
 #define __REPR_VISITOR_HPP__
 
-#include "AST.hpp"
+#include "tree/tree.hpp"
 #include <vector>
 #include <iostream>
 #include <algorithm>
 #include <string>
 
 class ReprVisitor
+  : public const_visitor<ReprVisitor>
 {
  public:
   template< typename T >
@@ -20,39 +21,24 @@ class ReprVisitor
       auto match = std::find( visited_.cbegin(), visited_.cend(), node_addr  );
     if( match != visited_.cend() ){ // node has already been visited
       auto index = std::distance( visited_.cbegin(), match ) + 1;
-      text += "<<Parser " + std::to_string( index  ) + " recursion>>";
+      text += "<<Node " + std::to_string( index  ) + " recursion>>";
     } else {			     // node visited for the first time
       visited_.push_back( node_addr ); // add the node's address 
       auto id = visited_.size();   // id is the current size of visited_ vector
-      text += std::to_string( id ) + ":" + visit( node ); // handle specific nodes
+      text += std::to_string( id ) + ":" + visit_node( node ); // handle specific nodes
     }
     --depth_;			// decrease depth of ident
     result = std::move(text);	// return by member
   }
 
-  // std::string visit( const Regex& node );
-  // std::string visit( const Alternative& node );
-  // std::string visit( const Sequence& node );
-
   std::string result;
-
-  template< typename... Ts >
-  ReprVisitor( const Tree<Ts...>& tree ){
-    auto adapter = Tree<Ts...>::adapt_const( *this );
-      tree.accept( adapter );
-  }
     
  private:
   template< typename T >
-    std::string visit( const T& node ){
+    std::string visit_node( const T& node ){
     auto text = "<class " + std::string(typeid( node ).name()) + ">";
     for( auto it = children_cbegin(node); it != children_cend( node ); ++it ){
-      auto av =
-	   typename std::remove_reference<
-	   typename std::remove_const<
-	   decltype(*it)
-	   >::type>::type::adapt_const( *this );
-      it->accept( av );
+      visit( *it );
       text += "\n" + this->result;
     }
     return text;
