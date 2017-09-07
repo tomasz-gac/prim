@@ -13,30 +13,30 @@ public:
   class INode;
   
 public:
-  class INodeVisitor
-    : public tree_impl__::IVisitor<Ts>...
-  {
-  public:
-    template< typename T >
-    void dispatch( T& object ){
-      static_cast<
-	tree_impl__::IVisitor<
-	  typename std::remove_const<T>::type
-	  >*
-	>(this)->visit( object );
-    }
-  };
+  class IVisitor
+    : public tree_impl__::IVisitor_impl<typename std::remove_const<Ts>::type >...
+  {  };
+
+  class IVisitor_const
+    : public tree_impl__::IVisitor_impl< typename std::add_const<Ts>::type >...
+  {  };
 
 private:
   template< typename F >
-  class VisitorAdapter;
+  class Adapter;
+  
+  template< typename F >
+  class Adapter_const;
   
   template< typename F, typename U, typename... Us >
-  class VisitorAdapter_impl;
+  class Adapter_impl;
 
 public:
   template< typename F >
-  static VisitorAdapter<F> adaptVisitor( F& f );
+  static Adapter<F> adapt( F& f );
+  
+  template< typename F >
+  static Adapter_const<F> adapt_const( F& f );
   
 public:
   class INode{
@@ -44,8 +44,8 @@ public:
     template< typename Derived >
     using extend = tree_impl__::CRTP::Extend< Tree, Derived, INode >;
 
-    virtual void accept( INodeVisitor& )       = 0;
-    virtual void accept( INodeVisitor& ) const = 0;
+    virtual void accept( IVisitor& )       = 0;
+    virtual void accept( IVisitor_const& ) const = 0;
 
     virtual Tree clone() const = 0;
 
@@ -73,13 +73,13 @@ public:
     static_assert( disjunction< std::is_same< T, Ts >... >::value, "Type not supported by Tree." );
     return Tree( new T( std::forward<Us>(Vs)... ) );
   }
-  void accept( INodeVisitor& visitor )       {
-    // using non_const_accept = void (INode::*)( INodeVisitor& ); // accept
+  void accept( IVisitor& visitor )       {
+    // using non_const_accept = void (INode::*)( IVisitor& ); // accept
     // ((*node_).*non_const_accept(&(*node_).accept))( visitor );
     node_->accept( visitor );
   }
-  void accept( INodeVisitor& visitor ) const {
-    // using const_accept = void (INode::*)( INodeVisitor& ) const; // const accept
+  void accept( IVisitor_const& visitor ) const {
+    // using const_accept = void (INode::*)( IVisitor& ) const; // const accept
     // ((*node_).*const_accept(&(*node_).accept))( visitor );
     node_->accept( visitor );
   }
@@ -114,50 +114,71 @@ private:
 
 template< typename... Ts >
 template< typename F, typename U, typename... Us >
-class Tree<Ts...>::VisitorAdapter_impl
-  : public VisitorAdapter_impl< F, Us... >
+class Tree<Ts...>::Adapter_impl
+  : public Adapter_impl< F, Us... >
 {
-  using VA = Tree<Ts...>::VisitorAdapter<F>;
 public:
-  virtual void visit(       U& v ) override { std::cout << "U&" << std::endl; static_cast<VA*>(this)->visit(v); }
-  virtual void visit( const U& v ) override { std::cout << "const U&" << std::endl; static_cast<VA*>(this)->visit(v); }
+  virtual void visit( U& v ) override { static_cast<F*>(this)->visit(v); }
 
-  virtual ~VisitorAdapter_impl() = default;
+  virtual ~Adapter_impl() = default;
 };
 
 template< typename... Ts >
 template< typename F, typename U >
-class Tree<Ts...>::VisitorAdapter_impl< F, U >
-  : public Tree<Ts...>::INodeVisitor
+class Tree<Ts...>::Adapter_impl< F, U >
+  : public std::conditional<
+  std::is_const<U>::value
+  , Tree<Ts...>::IVisitor_const
+  , Tree<Ts...>::IVisitor
+  >::type
 {
-  using VA = Tree<Ts...>::VisitorAdapter<F>;
 public:
-  virtual void visit(       U& v ) override { std::cout << "U&" << std::endl; static_cast<VA*>(this)->visit(v); }
-  virtual void visit( const U& v ) override { std::cout << "const U&" << std::endl; static_cast<VA*>(this)->visit(v); }
+  virtual void visit( U& v ) override { static_cast<F*>(this)->visit(v); }
 
-  virtual ~VisitorAdapter_impl() = default;
+  virtual ~Adapter_impl() = default;
 };
 
 template< typename... Ts >
 template< typename F >
-class Tree<Ts...>:: VisitorAdapter
-  : public VisitorAdapter_impl< F, Ts... >
+class Tree<Ts...>::Adapter
+  : public Adapter_impl< Adapter<F>, typename std::remove_const<Ts>::type... >
 {
 public:
-  template< typename > class print_type;
   template< typename T >
   void visit( T& v ){
     f_( v );
   }
 
-  VisitorAdapter( F& f ) : f_(f) {};
+  Adapter( F& f ) : f_(f) {};
 
   F& f_;
 };
 
 template< typename... Ts >
 template< typename F >
-Tree<Ts...>::VisitorAdapter<F> Tree<Ts...>::adaptVisitor( F& f ){
+class Tree<Ts...>::Adapter_const
+  : public Adapter_impl< Adapter_const<F>, typename std::add_const<Ts>::type... >
+{
+public:
+  template< typename T >
+  void visit( T& v ){
+    f_( v );
+  }
+
+  Adapter_const( F& f ) : f_(f) {};
+
+  F& f_;
+};
+
+template< typename... Ts >
+template< typename F >
+Tree<Ts...>::Adapter<F> Tree<Ts...>::adapt( F& f ){
+  return { f };
+}
+
+template< typename... Ts >
+template< typename F >
+Tree<Ts...>::Adapter_const<F> Tree<Ts...>::adapt_const( F& f ){
   return { f };
 }
 

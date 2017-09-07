@@ -8,12 +8,11 @@ class Tree;
 
 namespace tree_impl__{
   template< typename T >
-  class IVisitor{
+  class IVisitor_impl{
   public:
-    virtual void visit(      T& ) = 0;
-    virtual void visit(const T& ) = 0;
+    virtual void visit( T& ) = 0;
 
-    virtual ~IVisitor() = default;
+    virtual ~IVisitor_impl() = default;
   };
 
   namespace CRTP {
@@ -32,8 +31,9 @@ namespace tree_impl__{
       : public Base
     {
     private:
-      using INode        = typename Tree<Ts...>::INode;
-      using INodeVisitor = typename Tree<Ts...>::INodeVisitor;
+      using INode          = typename Tree<Ts...>::INode;
+      using IVisitor       = typename Tree<Ts...>::IVisitor;
+      using IVisitor_const = typename Tree<Ts...>::IVisitor_const;
     public:
       static_assert( std::is_base_of< INode, Base >::value, "Base has to be derived from INode");
       static_assert( disjunction< std::is_same< Derived, Ts >... >::value, "Type not supported by Tree." );
@@ -44,15 +44,15 @@ namespace tree_impl__{
       using extend = Extend< Tree<Ts...>, T, Derived >;
       template< typename > struct print_type;
       
-      virtual void accept( INodeVisitor& v ) override
+      virtual void accept( IVisitor& v ) override
       {
-	static_cast< IVisitor< Derived >& >(v)
+	static_cast< IVisitor_impl< Derived >& >(v)
 	  .visit( static_cast< Derived& >(*this) );
       }
 
-      virtual void accept( INodeVisitor& v ) const override
+      virtual void accept( IVisitor_const& v ) const override
       {
-	static_cast< IVisitor< Derived >& >(v)
+	static_cast< IVisitor_impl< typename std::add_const<Derived>::type >& >(v)
 	  .visit( static_cast< const Derived& >(*this) );
       }
     

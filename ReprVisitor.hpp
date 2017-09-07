@@ -7,71 +7,64 @@
 #include <algorithm>
 #include <string>
 
-template< typename T >
-struct print_type;
-
-namespace AST{
-  
-  class ReprVisitor 
-  {
-  public:
-    template< typename T >
+class ReprVisitor
+{
+ public:
+  template< typename T >
     void operator()( const T& node ){
-      result = std::string();	// requires empty result on entry to recurse
-      ++depth_;			// increase depth for ident
-      auto text = ident();
-      // check whether node was already visited
-      auto match = std::find( visited_.cbegin(), visited_.cend(), &node );
-      if( match != visited_.cend() ){ // node has already been visited
-	auto index = std::distance( visited_.cbegin(), match ) + 1;
-	text += "<<Parser " + std::to_string( index  ) + " recursion>>";
-      } else {			     // node visited for the first time
-	visited_.push_back( &node ); // add the node's address 
-	auto id = visited_.size();   // id is the current size of visited_ vector
-	text += std::to_string( id ) + ":" + visit( node ); // handle specific nodes
-      }
-      --depth_;			// decrease depth of ident
-      result = std::move(text);	// return by member
+    result = std::string();	// requires empty result on entry to recurse
+    ++depth_;			// increase depth for ident
+    auto text = ident();
+      auto* node_addr = static_cast< const void* >(&node);
+    // check whether node was already visited
+      auto match = std::find( visited_.cbegin(), visited_.cend(), node_addr  );
+    if( match != visited_.cend() ){ // node has already been visited
+      auto index = std::distance( visited_.cbegin(), match ) + 1;
+      text += "<<Parser " + std::to_string( index  ) + " recursion>>";
+    } else {			     // node visited for the first time
+      visited_.push_back( node_addr ); // add the node's address 
+      auto id = visited_.size();   // id is the current size of visited_ vector
+      text += std::to_string( id ) + ":" + visit( node ); // handle specific nodes
     }
-     
-    std::string visit( const Regex& node );
-    std::string visit( const Alternative& node );
-    std::string visit( const Sequence& node );
+    --depth_;			// decrease depth of ident
+    result = std::move(text);	// return by member
+  }
 
-    std::string result;
+  // std::string visit( const Regex& node );
+  // std::string visit( const Alternative& node );
+  // std::string visit( const Sequence& node );
+
+  std::string result;
+
+  template< typename... Ts >
+  ReprVisitor( const Tree<Ts...>& tree ){
+    auto adapter = Tree<Ts...>::adapt_const( *this );
+      tree.accept( adapter );
+  }
     
-  private:
-    template< typename T >
-    std::string visitChildren( const T& node ){
-      auto text = std::string();
-      for( auto it = children_cbegin(node); it != children_cend( node ); ++it ){
-    	auto av = Rule::adaptVisitor( *this );
-    	it->accept( av );
-    	text += "\n" + this->result;
-      }
-      return text;
+ private:
+  template< typename T >
+    std::string visit( const T& node ){
+    auto text = "<class " + std::string(typeid( node ).name()) + ">";
+    for( auto it = children_cbegin(node); it != children_cend( node ); ++it ){
+      auto av =
+	   typename std::remove_reference<
+	   typename std::remove_const<
+	   decltype(*it)
+	   >::type>::type::adapt_const( *this );
+      it->accept( av );
+      text += "\n" + this->result;
     }
-
+    return text;
+  }
     
-    // template< typename InputIt >
-    // std::string visitChildren( InputIt begin, InputIt end ){
-    //   auto text = std::string();
-    //   for( auto& it = begin; it != end; ++it ){
-    // 	auto av = Rule::adaptVisitor( *this );
-    // 	it->accept( av );
-    // 	text += "\n" + this->result;
-    //   }
-    //   return text;
-    // }
-    
-    std::string ident() const {
-      if( depth_ == 0 ) return std::string();
-      return std::string( depth_-1, '|' ) + "+";
-    }
+  std::string ident() const {
+    if( depth_ == 0 ) return std::string();
+    return std::string( depth_-1, '|' ) + "+";
+  }
 
-    int depth_ = -1;
-    std::vector< const Rule::INode* > visited_; // visit each node once
-  };
+  int depth_ = -1;
+  std::vector< const void* > visited_; // visit each node once
+};
 
-}
 #endif // __REPR_VISITOR_HPP__
