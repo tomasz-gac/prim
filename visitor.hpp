@@ -34,7 +34,7 @@ public:
 
     //Helper function
   template< typename F >
-  static VisitorAdapter<F&&> adaptVisitor( F&& f )
+  static VisitorAdapter<F> adaptVisitor( F&& f )
   { return { std::forward<F>(f) }; }
 
     //Accept visitor pure virtual methods
