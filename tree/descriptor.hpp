@@ -62,6 +62,10 @@ class Descriptor
   }
 
   std::string ident_ = "";
+<<<<<<< HEAD:tree/descriptor.hpp
+=======
+  // int depth_ = -1;
+>>>>>>> e8bf99bd9ef72e7f3f3f70b759466d8d1998de81:tree/descriptor.hpp
   std::vector< const void* > visited_; // visit each node once
 };
 
