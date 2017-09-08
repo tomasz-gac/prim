@@ -2,6 +2,7 @@
 #define __AST_HPP__
 
 #include "tree/tree.hpp"
+#include "tree/descriptor.hpp"
  
 namespace AST{
   using Rule = Tree< class Alternative, class Sequence, class Regex >;
@@ -34,8 +35,11 @@ namespace AST{
   inline Rule operator&( Rule   lhs, Rule   rhs ){
     return Rule::make<Sequence>( std::move(lhs), std::move(rhs));
   }
-
-
   
 }
+
+std::string descriptor_name( const AST::Alternative& ){ return "AST::Alternative"; };
+std::string descriptor_name( const AST::Sequence& ){ return "AST::Sequence"; };
+std::string descriptor_name( const AST::Regex& ){ return "AST::Regex"; };
+
 #endif // __AST_HPP__
