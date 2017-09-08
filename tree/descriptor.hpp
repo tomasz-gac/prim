@@ -1,23 +1,26 @@
-#ifndef __REPR_VISITOR_HPP__
-#define __REPR_VISITOR_HPP__
+#ifndef __DESCRIPTOR_HPP__
+#define __DESCRIPTOR_HPP__
 
-#include "tree/tree.hpp"
+#include "tree.hpp"
 #include <vector>
-#include <iostream>
 #include <algorithm>
 #include <string>
+#include <typeinfo>
 
-class ReprVisitor
-  : public const_visitor<ReprVisitor>
+template< typename T >
+std::string descriptor_name( const T&) { return typeid( T ).name(); }
+
+
+class Descriptor
+  : public const_visitor<Descriptor>
 {
  public:
   template< typename T >
     void operator()( const T& node ){
     result = std::string();	// requires empty result on entry to recurse
-    ++depth_;			// increase depth for ident
     auto text = ident();
       auto* node_addr = static_cast< const void* >(&node);
-    // check whether node was already visited
+      // check whether node was already visited
       auto match = std::find( visited_.cbegin(), visited_.cend(), node_addr  );
     if( match != visited_.cend() ){ // node has already been visited
       auto index = std::distance( visited_.cbegin(), match ) + 1;
@@ -27,7 +30,6 @@ class ReprVisitor
       auto id = visited_.size();   // id is the current size of visited_ vector
       text += std::to_string( id ) + ":" + visit_node( node ); // handle specific nodes
     }
-    --depth_;			// decrease depth of ident
     result = std::move(text);	// return by member
   }
 
@@ -36,21 +38,32 @@ class ReprVisitor
  private:
   template< typename T >
     std::string visit_node( const T& node ){
-    auto text = "<class " + std::string(typeid( node ).name()) + ">";
-    for( auto it = children_cbegin(node); it != children_cend( node ); ++it ){
+    auto text = "<" + descriptor_name( node ) + ">";
+    ident_ += "|";
+    auto& separator = ident_.back();
+    const auto end_it = children_cend( node );
+    for( auto it = children_cbegin(node); it != end_it; ++it ){
+      if( std::next( it ) == end_it ){
+       	separator = ' ';
+       }
       visit( *it );
       text += "\n" + this->result;
     }
+    ident_.pop_back();
     return text;
   }
     
   std::string ident() const {
-    if( depth_ == 0 ) return std::string();
-    return std::string( depth_-1, '|' ) + "+";
+    if( !ident_.empty() ){
+      return std::string( ident_.cbegin(), --ident_.cend() ) + "+";
+    } else {
+      return "";
+    }    
   }
 
-  int depth_ = -1;
+  std::string ident_ = "";
+  // int depth_ = -1;
   std::vector< const void* > visited_; // visit each node once
 };
 
-#endif // __REPR_VISITOR_HPP__
+#endif // __DESCRIPTOR_HPP__
