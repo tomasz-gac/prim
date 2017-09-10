@@ -17,11 +17,12 @@ int main()
   std::cout << "begin" << std::endl;
   {
     auto never = AST::Rule::make< AST::Never >();
-    std::cout << "Never" << std::endl;
-    auto b2 = AST::Rule::make<AST::Not>( never );
-    std::cout << "Not" << std::endl;
-    static_cast< AST::Not& >(b2.node()).children[0] = b2;
-    std::cout << "Ref" << std::endl;
+    auto nt = AST::Not( never );
+    // std::cout << "Never" << std::endl;
+    // auto b2 = AST::Rule::make<AST::Not>( never );
+    // std::cout << "Not" << std::endl;
+    // static_cast< AST::Not& >(*b2).children[0] = b2;
+    // std::cout << "Ref" << std::endl;
   }
   std::cout << "end" << std::endl;
   return 0; //"hello, world";

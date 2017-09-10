@@ -1,13 +1,13 @@
 #ifndef __AST_HPP__
 #define __AST_HPP__
 
-#include "tree/tree.hpp"
+#include "tree/node.hpp"
 #include "tree/descriptor.hpp"
 #include <iostream>
  
 namespace AST{
-  using Rule_t__ =
-    Tree<
+  using Rule =
+    Node<
       class Alternative
     , class Sequence
     , class Handle
@@ -23,7 +23,7 @@ namespace AST{
 }
 
 template<>
-class INode_interface< AST::Rule_t__ >{
+class INode_interface< AST::Rule >{
 public:
   INode_interface(){
     std::cout << "INode() : " << (size_t)this << std::endl;
@@ -35,27 +35,27 @@ public:
 };
 
 namespace AST{
-  class Rule : public Rule_t__
-  {
-  public:
-    Rule( const Rule_t__& other )
-      : Rule_t__( other )
-    {  }
-    Rule( Rule_t__&& other )
-      : Rule_t__( std::move(other) )
-    {  }
+  // class Rule : public Rule_t__
+  // {
+  // public:
+  //   Rule( const Rule_t__& other ) = delete;
+  //   //   : Rule_t__( other )
+  //   // {  }
+  //   Rule( Rule_t__&& other )
+  //     : Rule_t__( std::move(other) )
+  //   {  }
     
-    Rule( const char* re ) : Rule_t__( Rule_t__::make< Regex >( re ) ){  }
-  };
+  //   Rule( const char* re ) : Rule_t__( Rule_t__::make< Regex >( re ) ){  }
+  // };
 
   struct Alternative : Rule::Binary<Alternative> {
-    Alternative( Rule lhs, Rule rhs )
+    Alternative( Rule& lhs, Rule& rhs )
       : Rule::Binary<Alternative>( lhs, rhs )
     {  }
   };
   
   struct Sequence : Rule::Binary<Sequence>{
-    Sequence( Rule lhs, Rule rhs )
+    Sequence( Rule& lhs, Rule& rhs )
       : Rule::Binary<Sequence>( lhs, rhs )
     {  }
   };
@@ -71,10 +71,10 @@ namespace AST{
   };
 
 
-  struct Not      : Rule::Unary<Not>{ Not( Rule rhs ): Rule::Unary<Not>(rhs) {} };
-  struct Optional : Rule::Unary<Optional>{ Optional( Rule rhs ): Rule::Unary<Optional>(rhs) {} };
-  struct Repeat   : Rule::Unary<Repeat>{ Repeat( Rule rhs ): Rule::Unary<Repeat>(rhs) {} };
-  struct Ignore   : Rule::Unary<Ignore>{ Ignore( Rule rhs ): Rule::Unary<Ignore>(rhs) {} };
+  struct Not      : Rule::Unary<Not>{ Not( Rule& rhs ): Rule::Unary<Not>(rhs) {} };
+  struct Optional : Rule::Unary<Optional>{ Optional( Rule& rhs ): Rule::Unary<Optional>(rhs) {} };
+  struct Repeat   : Rule::Unary<Repeat>{ Repeat( Rule& rhs ): Rule::Unary<Repeat>(rhs) {} };
+  struct Ignore   : Rule::Unary<Ignore>{ Ignore( Rule& rhs ): Rule::Unary<Ignore>(rhs) {} };
 
   struct Always : Rule::Terminal<Always>{ };
   struct Never  : Rule::Terminal<Never>{ };
@@ -87,17 +87,17 @@ namespace AST{
     std::string re;
   };
 
-  inline Rule operator+( Rule rhs ){ return Rule::make< Repeat >( std::move(rhs) ); }
-  inline Rule operator-( Rule rhs ){ return Rule::make< Optional >( std::move(rhs) ); }
-  inline Rule operator!( Rule rhs ){ return Rule::make< Not >( std::move(rhs) ); }
+  inline Rule operator+( Rule& rhs ){ return Rule::make< Repeat >( rhs ); }
+  inline Rule operator-( Rule& rhs ){ return Rule::make< Optional >( rhs ); }
+  inline Rule operator!( Rule& rhs ){ return Rule::make< Not >( rhs ); }
 
-  inline Rule operator|( Rule   lhs, Rule   rhs ){
-    return Rule::make<Alternative>( std::move(lhs), std::move(rhs));
+  inline Rule operator|( Rule&   lhs, Rule&   rhs ){
+    return Rule::make<Alternative>( lhs, rhs );
+  }
+  inline Rule operator&( Rule&   lhs, Rule&   rhs ){
+    return Rule::make<Sequence>( lhs, rhs );
   }
 
-  inline Rule operator&( Rule   lhs, Rule   rhs ){
-    return Rule::make<Sequence>( std::move(lhs), std::move(rhs));
-  }
   
 }
 

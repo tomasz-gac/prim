@@ -1,7 +1,8 @@
 #ifndef __DESCRIPTOR_HPP__
 #define __DESCRIPTOR_HPP__
 
-#include "tree.hpp"
+#include "node.hpp"
+#include "VisitOnce.hpp"
 #include <vector>
 #include <algorithm>
 #include <string>
@@ -9,7 +10,6 @@
 
 template< typename T >
 std::string descriptor_name( const T&) { return typeid( T ).name(); }
-
 
 class Descriptor
   : public const_visitor<Descriptor>
@@ -37,6 +37,8 @@ class Descriptor
   std::string result;
     
  private:
+  template< typename >
+  struct print_type;
   template< typename T >
     std::string visit_node( const T& node ){
     auto text = "<" + descriptor_name( node ) + "> : " + std::to_string( (size_t)&node );
