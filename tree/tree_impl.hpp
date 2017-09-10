@@ -2,6 +2,8 @@
 #define __TREE_IMPL_HPP__
 
 #include "disjunction.hpp"
+#include <vector>
+#include <array>
 
 template< typename... Ts >
 class Tree;
@@ -11,6 +13,9 @@ class IVisitor;
 
 template< typename >
 class INode;
+
+template< typename >
+class INode_interface;
 
 template< typename Tree_t, typename F >
 class Adapter;
@@ -139,9 +144,15 @@ template< typename... Ts >
 class IVisitor< const Tree< Ts... > >
   : public tree_impl__::IVisitor< helpers__::add_const<Ts> >...
 {  };
+
+template< typename... Ts >
+class INode_interface< Tree< Ts... > >
+{  };
   
 template< typename... Ts >
-class INode< Tree< Ts... > >{
+class INode< Tree< Ts... > >
+  : public INode_interface< Tree< Ts... > >
+{
 public:
   template< typename Derived >
   using extend = tree_impl__::CRTP::Extend< Tree<Ts...>, Derived, INode >;

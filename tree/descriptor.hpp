@@ -16,18 +16,19 @@ class Descriptor
 {
  public:
   template< typename T >
-    void operator()( const T& node ){
+  void operator()( const T& node )
+  {
     result = std::string();	// requires empty result on entry to recurse
     auto text = ident();
-      auto* node_addr = static_cast< const void* >(&node);
-      // check whether node was already visited
-      auto match = std::find( visited_.cbegin(), visited_.cend(), node_addr  );
+    const auto* node_addr = static_cast< const void* >(&node);
+    // check whether node was already visited
+    auto match = std::find( visited_.cbegin(), visited_.cend(), node_addr  );
     if( match != visited_.cend() ){ // node has already been visited
       auto index = std::distance( visited_.cbegin(), match ) + 1;
-      text += "<<Node " + std::to_string( index  ) + " recursion>>";
+      text += "<<Node " + std::to_string( index  ) + " recursion>> : " + std::to_string( (size_t)&node );
     } else {			     // node visited for the first time
       visited_.push_back( node_addr ); // add the node's address 
-      auto id = visited_.size();   // id is the current size of visited_ vector
+      auto id = visited_.size();
       text += std::to_string( id ) + ":" + visit_node( node ); // handle specific nodes
     }
     result = std::move(text);	// return by member
@@ -38,7 +39,7 @@ class Descriptor
  private:
   template< typename T >
     std::string visit_node( const T& node ){
-    auto text = "<" + descriptor_name( node ) + ">";
+    auto text = "<" + descriptor_name( node ) + "> : " + std::to_string( (size_t)&node );
     ident_ += "|";
     auto& separator = ident_.back();
     const auto end_it = children_cend( node );
@@ -62,10 +63,6 @@ class Descriptor
   }
 
   std::string ident_ = "";
-<<<<<<< HEAD:tree/descriptor.hpp
-=======
-  // int depth_ = -1;
->>>>>>> e8bf99bd9ef72e7f3f3f70b759466d8d1998de81:tree/descriptor.hpp
   std::vector< const void* > visited_; // visit each node once
 };
 

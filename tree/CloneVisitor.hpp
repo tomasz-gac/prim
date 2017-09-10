@@ -19,11 +19,8 @@ public:
 
       auto match = visited_.find( originalNodeAddress );
       
-      if( match == visited_.cend() ){ // uniqie node
-    	auto clone = (*child_it)->clone();
-	visited_.emplace( std::make_pair( originalNodeAddress, clone ) );
-	//    	visited_[ originalNodeAddress ] = clone;
-    	*child_it = clone;
+      if( match == visited_.cend() ){ // unique node
+	*child_it = registered_clone( *child_it );
     	this->visit( *child_it );
       } else {			// node already cloned
     	*child_it = match->second; 	// no recursion - already copied this branch
@@ -32,15 +29,24 @@ public:
   }
 
   CloneVisitor( Tree<Ts...> cloned )
-    : result( cloned->clone() )
+    : visited_()
+    , result( registered_clone( cloned  ) )
   {
     this->visit( result );
   };  
-  Tree<Ts...> result;
+
   
 
 private:
+  Tree<Ts...> registered_clone( const Tree<Ts...>& original ){
+    auto clone = original->clone();
+    visited_.emplace( std::make_pair( static_cast<const void*>(&original.node()), clone  ) );
+    return std::move( clone );
+  }
+  
   std::unordered_map< const void*, Tree<Ts...> > visited_; // original node -> cloned tree
+public:
+  Tree<Ts...> result;
 };
 
 template< typename... Ts >

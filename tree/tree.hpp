@@ -2,8 +2,6 @@
 #define __TREE_HPP__
 
 #include <memory>
-#include <array>
-#include <vector>
 #include <type_traits>
 #include "tree_impl.hpp"
 
@@ -12,7 +10,7 @@ class Tree{
 public:
   using IVisitor       = ::IVisitor<       Tree >;
   using IVisitor_const = ::IVisitor< const Tree >;
-  
+
   using INode = ::INode< Tree >;
 
   template< typename Derived >
@@ -71,12 +69,12 @@ public:
     : node_( std::move( other.node_ ) )
   {  }
   
-private:  
+protected:  
   Tree() = delete;
   Tree( INode*&& node ){
     node_.reset(node);
   }
-  
+private:  
   std::shared_ptr< INode > node_;
 };
 

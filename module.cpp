@@ -1,25 +1,35 @@
-#include "boost/python/module.hpp"
-#include "boost/python/def.hpp"
+// #include "boost/python/module.hpp"
+// #include "boost/python/def.hpp"
 #include <iostream>
 #include "AST.hpp"
 #include "tree/descriptor.hpp"
 #include "tree/CloneVisitor.hpp"
 
-char const* greet()
-{
-  auto rule = AST::Rule::make<AST::Regex>();
-  auto b2 = (rule | rule) & rule;
-  auto b3 = clone(b2); // b2.node().clone();
-  b2 = b2 & b3;
+void print( const AST::Rule& rule ){
   Descriptor descriptor;
-  descriptor.visit( b2 );
+  descriptor.visit( rule );
   std::cout << descriptor.result << std::endl;
-  return "hello, world";
 }
 
-BOOST_PYTHON_MODULE(hello_ext)
+//char const* greet()
+int main()
 {
-    using namespace boost::python;
-    def("greet", greet);
+  std::cout << "begin" << std::endl;
+  {
+    auto never = AST::Rule::make< AST::Never >();
+    std::cout << "Never" << std::endl;
+    auto b2 = AST::Rule::make<AST::Not>( never );
+    std::cout << "Not" << std::endl;
+    static_cast< AST::Not& >(b2.node()).children[0] = b2;
+    std::cout << "Ref" << std::endl;
+  }
+  std::cout << "end" << std::endl;
+  return 0; //"hello, world";
 }
+
+// BOOST_PYTHON_MODULE(hello_ext)
+// {
+//     using namespace boost::python;
+//     def("greet", greet);
+// }
 
