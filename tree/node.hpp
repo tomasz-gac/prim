@@ -6,27 +6,28 @@
 #include "node_impl.hpp"
 
 template< typename... Ts >
-class Node{
+class Node< INode< Ts... > >{
 public:
-  using IVisitor       = ::IVisitor<       Node >;
-  using IVisitor_const = ::IVisitor< const Node >;
+  using INode = ::INode< Ts... >;
 
-  using INode = ::INode< Node >;
+  using IVisitor       = ::IVisitor<       INode >;
+  using IVisitor_const = ::IVisitor< const INode >;
+
 
   template< typename Derived >
-  using Terminal = node_impl__::CRTP::Terminal< Node, Derived >;
+  using Terminal = node_impl__::CRTP::Terminal< INode, Derived >;
   
   template< typename Derived >
-  using Unary = node_impl__::CRTP::Static< Node, Derived, 1 >;
+  using Unary = node_impl__::CRTP::Static< INode, Derived, 1 >;
 
   template< typename Derived >
-  using Binary = node_impl__::CRTP::Static< Node, Derived, 2 >;
+  using Binary = node_impl__::CRTP::Static< INode, Derived, 2 >;
 
   template< typename Derived, size_t N >
-  using Static = node_impl__::CRTP::Static< Node, Derived, N >;
+  using Static = node_impl__::CRTP::Static< INode, Derived, N >;
 
   template< typename Derived >
-  using Dynamic = node_impl__::CRTP::Dynamic< Node, Derived >;
+  using Dynamic = node_impl__::CRTP::Dynamic< INode, Derived >;
 
   template< typename T, typename Derived, typename Base >
   friend class node_impl__::CRTP::Extend; // For private constructors
@@ -51,10 +52,10 @@ public:
   const INode* operator->() const { return &*node_; }
 
   template< typename F >
-  static Adapter<       Node, F> adapt( F& f );
+  static Adapter<       INode, F> adapt( F& f );
 
   template< typename F  >
-  static Adapter< const Node, F> adapt_const( F& f );
+  static Adapter< const INode, F> adapt_const( F& f );
 
   Node& operator=( Node other ){
     node_ = other.node_;
@@ -81,13 +82,13 @@ private:
 
 template< typename... Ts >
 template< typename F >
-Adapter<Node<Ts...>, F> Node<Ts...>::adapt( F& f ){
+Adapter<INode<Ts...>, F> Node< INode<Ts...>>::adapt( F& f ){
   return { f };
 }
 
 template< typename... Ts >
 template< typename F >
-Adapter<const Node<Ts...>, F> Node<Ts...>::adapt_const( F& f ){
+Adapter<const INode<Ts...>, F> Node<INode<Ts...>>::adapt_const( F& f ){
   return {f};
 }
 

@@ -3,6 +3,7 @@
 
 #include "node.hpp"
 #include <unordered_set>
+#include <tuple>
 
 class VisitOnce
 {
@@ -21,15 +22,15 @@ private:
   }
 
 public:
-  template< typename T, typename F >
-  void once( T& node, F f ){
-    bool found;
-    auto& unpackedNode = 
-    std::tie( std::ingore, found ) =
-      visited_.emplace( static_cast< const void*>(& VisitOnce<Derived>::get( node ) ) );
-
-    if( !found ){
-      f( VisitOnce<Derived>::get( node ) ) );
+  template< typename T, typename F, typename G >
+  void once( T& node, F f, G g = [](const auto&){} ){
+    bool inserted;
+    std::tie( std::ignore, inserted ) =
+      visited_.emplace( static_cast< const void*>(& VisitOnce::get( node ) ) );
+    if( inserted ){		// node is unique
+      f( VisitOnce::get( node ) );
+    } else {
+      g( VisitOnce::get( node ) );
     }
   }
 

@@ -20,17 +20,18 @@ class Descriptor
   {
     result = std::string();	// requires empty result on entry to recurse
     auto text = ident();
-    const auto* node_addr = static_cast< const void* >(&node);
-    // check whether node was already visited
-    auto match = std::find( visited_.cbegin(), visited_.cend(), node_addr  );
-    if( match != visited_.cend() ){ // node has already been visited
-      auto index = std::distance( visited_.cbegin(), match ) + 1;
-      text += "<<Node " + std::to_string( index  ) + " recursion>> : " + std::to_string( (size_t)&node );
-    } else {			     // node visited for the first time
-      visited_.push_back( node_addr ); // add the node's address 
-      auto id = visited_.size();
+    
+    auto onUnique = [this, &text]( const T& node){
+      auto id = visit_.visited().size();
       text += std::to_string( id ) + ":" + visit_node( node ); // handle specific nodes
-    }
+    };
+    
+    auto onVisited = [this, &text]( const T& node){
+      auto index = visit_.visited().size();
+      text += "<<Node " + std::to_string( index  ) + " recursion>> : " + std::to_string( (size_t)&node );
+    };
+    
+    visit_.once( node, onUnique, onVisited );
     result = std::move(text);	// return by member
   }
 
@@ -65,7 +66,7 @@ class Descriptor
   }
 
   std::string ident_ = "";
-  std::vector< const void* > visited_; // visit each node once
+  VisitOnce visit_;
 };
 
 #endif // __DESCRIPTOR_HPP__

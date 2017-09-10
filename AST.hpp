@@ -6,8 +6,8 @@
 #include <iostream>
  
 namespace AST{
-  using Rule =
-    Node<
+  using IRule =
+    INode<
       class Alternative
     , class Sequence
     , class Handle
@@ -20,10 +20,12 @@ namespace AST{
     , class Regex
     >;
 
+  using Rule = Node<IRule>;
+
 }
 
 template<>
-class INode_interface< AST::Rule >{
+class INode_interface< AST::IRule >{
 public:
   INode_interface(){
     std::cout << "INode() : " << (size_t)this << std::endl;
@@ -50,13 +52,13 @@ namespace AST{
 
   struct Alternative : Rule::Binary<Alternative> {
     Alternative( Rule& lhs, Rule& rhs )
-      : Rule::Binary<Alternative>( lhs, rhs )
+      : Rule::Binary<Alternative>( *lhs, *rhs )
     {  }
   };
   
   struct Sequence : Rule::Binary<Sequence>{
     Sequence( Rule& lhs, Rule& rhs )
-      : Rule::Binary<Sequence>( lhs, rhs )
+      : Rule::Binary<Sequence>( *lhs, *rhs )
     {  }
   };
 
@@ -71,10 +73,10 @@ namespace AST{
   };
 
 
-  struct Not      : Rule::Unary<Not>{ Not( Rule& rhs ): Rule::Unary<Not>(rhs) {} };
-  struct Optional : Rule::Unary<Optional>{ Optional( Rule& rhs ): Rule::Unary<Optional>(rhs) {} };
-  struct Repeat   : Rule::Unary<Repeat>{ Repeat( Rule& rhs ): Rule::Unary<Repeat>(rhs) {} };
-  struct Ignore   : Rule::Unary<Ignore>{ Ignore( Rule& rhs ): Rule::Unary<Ignore>(rhs) {} };
+  struct Not      : Rule::Unary<Not>{ Not( Rule& rhs ): Rule::Unary<Not>(*rhs) {} };
+  struct Optional : Rule::Unary<Optional>{ Optional( Rule& rhs ): Rule::Unary<Optional>(*rhs) {} };
+  struct Repeat   : Rule::Unary<Repeat>{ Repeat( Rule& rhs ): Rule::Unary<Repeat>(*rhs) {} };
+  struct Ignore   : Rule::Unary<Ignore>{ Ignore( Rule& rhs ): Rule::Unary<Ignore>(*rhs) {} };
 
   struct Always : Rule::Terminal<Always>{ };
   struct Never  : Rule::Terminal<Never>{ };

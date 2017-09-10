@@ -4,6 +4,7 @@
 #include "AST.hpp"
 #include "tree/descriptor.hpp"
 #include "tree/CloneVisitor.hpp"
+//#include "tree/Collector.hpp"
 
 void print( const AST::Rule& rule ){
   Descriptor descriptor;
@@ -17,7 +18,9 @@ int main()
   std::cout << "begin" << std::endl;
   {
     auto never = AST::Rule::make< AST::Never >();
-    auto nt = AST::Not( never );
+    auto nt = AST::Rule::make<AST::Not>( never );
+    static_cast< AST::Not&>(*nt).children[0] = *nt;
+    print( nt );
     // std::cout << "Never" << std::endl;
     // auto b2 = AST::Rule::make<AST::Not>( never );
     // std::cout << "Not" << std::endl;
