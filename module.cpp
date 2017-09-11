@@ -18,7 +18,7 @@ int main()
   std::cout << "begin" << std::endl;
   {
     auto never = AST::Rule::make< AST::Never >();
-    auto nt = AST::Rule::make<AST::Not>( never );
+    auto nt = AST::Rule::make<AST::Not>( *never );
     static_cast< AST::Not&>(*nt).children[0] = *nt;
     print( nt );
     // std::cout << "Never" << std::endl;

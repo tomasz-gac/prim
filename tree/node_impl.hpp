@@ -156,6 +156,22 @@ public:
   template< typename Derived >
   using extend = node_impl__::CRTP::Extend< INode, Derived, INode >;
 
+  template< typename Derived >
+  using Terminal = node_impl__::CRTP::Terminal< INode, Derived >;
+  
+  template< typename Derived >
+  using Unary = node_impl__::CRTP::Static< INode, Derived, 1 >;
+
+  template< typename Derived >
+  using Binary = node_impl__::CRTP::Static< INode, Derived, 2 >;
+
+  template< typename Derived, size_t N >
+  using Static = node_impl__::CRTP::Static< INode, Derived, N >;
+
+  template< typename Derived >
+  using Dynamic = node_impl__::CRTP::Dynamic< INode, Derived >;
+
+
   virtual void accept( IVisitor<       INode<Ts...> >& )       = 0;
   virtual void accept( IVisitor< const INode<Ts...> >& ) const = 0;
 

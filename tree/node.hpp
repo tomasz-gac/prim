@@ -4,6 +4,19 @@
 #include <memory>
 #include <type_traits>
 #include "node_impl.hpp"
+#include "short_alloc.hpp"
+
+template< size_t, size_t... >
+class max;
+
+template< size_t N, size_t M, size_t... Ns >
+struct max< N, M, Ns... >
+  : public std::conditional< (M > N), max< M, Ns... >, max< N, Ns... > >::type
+{  };
+
+template< size_t N >
+struct max< N > : std::integral_constant< size_t, N >
+{  };
 
 template< typename... Ts >
 class Node< INode< Ts... > >{
@@ -12,7 +25,6 @@ public:
 
   using IVisitor       = ::IVisitor<       INode >;
   using IVisitor_const = ::IVisitor< const INode >;
-
 
   template< typename Derived >
   using Terminal = node_impl__::CRTP::Terminal< INode, Derived >;
@@ -44,7 +56,7 @@ public:
   void accept( IVisitor_const& visitor ) const {
     node_->accept( visitor );
   }
-  
+
         INode& operator*()       { return *node_; }
   const INode& operator*() const { return *node_; }
 
@@ -62,20 +74,15 @@ public:
     return *this;
   }
 
-  Node( const Node& other ) = delete;
-  //   : node_( other.node_ )
-  // {  }
-
   Node( Node&& other )
     : node_( std::move( other.node_ ) )
   {  }
   
-protected:  
-  Node() = delete;
-  Node( INode*&& node ){
-    node_.reset(node);
-  }
-private:  
+protected:
+  Node( INode*&& ptr )
+  { node_.reset(ptr);  }
+  Node() = default;
+
   std::unique_ptr< INode > node_;
 };
 

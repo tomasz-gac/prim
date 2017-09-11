@@ -50,15 +50,15 @@ namespace AST{
   //   Rule( const char* re ) : Rule_t__( Rule_t__::make< Regex >( re ) ){  }
   // };
 
-  struct Alternative : Rule::Binary<Alternative> {
-    Alternative( Rule& lhs, Rule& rhs )
-      : Rule::Binary<Alternative>( *lhs, *rhs )
+  struct Alternative : IRule::Binary<Alternative> {
+    Alternative( IRule& lhs, IRule& rhs )
+      :IRule::Binary<Alternative>( lhs, rhs )
     {  }
   };
   
-  struct Sequence : Rule::Binary<Sequence>{
-    Sequence( Rule& lhs, Rule& rhs )
-      : Rule::Binary<Sequence>( *lhs, *rhs )
+  struct Sequence : IRule::Binary<Sequence>{
+    Sequence( IRule& lhs, IRule& rhs )
+      :IRule::Binary<Sequence>( lhs, rhs )
     {  }
   };
 
@@ -68,20 +68,20 @@ namespace AST{
   //   {  }
   // };
 
-  struct Handle : Rule::INode::extend< Handle >{
-    Rule* rule = nullptr;
+  struct Handle :IRule::extend< Handle >{
+    IRule* rule = nullptr;
   };
 
 
-  struct Not      : Rule::Unary<Not>{ Not( Rule& rhs ): Rule::Unary<Not>(*rhs) {} };
-  struct Optional : Rule::Unary<Optional>{ Optional( Rule& rhs ): Rule::Unary<Optional>(*rhs) {} };
-  struct Repeat   : Rule::Unary<Repeat>{ Repeat( Rule& rhs ): Rule::Unary<Repeat>(*rhs) {} };
-  struct Ignore   : Rule::Unary<Ignore>{ Ignore( Rule& rhs ): Rule::Unary<Ignore>(*rhs) {} };
+  struct Not      : IRule::Unary<Not>{ Not( IRule& rhs ):IRule::Unary<Not>(rhs) {} };
+  struct Optional : IRule::Unary<Optional>{ Optional( IRule& rhs ):IRule::Unary<Optional>(rhs) {} };
+  struct Repeat   : IRule::Unary<Repeat>{ Repeat( IRule& rhs ):IRule::Unary<Repeat>(rhs) {} };
+  struct Ignore   : IRule::Unary<Ignore>{ Ignore( IRule& rhs ):IRule::Unary<Ignore>(rhs) {} };
 
-  struct Always : Rule::Terminal<Always>{ };
-  struct Never  : Rule::Terminal<Never>{ };
+  struct Always : IRule::Terminal<Always>{ };
+  struct Never  : IRule::Terminal<Never>{ };
   
-  struct Regex :  Rule::Terminal<Regex>{
+  struct Regex :  IRule::Terminal<Regex>{
     Regex( const char* re_ )
       : re( re_ )
     {  }
@@ -89,14 +89,14 @@ namespace AST{
     std::string re;
   };
 
-  inline Rule operator+( Rule& rhs ){ return Rule::make< Repeat >( rhs ); }
-  inline Rule operator-( Rule& rhs ){ return Rule::make< Optional >( rhs ); }
-  inline Rule operator!( Rule& rhs ){ return Rule::make< Not >( rhs ); }
+  inline Rule operator+( IRule& rhs ){ return Rule::make< Repeat >( rhs ); }
+  inline Rule operator-( IRule& rhs ){ return Rule::make< Optional >( rhs ); }
+  inline Rule operator!( IRule& rhs ){ return Rule::make< Not >( rhs ); }
 
-  inline Rule operator|( Rule&   lhs, Rule&   rhs ){
+  inline Rule operator|( IRule&   lhs, IRule&   rhs ){
     return Rule::make<Alternative>( lhs, rhs );
   }
-  inline Rule operator&( Rule&   lhs, Rule&   rhs ){
+  inline Rule operator&( IRule&   lhs, IRule&   rhs ){
     return Rule::make<Sequence>( lhs, rhs );
   }
 
@@ -116,13 +116,13 @@ std::string descriptor_name( const AST::Always& ){ return "AST::Always"; };
 std::string descriptor_name( const AST::Never& ){ return "AST::Never"; };
 std::string descriptor_name( const AST::Regex& node ){ return "AST::Regex("+node.re+")"; };
 
-AST::Rule* children_begin( AST::Handle& node ){ return node.rule; }
-AST::Rule* children_end( AST::Handle& node ){ return node.rule ? node.rule+1 : node.rule; }
-const AST::Rule* children_cbegin( const AST::Handle& node ){ return node.rule; }
-const AST::Rule* children_cend( const AST::Handle& node ){ return node.rule ? node.rule+1 : node.rule; }
-AST::Rule* children_rbegin( AST::Handle& node ){ return children_begin(node); }
-AST::Rule* children_rend( AST::Handle& node ){ return children_end(node); }
-const AST::Rule* children_crbegin( const AST::Handle& node ){ return children_cbegin(node); }
-const AST::Rule* children_crend( const AST::Handle& node ){ return children_cend(node); }
+AST::IRule* children_begin( AST::Handle& node ){ return node.rule; }
+AST::IRule* children_end( AST::Handle& node ){ return node.rule ? node.rule+1 : node.rule; }
+const AST::IRule* children_cbegin( const AST::Handle& node ){ return node.rule; }
+const AST::IRule* children_cend( const AST::Handle& node ){ return node.rule ? node.rule+1 : node.rule; }
+AST::IRule* children_rbegin( AST::Handle& node ){ return children_begin(node); }
+AST::IRule* children_rend( AST::Handle& node ){ return children_end(node); }
+const AST::IRule* children_crbegin( const AST::Handle& node ){ return children_cbegin(node); }
+const AST::IRule* children_crend( const AST::Handle& node ){ return children_cend(node); }
 
 #endif // __AST_HPP__
