@@ -94,7 +94,7 @@ namespace node_impl__{
 	: children{ std::forward<Us>(vs)... }
       {  }
 
-      std::array< std::reference_wrapper< INode< Ts... > >, N > children;
+      std::array< Node< INode< Ts... > >, N > children;
     };
 
     template< typename... Ts, typename Derived >
@@ -108,7 +108,7 @@ namespace node_impl__{
     {
       Dynamic() = default;
 
-      std::vector< std::reference_wrapper< INode< Ts... > > > children;
+      std::vector< Node< INode< Ts... > > > children;
     };
 
     template< typename INode_t, typename F, typename U, typename... Us >

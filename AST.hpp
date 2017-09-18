@@ -10,7 +10,7 @@ namespace AST{
     INode<
       class Alternative
     , class Sequence
-    , class Handle
+    // , class Handle
     , class Not
     , class Optional
     , class Repeat
@@ -18,6 +18,7 @@ namespace AST{
     , class Always
     , class Never
     , class Regex
+    , class Recursion
     >;
 
   using Rule = Node<IRule>;
@@ -37,49 +38,38 @@ public:
 };
 
 namespace AST{
-  // class Rule : public Rule_t__
-  // {
-  // public:
-  //   Rule( const Rule_t__& other ) = delete;
-  //   //   : Rule_t__( other )
-  //   // {  }
-  //   Rule( Rule_t__&& other )
-  //     : Rule_t__( std::move(other) )
-  //   {  }
-    
-  //   Rule( const char* re ) : Rule_t__( Rule_t__::make< Regex >( re ) ){  }
-  // };
 
   struct Alternative : IRule::Binary<Alternative> {
-    Alternative( IRule& lhs, IRule& rhs )
-      :IRule::Binary<Alternative>( lhs, rhs )
+    Alternative( Rule&& lhs, Rule&& rhs )
+      :IRule::Binary<Alternative>( std::move(lhs), std::move(rhs) )
     {  }
   };
   
   struct Sequence : IRule::Binary<Sequence>{
-    Sequence( IRule& lhs, IRule& rhs )
-      :IRule::Binary<Sequence>( lhs, rhs )
+    Sequence( Rule&& lhs, Rule&& rhs )
+      :IRule::Binary<Sequence>( std::move(lhs), std::move(rhs) )
     {  }
   };
 
-  // struct Handle : Rule::Unary< Handle >{
-  //   Handle()
-  //     : Rule::Unary< Handle >( Rule::make< Never >() )
-  //   {  }
+  // struct Handle :IRule::extend< Handle >{
+  //   IRule* rule = nullptr;
   // };
 
-  struct Handle :IRule::extend< Handle >{
-    IRule* rule = nullptr;
-  };
-
-
-  struct Not      : IRule::Unary<Not>{ Not( IRule& rhs ):IRule::Unary<Not>(rhs) {} };
-  struct Optional : IRule::Unary<Optional>{ Optional( IRule& rhs ):IRule::Unary<Optional>(rhs) {} };
-  struct Repeat   : IRule::Unary<Repeat>{ Repeat( IRule& rhs ):IRule::Unary<Repeat>(rhs) {} };
-  struct Ignore   : IRule::Unary<Ignore>{ Ignore( IRule& rhs ):IRule::Unary<Ignore>(rhs) {} };
+  struct Not      : IRule::Unary<Not>{ Not( Rule&& rhs ):IRule::Unary<Not>(std::move(rhs)) {} };
+  struct Optional : IRule::Unary<Optional>{ Optional( Rule&& rhs ):IRule::Unary<Optional>(std::move(rhs)) {} };
+  struct Repeat   : IRule::Unary<Repeat>{ Repeat( Rule&& rhs ):IRule::Unary<Repeat>(std::move(rhs)) {} };
+  struct Ignore   : IRule::Unary<Ignore>{ Ignore( Rule&& rhs ):IRule::Unary<Ignore>(std::move(rhs)) {} };
 
   struct Always : IRule::Terminal<Always>{ };
   struct Never  : IRule::Terminal<Never>{ };
+
+  struct Recursion : IRule::extend<Recursion>{
+    Recursion( IRule& next )
+      : rule(next)
+    {  }
+    
+    IRule& rule;
+  };
   
   struct Regex :  IRule::Terminal<Regex>{
     Regex( const char* re_ )
@@ -89,15 +79,15 @@ namespace AST{
     std::string re;
   };
 
-  inline Rule operator+( IRule& rhs ){ return Rule::make< Repeat >( rhs ); }
-  inline Rule operator-( IRule& rhs ){ return Rule::make< Optional >( rhs ); }
-  inline Rule operator!( IRule& rhs ){ return Rule::make< Not >( rhs ); }
+  inline Rule operator+( Rule&& rhs ){ return Rule::make< Repeat >( std::move(rhs) ); }
+  inline Rule operator-( Rule&& rhs ){ return Rule::make< Optional >( std::move(rhs) ); }
+  inline Rule operator!( Rule&& rhs ){ return Rule::make< Not >( std::move(rhs) ); }
 
-  inline Rule operator|( IRule&   lhs, IRule&   rhs ){
-    return Rule::make<Alternative>( lhs, rhs );
+  inline Rule operator|( Rule&&   lhs, Rule&&   rhs ){
+    return Rule::make<Alternative>( std::move(lhs), std::move(rhs) );
   }
-  inline Rule operator&( IRule&   lhs, IRule&   rhs ){
-    return Rule::make<Sequence>( lhs, rhs );
+  inline Rule operator&( Rule&&   lhs, Rule&&   rhs ){
+    return Rule::make<Sequence>( std::move(lhs), std::move(rhs) );
   }
 
   
@@ -106,7 +96,7 @@ namespace AST{
 std::string descriptor_name( const AST::Alternative& ){ return "AST::Alternative"; };
 std::string descriptor_name( const AST::Sequence& ){ return "AST::Sequence"; };
 
-std::string descriptor_name( const AST::Handle& ){ return "AST::Handle"; };
+std::string descriptor_name( const AST::Recursion& ){ return "AST::Recursion"; };
 std::string descriptor_name( const AST::Not& ){ return "AST::Not"; };
 std::string descriptor_name( const AST::Optional& ){ return "AST::Optional"; };
 std::string descriptor_name( const AST::Repeat& ){ return "AST::Repeat"; };
@@ -116,13 +106,13 @@ std::string descriptor_name( const AST::Always& ){ return "AST::Always"; };
 std::string descriptor_name( const AST::Never& ){ return "AST::Never"; };
 std::string descriptor_name( const AST::Regex& node ){ return "AST::Regex("+node.re+")"; };
 
-AST::IRule* children_begin( AST::Handle& node ){ return node.rule; }
-AST::IRule* children_end( AST::Handle& node ){ return node.rule ? node.rule+1 : node.rule; }
-const AST::IRule* children_cbegin( const AST::Handle& node ){ return node.rule; }
-const AST::IRule* children_cend( const AST::Handle& node ){ return node.rule ? node.rule+1 : node.rule; }
-AST::IRule* children_rbegin( AST::Handle& node ){ return children_begin(node); }
-AST::IRule* children_rend( AST::Handle& node ){ return children_end(node); }
-const AST::IRule* children_crbegin( const AST::Handle& node ){ return children_cbegin(node); }
-const AST::IRule* children_crend( const AST::Handle& node ){ return children_cend(node); }
+AST::IRule* children_begin( AST::Recursion& node ){ return &node.rule; }
+AST::IRule* children_end( AST::Recursion& node ){ return &node.rule+1;}
+const AST::IRule* children_cbegin( const AST::Recursion& node ){ return &node.rule; }
+const AST::IRule* children_cend( const AST::Recursion& node ){ return &node.rule+1; }
+AST::IRule* children_rbegin( AST::Recursion& node ){ return children_begin(node); }
+AST::IRule* children_rend( AST::Recursion& node ){ return children_end(node); }
+const AST::IRule* children_crbegin( const AST::Recursion& node ){ return children_cbegin(node); }
+const AST::IRule* children_crend( const AST::Recursion& node ){ return children_cend(node); }
 
 #endif // __AST_HPP__

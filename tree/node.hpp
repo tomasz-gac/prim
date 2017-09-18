@@ -70,9 +70,12 @@ public:
   static Adapter< const INode, F> adapt_const( F& f );
 
   Node& operator=( Node other ){
-    node_ = other.node_;
+    node_ = std::move(other.node_);
     return *this;
   }
+
+  Node( const Node& other )
+  { *this = other->clone(); }
 
   Node( Node&& other )
     : node_( std::move( other.node_ ) )
