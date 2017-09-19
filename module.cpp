@@ -17,9 +17,11 @@ int main()
 {
   std::cout << "begin" << std::endl;
   {
-    auto nt = AST::Rule::make<AST::Not>( AST::Rule::make<AST::Never>() );
+    auto nt = !( AST::Rule::make<AST::Never>() );
+    auto s = AST::Rule::make<AST::Handle>();
+    static_cast<AST::Handle&>(*s).rule = ( nt | !nt ) & AST::Rule::make<AST::Recursion>( s );
 
-    print( nt );
+    print( s );
     // std::cout << "Never" << std::endl;
     // auto b2 = AST::Rule::make<AST::Not>( never );
     // std::cout << "Not" << std::endl;

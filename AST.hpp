@@ -10,7 +10,7 @@ namespace AST{
     INode<
       class Alternative
     , class Sequence
-    // , class Handle
+    , class Handle
     , class Not
     , class Optional
     , class Repeat
@@ -51,9 +51,14 @@ namespace AST{
     {  }
   };
 
-  // struct Handle :IRule::extend< Handle >{
-  //   IRule* rule = nullptr;
-  // };
+  struct Handle : IRule::Unary< Handle >{
+    Handle()
+      : IRule::Unary<Handle>( Rule::make<Never>() )
+      , rule( children[0] )
+    {  }
+
+    Rule& rule;
+  };
 
   struct Not      : IRule::Unary<Not>{ Not( Rule&& rhs ):IRule::Unary<Not>(std::move(rhs)) {} };
   struct Optional : IRule::Unary<Optional>{ Optional( Rule&& rhs ):IRule::Unary<Optional>(std::move(rhs)) {} };
@@ -64,8 +69,8 @@ namespace AST{
   struct Never  : IRule::Terminal<Never>{ };
 
   struct Recursion : IRule::extend<Recursion>{
-    Recursion( IRule& next )
-      : rule(next)
+    Recursion( IRule& rule_ )
+      : rule(rule_)
     {  }
     
     IRule& rule;
