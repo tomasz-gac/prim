@@ -17,9 +17,13 @@ int main()
 {
   std::cout << "begin" << std::endl;
   {
+    std::string tmp;
     auto nt = !( AST::Rule::make<AST::Never>() );
+    std::cin >> tmp;
     auto s = AST::Rule::make<AST::Handle>();
+    std::cin >> tmp;
     static_cast<AST::Handle&>(*s).rule = ( nt | !nt ) & s.ref();
+    std::cin >> tmp;
 
     print( s );
     // std::cout << "Never" << std::endl;
