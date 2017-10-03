@@ -169,5 +169,61 @@ children_crend( const node_impl__::CRTP::Terminal< INode<Ts...>, Derived >& ){
   return nullptr;
 }
 
+template< typename... Ts, typename Derived >
+inline
+INode<Ts...>* 
+children_begin( node_impl__::CRTP::Reference< INode<Ts...> >& node ){
+  return &node.ref;
+}
+
+template< typename... Ts, typename Derived >
+inline
+INode<Ts...>* 
+children_end( node_impl__::CRTP::Reference< INode<Ts...> >& node ){
+  return &node.ref+1;
+}
+
+template< typename... Ts, typename Derived >
+inline
+const INode<Ts...>* 
+children_cbegin( const node_impl__::CRTP::Reference< INode<Ts...> >& node ){
+  return &node.ref;
+}
+
+template< typename... Ts, typename Derived >
+inline
+const INode<Ts...>* 
+children_cend( const node_impl__::CRTP::Reference< INode<Ts...> >& node ){
+  return &node.ref+1;
+}
+
+template< typename... Ts, typename Derived >
+inline
+INode<Ts...>* 
+children_rbegin( node_impl__::CRTP::Reference< INode<Ts...> >& node ){
+  return &node.ref;
+}
+
+template< typename... Ts, typename Derived >
+inline
+INode<Ts...>* 
+children_rend( node_impl__::CRTP::Reference< INode<Ts...> >& node ){
+  return &node.ref+1;
+}
+
+template< typename... Ts, typename Derived >
+inline
+const INode<Ts...>* 
+children_crbegin( const node_impl__::CRTP::Reference< INode<Ts...> >& node ){
+  return &node.ref;
+}
+
+template< typename... Ts, typename Derived >
+inline
+const INode<Ts...>* 
+children_crend( const node_impl__::CRTP::Reference< INode<Ts...> >& node ){
+  return &node.ref+1;
+}
+
 
 #endif // __CHILDREN_ITERATORS_IMPL_HPP__

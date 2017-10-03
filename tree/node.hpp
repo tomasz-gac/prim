@@ -63,6 +63,10 @@ public:
         INode* operator->()       { return &*node_; }
   const INode* operator->() const { return &*node_; }
 
+  Node ref() {
+    return Node( new node_impl__::CRTP::Reference<INode>( *node_ ) );
+  }
+
   template< typename F >
   static Adapter<       INode, F> adapt( F& f );
 
@@ -74,19 +78,19 @@ public:
     return *this;
   }
 
-  Node( const Node& other )
-  { *this = other->clone(); }
+  Node( const Node& other ) = default;
+  //  { *this = other->clone(); }
 
-  Node( Node&& other )
-    : node_( std::move( other.node_ ) )
-  {  }
+  Node( Node&& other ) = default;
+  //   : node_( std::move( other.node_ ) )
+  // {  }
   
 protected:
   Node( INode*&& ptr )
   { node_.reset(ptr);  }
   Node() = default;
 
-  std::unique_ptr< INode > node_;
+  std::shared_ptr< INode > node_;
 };
 
 

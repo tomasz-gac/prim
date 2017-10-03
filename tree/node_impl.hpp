@@ -50,6 +50,9 @@ namespace node_impl__{
     template< typename T, typename Derived, size_t N >
     struct Static;
 
+    template< typename T >
+    struct Reference;
+
     template< typename T, typename Derived >
     struct Dynamic;
 
@@ -63,7 +66,9 @@ namespace node_impl__{
       using IVisitor_const = ::IVisitor< const INode >;
     public:
       static_assert( std::is_base_of< INode, Base >::value, "Base has to be derived from INode");
-      static_assert( disjunction< std::is_same< Derived, Ts >... >::value, "Type not supported by Node." );
+      static_assert( disjunction< std::is_same< Derived, Ts >...
+		     , std::is_same< Derived, Reference<INode> >
+		     >::value, "Type not supported by Node." );
 
       using Base::Base;
 
@@ -95,6 +100,17 @@ namespace node_impl__{
       {  }
 
       std::array< Node< INode< Ts... > >, N > children;
+    };
+
+    template< typename... Ts >
+    struct Reference< INode< Ts... > >
+      : public Extend< INode<Ts...>, Reference< INode< Ts... > >, INode<Ts...> >
+    {
+      Reference( INode< Ts... >& ref_  )
+	: ref( ref_ )
+      {  }
+
+      INode<Ts...>& ref;
     };
 
     template< typename... Ts, typename Derived >
@@ -137,12 +153,20 @@ namespace node_impl__{
 template< typename... Ts >
 class IVisitor< INode< Ts... > >
   : public node_impl__::IVisitor< helpers__::remove_const<Ts> >...
-{  };
+  , public node_impl__::IVisitor< node_impl__::CRTP::Reference< INode<Ts...>> >
+{
+  virtual void visit( node_impl__::CRTP::Reference< INode<Ts...>>& node ) override
+  { visit( node.ref ); }
+};
 
 template< typename... Ts >
 class IVisitor< const INode< Ts... > >
   : public node_impl__::IVisitor< helpers__::add_const<Ts> >...
-{  };
+  , public node_impl__::IVisitor< const node_impl__::CRTP::Reference< INode<Ts...>> >
+{
+  virtual void visit( const node_impl__::CRTP::Reference< INode<Ts...>>& node ) override
+  { visit( node.ref ); }
+};
 
 template< typename... Ts >
 class INode_interface< INode< Ts... > >

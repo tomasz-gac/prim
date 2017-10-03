@@ -40,14 +40,14 @@ public:
 namespace AST{
 
   struct Alternative : IRule::Binary<Alternative> {
-    Alternative( Rule&& lhs, Rule&& rhs )
-      :IRule::Binary<Alternative>( std::move(lhs), std::move(rhs) )
+    Alternative( Rule lhs, Rule rhs )
+      :IRule::Binary<Alternative>( lhs, rhs )
     {  }
   };
   
   struct Sequence : IRule::Binary<Sequence>{
-    Sequence( Rule&& lhs, Rule&& rhs )
-      :IRule::Binary<Sequence>( std::move(lhs), std::move(rhs) )
+    Sequence( Rule lhs, Rule rhs )
+      :IRule::Binary<Sequence>( lhs, rhs )
     {  }
   };
 
@@ -60,10 +60,10 @@ namespace AST{
     Rule& rule;
   };
 
-  struct Not      : IRule::Unary<Not>{ Not( Rule&& rhs ):IRule::Unary<Not>(std::move(rhs)) {} };
-  struct Optional : IRule::Unary<Optional>{ Optional( Rule&& rhs ):IRule::Unary<Optional>(std::move(rhs)) {} };
-  struct Repeat   : IRule::Unary<Repeat>{ Repeat( Rule&& rhs ):IRule::Unary<Repeat>(std::move(rhs)) {} };
-  struct Ignore   : IRule::Unary<Ignore>{ Ignore( Rule&& rhs ):IRule::Unary<Ignore>(std::move(rhs)) {} };
+  struct Not      : IRule::Unary<Not>{ Not( Rule rhs ):IRule::Unary<Not>(rhs) {} };
+  struct Optional : IRule::Unary<Optional>{ Optional( Rule rhs ):IRule::Unary<Optional>(rhs) {} };
+  struct Repeat   : IRule::Unary<Repeat>{ Repeat( Rule rhs ):IRule::Unary<Repeat>(rhs) {} };
+  struct Ignore   : IRule::Unary<Ignore>{ Ignore( Rule rhs ):IRule::Unary<Ignore>(rhs) {} };
 
   struct Always : IRule::Terminal<Always>{ };
   struct Never  : IRule::Terminal<Never>{ };
@@ -84,15 +84,15 @@ namespace AST{
     std::string re;
   };
 
-  inline Rule operator+( Rule&& rhs ){ return Rule::make< Repeat >( std::move(rhs) ); }
-  inline Rule operator-( Rule&& rhs ){ return Rule::make< Optional >( std::move(rhs) ); }
-  inline Rule operator!( Rule&& rhs ){ return Rule::make< Not >( std::move(rhs) ); }
+  inline Rule operator+( Rule rhs ){ return Rule::make< Repeat >( rhs ); }
+  inline Rule operator-( Rule rhs ){ return Rule::make< Optional >( rhs ); }
+  inline Rule operator!( Rule rhs ){ return Rule::make< Not >( rhs ); }
 
-  inline Rule operator|( Rule&&   lhs, Rule&&   rhs ){
-    return Rule::make<Alternative>( std::move(lhs), std::move(rhs) );
+  inline Rule operator|( Rule   lhs, Rule   rhs ){
+    return Rule::make<Alternative>( lhs, rhs );
   }
-  inline Rule operator&( Rule&&   lhs, Rule&&   rhs ){
-    return Rule::make<Sequence>( std::move(lhs), std::move(rhs) );
+  inline Rule operator&( Rule   lhs, Rule   rhs ){
+    return Rule::make<Sequence>( lhs, rhs );
   }
 
   

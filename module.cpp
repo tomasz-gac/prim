@@ -19,7 +19,7 @@ int main()
   {
     auto nt = !( AST::Rule::make<AST::Never>() );
     auto s = AST::Rule::make<AST::Handle>();
-    static_cast<AST::Handle&>(*s).rule = ( nt | !nt ) & AST::Rule::make<AST::Recursion>( s );
+    static_cast<AST::Handle&>(*s).rule = ( nt | !nt ) & s.ref();
 
     print( s );
     // std::cout << "Never" << std::endl;
