@@ -156,7 +156,7 @@ class IVisitor< INode< Ts... > >
   , public node_impl__::IVisitor< node_impl__::CRTP::Reference< INode<Ts...>> >
 {
   virtual void visit( node_impl__::CRTP::Reference< INode<Ts...>>& node ) override
-  { visit( node.ref ); }
+  { node.ref.accept(*this); }
 };
 
 template< typename... Ts >
@@ -165,7 +165,7 @@ class IVisitor< const INode< Ts... > >
   , public node_impl__::IVisitor< const node_impl__::CRTP::Reference< INode<Ts...>> >
 {
   virtual void visit( const node_impl__::CRTP::Reference< INode<Ts...>>& node ) override
-  { visit( node.ref ); }
+  { node.ref.accept( *this ); }
 };
 
 template< typename... Ts >
