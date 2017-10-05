@@ -12,6 +12,12 @@ static constexpr auto invoke = Invoker();
 template< typename... >
 struct Interface;
 
+template< typename Invoker, typename Interface >
+struct implements
+  :  disjunction<   in_typelist< ::Interface, Interface, std::remove_const_t<Invoker> >
+		  , in_typelist< ::Interface, Interface, std::add_const_t<Invoker> > >
+{  };
+
 // Abstract base class for data holders of poly
 template< typename Interface >
 class IHolder;

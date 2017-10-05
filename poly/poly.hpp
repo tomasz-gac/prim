@@ -24,7 +24,7 @@ public:
   }
 
   template< typename Invoker, typename... Ts >
-  return_t< Invoker >
+  std::enable_if_t< implements<Invoker, Interface>::value, return_t< Invoker > >
   call( Ts&&... vs ){
     IHolder& data = *data_;
     using tag_t = std::remove_const_t<Invoker>;
@@ -32,7 +32,7 @@ public:
   }
 
   template< typename Invoker, typename... Ts >
-  return_t< Invoker >
+  std::enable_if_t< implements<Invoker, Interface>::value, return_t< Invoker > >
   call( Ts&&... vs ) const {
     const IHolder& data = *data_;
     using tag_t = std::add_const_t<Invoker>;

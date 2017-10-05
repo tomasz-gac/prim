@@ -43,7 +43,10 @@ template<
   using type = typelist< typename UnaryOp< Ts >::type... >;
 };
 
-
+template<   template< typename... > class typelist
+	  , typename typelist_t
+	  , template< typename > class UnaryOp
+> using transform_t = typename transform< typelist, typelist_t, UnaryOp >::type;
 
 
 
