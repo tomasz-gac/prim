@@ -6,18 +6,18 @@ struct print
 {  };
 
 template< typename T >
-constexpr auto Invoker< print, T > = []( T& v ){ std::cout << v << "nc" << std::endl; };
+constexpr auto Invoker< print, T > = []( T& v ){ v += 1; std::cout << v << "nc" << std::endl; };
 
-// template< typename T >
-// constexpr auto Invoker< print, const T > = []( const T& v ){ std::cout << v << "c" << std::endl; };
+template< typename T >
+constexpr auto Invoker< print, const T > = []( const T& v ){ std::cout << v << "c" << std::endl; };
 
-using print_i = Interface< const print, print >;
+using print_i = Interface< print, const print >;
 
 int main()
 {
- Poly< print_i > s = 1;
- s.call<print>();
-  
+  const Poly< print_i > s = 1;
+  s.call<print>();
+
   return 0; //"hello, world";
 }
 

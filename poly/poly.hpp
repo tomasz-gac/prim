@@ -25,10 +25,18 @@ class IHolder;
 template< typename T, typename Interface >
 class Holder;
 
+template< template< typename... > class typelist, typename T, typename U = void >
+struct head_of
+{ using type = U;  };
+
+template< template< typename... > class typelist, typename T, typename... Ts, typename U >
+struct head_of< typelist, typelist< T, Ts... >, U >
+{ using type = T; };
+
+template< template< typename... > class typelist, typename T, typename U = void >
+using head_t = typename head_of< typelist, T, U >::type;
+
 namespace impl__{
-
-
-
 
 
 
@@ -54,87 +62,92 @@ namespace impl__{
 
 
 
+  template< typename >
+  struct Holder_base;
 
+  template< typename T, typename Interface >
+  struct Holder_base< ::Holder< T, Interface > >
+  { using type = ::IHolder< Interface >; };
 
+  template< typename T >
+  using Holder_base_t = typename Holder_base<T>::type;
 
+  template< typename Tag, typename T, typename Interface, typename... Args >
+  typename Tag::return_type
+  call_impl( ::Holder< T, Interface >& holder, Args&&... args ){
+    return Invoker< Tag, std::remove_const_t<T> >( holder.value, std::forward<Args>(args)... );
+  }
 
-  
-  template< typename Holder_t, typename Tag, typename Sig = typename Tag::signature_type >
+  template< typename Tag, typename T, typename Interface, typename... Args >
+  typename Tag::return_type
+  call_impl( const ::Holder< T, Interface >& holder, Args&&... args ){
+    return Invoker< Tag, std::add_const_t<T> >( holder.value, std::forward<Args>(args)... );
+  }
+
+  template< typename Holder_t, typename Interface
+	    , typename Sig = typename head_t< ::Interface, Interface, Signature<void()> >::signature_type
+	    >
   class Holder;
 
-  template< typename T, typename Interface, typename Tag, typename Return, typename... Args >
-  class Holder< ::Holder<T, Interface >,       Tag, Signature< Return(Args...) > >
-    : public virtual ::IHolder< Interface >
+  template< typename Holder_t, typename Sig >
+  class Holder< Holder_t, Interface< >, Sig >
+    : public Holder_base_t< Holder_t >
+  {  };
+
+ 
+  template< typename Holder_t, typename Tag, typename... Tags,
+	    typename Return, typename... Args >
+  class Holder< Holder_t, Interface<       Tag, Tags... >, Signature< Return(Args...) > >
+    : public Holder< Holder_t, Interface< Tags... > >
   {
   public:
     virtual Return call( Args... args ) override {
-      auto& value = static_cast< ::Holder< T, Interface >* >(this)->value;
-      return Invoker< Tag, std::remove_const_t<T> >( value, args... );
+      auto& holder = static_cast< Holder_t& >(*this);
+      return call_impl<Tag>( holder, args... );
     }
     virtual ~Holder() = default;
   };
 
-  template< typename T, typename Interface, typename Tag, typename Return, typename... Args >
-  class Holder< ::Holder<T, Interface >, const Tag, Signature< Return(Args...) > >
-    : public virtual ::IHolder< Interface >
+  template< typename Holder_t, typename Tag, typename... Tags,
+	    typename Return, typename... Args >
+  class Holder< Holder_t, Interface< const Tag, Tags... >, Signature< Return(Args...) > >
+    : public Holder< Holder_t, Interface< Tags... > >  
   {
   public:
     virtual Return call( Args... args ) const override {
-      const auto& value = static_cast< const ::Holder< T, Interface >* >(this)->value;
-      return Invoker< Tag, std::add_const_t<T> >( value, args... );
+      auto& holder = static_cast< const Holder_t& >(*this);
+      return call_impl<Tag>( holder, args... );
     }
     virtual ~Holder() = default;
   };
 
-
-
-
-
-
-
-
-  
-
 }
 
-template< typename Tag >
-class IHolder
-  : public impl__::IHolder< Tag >
+template< typename... Tags >
+class IHolder< Interface< Tags... > >
+  : public impl__::IHolder< Tags >...
 {
-public:
+ public:
   template< typename Tag_, typename... Args >
   typename Tag_::return_type call( Args&&... args )       {
     using IHolder_t =       impl__::IHolder<        Tag_ >;
     auto impl = static_cast< IHolder_t* >(this);
     return impl->call( std::forward<Args>(args)... );
   }
-  virtual ~IHolder() = default;
-};
-
-template< typename Tag >
-class IHolder< const Tag >
-  : public impl__::IHolder< const Tag >
-{
-public:
+  
   template< typename Tag_, typename... Args >
   typename Tag_::return_type call( Args&&... args ) const {
     using IHolder_t = const impl__::IHolder< const Tag_ >;
     auto impl = static_cast< IHolder_t* >(this);
     return impl->call( std::forward<Args>(args)... );
   }
+  
   virtual ~IHolder() = default;
 };
 
-template< typename... Tags >
-class IHolder< Interface< Tags... > >
-  : public IHolder< Tags >...
-{  };
-
-template< typename T, typename... Tags >
-class Holder< T, Interface< Tags... > >
-  : public impl__::Holder<
-    Holder< T, Interface< Tags... > >
-  , Tags >...
+template< typename T, typename Interface >
+class Holder
+  : public impl__::Holder< Holder< T, Interface >, Interface >
 {
 public:
   template< typename... Ts >
