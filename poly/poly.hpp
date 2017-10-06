@@ -2,6 +2,7 @@
 #define __POLY_HPP__
 
 #include <memory>
+#include <tuple>
 #include "holder.hpp"
 
 template< typename Interface >
@@ -12,9 +13,11 @@ class Poly< Interface< Invokers... > >
 {
 private:
   using Interface = ::Interface< Invokers... >;
-  using IHolder = IHolder< Interface >;
   template< typename T >
-  using Holder = Holder<T, Interface>;
+  using IHolder = IHolder< T >;
+  using Holder_common = Holder_common< Interface >;
+  template< typename T >
+  using Holder = Holder<T, Interface>;  
 public:
   template< typename T >
   Poly& operator=( T v ){
@@ -26,26 +29,32 @@ public:
   template< typename Invoker, typename... Ts >
   std::enable_if_t< implements<Invoker, Interface>::value, return_t< Invoker > >
   call( Ts&&... vs ){
-    IHolder& data = *data_;
-    using tag_t = std::remove_const_t<Invoker>;
-    return ::call<tag_t>( data, std::forward<Ts>(vs)... );
+    using invoker_t = std::remove_const_t<Invoker>;
+    auto& interface = *std::get< IHolder< invoker_t >* >(interface_);
+    return interface.call( std::forward<Ts>(vs)... );
   }
 
   template< typename Invoker, typename... Ts >
   std::enable_if_t< implements<Invoker, Interface>::value, return_t< Invoker > >
   call( Ts&&... vs ) const {
-    const IHolder& data = *data_;
-    using tag_t = std::add_const_t<Invoker>;
-    return ::call<tag_t>( data, std::forward<Ts>(vs)... );
+    using invoker_t = std::add_const_t<Invoker>;
+    const auto& interface = *std::get< IHolder< invoker_t >* >(interface_);
+    return interface.call( std::forward<Ts>(vs)... );
   }
 
   template< typename T >
   Poly( T v )
-    : data_( std::unique_ptr<IHolder>( std::make_unique<Holder<T>>(std::move(v))) )
-  { }
+    : data_( std::unique_ptr<Holder_common>( std::make_unique<Holder<T>>(std::move(v))) )
+    , interface_( std::make_tuple(
+        &data_
+	->template as_holder<T>()
+	.template as_interface<Invokers>()...
+				  ) )
+  {  }
   
 private:
-  std::unique_ptr< IHolder > data_;
+  std::unique_ptr< Holder_common >      data_;
+  std::tuple< IHolder< Invokers >*... > interface_;
 };
 
 template< typename Invoker, typename... Invokers, typename... Ts >
