@@ -5,17 +5,18 @@
 #include <tuple>
 #include "holder.hpp"
 
+template< typename... >
+struct Interface;
+
 template< typename Interface >
 class Poly;
 
-template< typename... Invokers >
-class Poly< Interface< Invokers... > >
+template< template< typename... > class typelist, typename... Invokers >
+class Poly< typelist< Invokers... > >
 {
 private:
-  using Interface = ::Interface< Invokers... >;
-  template< typename T >
-  using IHolder = IHolder< T >;
-  using Holder_common = Holder_common< Interface >;
+  using Interface = typelist< Invokers... >;
+  using Holder_ = Holder_common< Interface >;
   template< typename T >
   using Holder = Holder<T, Interface>;  
 public:
@@ -27,16 +28,22 @@ public:
   }
 
   template< typename Invoker, typename... Ts >
-  std::enable_if_t< implements<Invoker, Interface>::value, return_t< Invoker > >
-  call( Ts&&... vs ){
+  auto call( Ts&&... vs ) ->
+  std::enable_if_t<
+    in_typelist<Interface, std::remove_const_t<Invoker>>::value
+  , return_t< Invoker > >
+  {
     using invoker_t = std::remove_const_t<Invoker>;
     auto& interface = *std::get< IHolder< invoker_t >* >(interface_);
     return interface.call( std::forward<Ts>(vs)... );
   }
 
   template< typename Invoker, typename... Ts >
-  std::enable_if_t< implements<Invoker, Interface>::value, return_t< Invoker > >
-  call( Ts&&... vs ) const {
+  auto call( Ts&&... vs ) const ->
+  std::enable_if_t<
+    in_typelist<Interface, std::add_const_t<Invoker>>::value
+  , return_t< Invoker > >
+  {
     using invoker_t = std::add_const_t<Invoker>;
     const auto& interface = *std::get< IHolder< invoker_t >* >(interface_);
     return interface.call( std::forward<Ts>(vs)... );
@@ -44,7 +51,7 @@ public:
 
   template< typename T >
   Poly( T v )
-    : data_( std::unique_ptr<Holder_common>( std::make_unique<Holder<T>>(std::move(v))) )
+    : data_( std::unique_ptr<Holder_>( std::make_unique<Holder<T>>(std::move(v))) )
     , interface_( std::make_tuple(
         &data_
 	->template as_holder<T>()
@@ -53,7 +60,7 @@ public:
   {  }
   
 private:
-  std::unique_ptr< Holder_common >      data_;
+  std::unique_ptr< Holder_ >      data_;
   std::tuple< IHolder< Invokers >*... > interface_;
 };
 

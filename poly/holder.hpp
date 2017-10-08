@@ -9,15 +9,6 @@
 template< typename Invoker, typename T >
 static constexpr auto invoke = Invoker();
 
-template< typename... >
-struct Interface;
-
-template< typename Invoker, typename Interface >
-struct implements
-  :  disjunction<   in_typelist< ::Interface, Interface, std::remove_const_t<Invoker> >
-		  , in_typelist< ::Interface, Interface, std::add_const_t<Invoker> > >
-{  };
-
 // Abstract base class for data holders of poly
 template< typename Interface >
 class IHolder;
@@ -58,15 +49,19 @@ namespace impl__{
   // non-const version
   template< typename Invoker, typename T, typename Interface, typename... Args >
   return_t<Invoker>
-  call_impl( ::Holder< T, Interface >& holder, Args&&... args ){
-    return invoke< Invoker, std::remove_const_t<T> >( holder.value, std::forward<Args>(args)... );
+  call( ::Holder< T, Interface >& holder, Args&&... args ){
+    using Invoker_t = std::remove_const_t<Invoker>;
+    using type = std::remove_const_t<T>;
+    return invoke< Invoker_t, type >( holder.value, std::forward<Args>(args)... );
   }
 
   // const version
   template< typename Invoker, typename T, typename Interface, typename... Args >
-  return_t<Invoker>
-  call_impl( const ::Holder< T, Interface >& holder, Args&&... args ){
-    return invoke< Invoker, std::add_const_t<T> >( holder.value, std::forward<Args>(args)... );
+  return_t<Invoker> 
+  call( const ::Holder< T, Interface >& holder, Args&&... args ){
+    using Invoker_t = std::add_const_t<Invoker>;
+    using type = std::add_const_t<T>;
+    return invoke< Invoker_t, type >( holder.value, std::forward<Args>(args)... );
   }
 
   // Concrete holder implementation
@@ -83,7 +78,7 @@ namespace impl__{
   public:
     virtual Return call( Args... args ) override {
       auto& holder = static_cast< Holder_t& >(*this); // CRTP
-      return call_impl<Invoker>( holder, args... );
+      return impl__::call<Invoker>( holder, args... );
     }
     virtual ~Holder() = default;
   };
@@ -91,12 +86,12 @@ namespace impl__{
   // const invoker call implementation
   template< typename Holder_t, typename Invoker, typename Return, typename... Args >
   class Holder< Holder_t, const Invoker, Signature< Return(Args...) > >
-    : public ::IHolder< Invoker >
+    : public ::IHolder< const Invoker >
   {
   public:
-    virtual Return call( Args... args ) override {
+    virtual Return call( Args... args ) const override {
       auto& holder = static_cast< const Holder_t& >(*this); // CRTP
-      return call_impl<Invoker>( holder, args... );
+      return impl__::call<const Invoker>( holder, args... );
     }
     virtual ~Holder() = default;
   };
@@ -105,16 +100,16 @@ namespace impl__{
 
 // Function that calls the call method if IHolder of an appropriate base
 // Base is selected depending on Invoker type
-template< typename Invoker, typename... Invokers, typename... Args >
-return_t<Invoker> call( IHolder< Interface< Invokers... > >& iholder, Args&&... args )
+template< typename Invoker, typename Interface, typename... Args >
+return_t<Invoker> call( IHolder< Interface >& iholder, Args&&... args )
 {
   using IHolder_t =       impl__::IHolder<        Invoker >;
   auto& impl = static_cast< IHolder_t& >(iholder); // disambiguation
   return impl.call( std::forward<Args>(args)... ); //call
 };
 
-template< typename Invoker, typename... Invokers, typename... Args >
-return_t<Invoker> call( const IHolder< Interface< Invokers... > >& iholder, Args&&... args )
+template< typename Invoker, typename Interface, typename... Args >
+return_t<Invoker> call( const IHolder< Interface >& iholder, Args&&... args )
 {
   using IHolder_t = const impl__::IHolder< const Invoker >;
   auto& impl = static_cast< IHolder_t& >(iholder); // disambiguation
@@ -135,18 +130,18 @@ class IHolder
 template< typename Interface >
 class Holder_common;
 
-template< typename... Invokers >
-class Holder_common< Interface< Invokers... > >
+template< template< typename... > class typelist, typename... Invokers >
+class Holder_common< typelist< Invokers... > >
 {
 public:
   template< typename T >
-  Holder< T, Interface< Invokers... > >& as_holder(){
-    return static_cast< Holder< T, Interface< Invokers... > >& >(*this);
+  Holder< T, typelist< Invokers... > >& as_holder(){
+    return static_cast< Holder< T, typelist< Invokers... > >& >(*this);
   }
 
   template< typename T >
-  const Holder< T, Interface< Invokers... > >& as_holder() const {
-    return static_cast< const Holder< T, Interface< Invokers... > >& >(*this);
+  const Holder< T, typelist< Invokers... > >& as_holder() const {
+    return static_cast< const Holder< T, typelist< Invokers... > >& >(*this);
   }
 
   virtual ~Holder_common() = default;
@@ -154,10 +149,10 @@ public:
 
 // Concrete data holder of poly
 // Implements the interface of IHolder< Interface >
-template< typename T, typename... Invokers >
-class Holder< T, Interface< Invokers... > >
-  : public impl__::Holder< Holder< T, Interface<Invokers...> >, Invokers >...
-  , public Holder_common< Interface<Invokers...> >
+template< typename T, template< typename... > class typelist, typename... Invokers >
+class Holder< T, typelist< Invokers... > >
+  : public impl__::Holder< Holder< T, typelist<Invokers...> >, Invokers >...
+  , public Holder_common< typelist<Invokers...> >
 {
 public:
   template< typename... Ts >
