@@ -195,36 +195,66 @@ struct filter
   , concat, id_t<typelist> >
 {  };
 
-template<   typename typelist
-          , template< typename... > class Predicate
-          , typename result = id_t<typelist>
-          , bool terminate = Predicate< head_t< typelist > >::value
-> struct split_pred;
-
-template< template< typename... > class typelist, typename T, typename... Ts
-          , template< typename... > class Predicate
-          , typename... Us
-> struct split_pred< typelist< T, Ts... >, Predicate, typelist< Us... >, true >
-  :  std::conditional_t< Predicate< T >::value
-  , split_pred< typelist<Ts...>, Predicate, typelist<Us..., T >, true >
-  , split_pred< typelist<T, Ts...>, Predicate, typelist< Us... >, false >
-     >
-{  };
-
-template< typename right_t
-          , template< typename... > class Predicate
-	  , typename left_t
-> struct split_pred< right_t, Predicate, left_t, false >
-{
-  using left = left_t;
-  using right = right_t;
+template< typename T, T v >
+struct v_{
+  using type = T;
+  static constexpr T value = v;
 };
 
-template< typename typelist, template< typename... > class Predicate >
-using takeWhile_t = typename split_pred< typelist, Predicate >::left;
+template< template< typename... > class Predicate >
+struct apply{
+  template< typename... Ts >
+  struct type__{
+    using type = v_< std::remove_cv_t<decltype(Predicate<Ts...>::value)>, Predicate<Ts...>::value >;
+  };
+  template< typename... Ts >
+  using type = type__<Ts...>;
+};
+
+template<
+  typename typelist
+, template< typename... > class Predicate
+, typename passed = id_t< typelist >
+, typename values = map_t< typelist, apply<Predicate>::template type >
+> struct split_pred;
+
+template<
+  template< typename... > class typelist, typename T, typename... Ts,
+  template< typename... > class Pred, typename... Us,
+  bool... tail >
+struct split_pred<
+  typelist<T, Ts...>, Pred, typelist<Us...>
+, typelist< v_<bool, true >, v_< bool, tail >... >
+  > : split_pred< typelist< Ts... >, Pred, typelist< Us..., T >, typelist< v_<bool, tail >... > >
+{  };
+
+template<
+  template< typename... > class typelist, typename... Ts,
+  template< typename... > class Pred, typename... Us,
+  bool... tail >
+struct split_pred< typelist< Ts...>, Pred, typelist<Us...>
+, typelist< v_<bool, false >, v_< bool, tail >... >
+>{
+  using take = typelist< Us... >;
+  using drop = typelist< Ts... >;
+};
+
+template<
+  template< typename... > class typelist, typename... Ts,
+  template< typename... > class Pred, typename... Us
+>
+struct split_pred< typelist< Ts...>, Pred, typelist<Us...>, typelist< > >
+{
+  using take = typelist< Us... >;
+  using drop = typelist< Ts... >;
+};
+
 
 template< typename typelist, template< typename... > class Predicate >
-using dropWhile_t = typename split_pred< typelist, Predicate >::right;
+using takeWhile_t = typename split_pred< typelist, Predicate >::take;
+
+template< typename typelist, template< typename... > class Predicate >
+using dropWhile_t = typename split_pred< typelist, Predicate >::drop;
 
 // Template helper that checks if a given type is in typelist
 template< typename typelist_t, typename T >

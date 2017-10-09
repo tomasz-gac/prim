@@ -28,23 +28,31 @@ using return_t = typename T::return_type;
 template< typename T >
 using args_t = typename T::args_type;
 
-template< typename T, typename U >
-struct value{ using rvalue = T; using lvalue = U; };
+template<
+  typename typelist
+, template< typename... > class Predicate
+, template< typename... > class UnaryOp
+>
+using apply_first_not_t =
+  concat_t<
+    takeWhile_t< typelist, Predicate >
+  , id_t< typelist, typename UnaryOp< head_t<dropWhile_t<typelist, Predicate>> >::type >
+  , tail_t< dropWhile_t< typelist, Predicate > >
+>;
 
 template< typename T >
-struct make_overload{ using type = value<T&&, const T&>; };
+using add_clvalue_reference = std::add_lvalue_reference<std::add_const_t< T > >;
 
 template< typename T >
-struct make_overload<T&>{ using type = T&; };
+using first_value_to_clvalue_t =
+  apply_first_not_t< T, std::is_reference, add_clvalue_reference >;
 
 template< typename T >
-struct make_overload<T&&>{ using type = T&&; };
+using first_value_to_rvalue_t =
+  apply_first_not_t< T, std::is_reference, std::add_rvalue_reference >;
 
 template< typename T >
-using marked_signature_t = map_t< typename T::args_type, make_overload>;
-
-
-
+using fork_value_t = id_t< T, first_value_to_rvalue_t<T>, first_value_to_clvalue_t<T> >;
 
 
 

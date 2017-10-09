@@ -53,12 +53,10 @@ private:
 template< typename >
 class print_t;
 
-template< typename... > struct list;
-
 int main()
 {
-  
-  print_t< dropWhile_t< list< int, int, float, int >, bind< std::is_same, int >::template type > > s;
+  using list = _< int&, bool, int, float>;
+  print_t< fork_value_t< list > > s;
   
   int i = 1;
   using conversion_t = double;
