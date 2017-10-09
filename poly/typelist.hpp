@@ -61,6 +61,12 @@ class concat;
 template< typename typelist, typename... typelists >
 using concat_t = typename concat< typelist, typelists... >::type;
 
+template< typename typelist >
+struct flatten;
+
+template< typename T >
+using flatten_t = typename flatten<T>::type;
+
 template< typename typelist
   , template< typename... > class BinaryOp
   , typename init
@@ -77,6 +83,11 @@ struct filter;
 template< typename typelist, template< typename... > class UnaryOp >
 using filter_t = typename filter< typelist, UnaryOp >::type;
 
+template< std::size_t N, typename T, typename = _<> >
+struct repeat;
+
+template< std::size_t N, typename T, typename typelist = _<> >
+using repeat_t = typename repeat< N, T, typelist >::type;
 
 
 
@@ -172,6 +183,11 @@ struct erase_if
   template< typename T >
   using type = std::conditional< UnaryOp<T>::value, ::_<T>, ::_<> >;
 };
+
+template< template< typename... > class typelist, typename... Ts >
+struct flatten< typelist< Ts... > >
+  : concat< Ts... >
+{  };
 
 template< template< typename... > class Op >
 struct ignore{
@@ -272,5 +288,35 @@ struct Not{
     : std::integral_constant<bool, !Predicate<Ts...>::value >
   {  };
 };
+
+template< std::size_t N, typename T, typename... Ts, template< typename... > class typelist >
+struct repeat< N, T, typelist< Ts... > >
+  : repeat< N-1, T, typelist< Ts..., T > >
+{  };
+
+template< typename T, typename... Ts, template< typename... > class typelist >
+struct repeat< 0, T, typelist< Ts... > >{
+  using type = typelist<Ts...>;
+};
+
+template< typename T, T... v >
+struct sum;
+
+template< typename T, T v1, T... vs >
+struct sum< T, v1, vs... > : std::integral_constant< T, v1 + sum< T, vs... >::value >
+{  };
+
+template< typename T >
+struct sum< T > : std::integral_constant< T, 0 >
+{  };
+
+
+template< typename typelist, template< typename... > class Pred >
+struct count;
+
+template< template< typename... > class typelist, typename... Ts, template< typename... > class Pred >
+struct count< typelist< Ts... >, Pred >
+  : sum< std::size_t, (Pred<Ts>::value ? 1 : 0 )... >
+{  };
 
 #endif //__TYPELIST_HPP__

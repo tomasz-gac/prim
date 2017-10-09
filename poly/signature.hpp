@@ -52,8 +52,12 @@ using first_value_to_rvalue_t =
   apply_first_not_t< T, std::is_reference, std::add_rvalue_reference >;
 
 template< typename T >
-using fork_value_t = id_t< T, first_value_to_rvalue_t<T>, first_value_to_clvalue_t<T> >;
+struct fork_value{
+  using type = id_t< T , first_value_to_rvalue_t<T>, first_value_to_clvalue_t<T> >;
+};
 
+template< typename T >
+using fork_values_t = fst_t< map_t< T, fork_value > >;
 
 
 #endif // __SIGNATURE_HPP__
