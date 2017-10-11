@@ -28,6 +28,15 @@ using return_t = typename T::return_type;
 template< typename T >
 using args_t = typename T::args_type;
 
+template< typename R, typename args_t >
+struct make_signature;
+
+template< typename Return, typename... Args >
+struct make_signature< Return, signature_args< Args... > >
+{
+  using type = Signature< Return(Args...) >;
+};
+
 template<
   typename typelist
 , template< typename... > class Predicate
@@ -57,7 +66,30 @@ struct fork_value{
 };
 
 template< typename T >
-using fork_values_t = fst_t< map_t< T, fork_value > >;
+struct fork_values{
+  using type = foldr_t< map_t< T, fork_value >, concat, id_t<T> >;
+};
+
+template< typename T >
+static constexpr auto count_values = count< T, Not<std::is_reference>::template type >::value;
+
+template< typename Op, typename T >
+struct appl{
+  using type = typename Op::template type<T>;
+};
+
+template< typename T >
+struct generate_overloads{
+private:
+  using args = args_t<T>;
+  static constexpr auto N = count_values< args >;
+  
+public:
+  using type = map_t<
+    foldr_t< repeat_t< N, bind1< fork_values > >, appl, id_t<args, args> >
+  , bind< make_signature, return_t<T> >::template type
+  >;
+};
 
 
 #endif // __SIGNATURE_HPP__

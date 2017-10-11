@@ -42,6 +42,20 @@ struct bind{
   using value = value__<Us...>;
 };
 
+template< template< typename... > class Op, typename... Ts >
+struct bind1{
+  template< typename T >
+  using type = typename Op<Ts..., T >::type;
+  
+  template< typename... Us >
+  struct value__{
+    static constexpr auto value = Op<Ts..., Us... >::value;
+  };
+
+  template< typename... Us >
+  using value = value__<Us...>;
+};
+
 
 
 #endif // __BIND_HPP__

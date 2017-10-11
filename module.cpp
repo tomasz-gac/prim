@@ -53,16 +53,14 @@ private:
 template< typename >
 class print_t;
 
-template< typename Op, typename T >
-struct appl{
-  using type = typename Op::template type<T>;
-};
-
 int main()
 {
-  using list = _< signature_args< int&, bool> >;
-  constexpr auto N = count< fst_t<list>, Not<std::is_reference>::template type >::value;
-  print_t< foldr_t< repeat_t< (2 << N), bind< fork_values_t > >, appl, list > > s;
+  // using list = signature_args< signature_args< int&, bool, float> >;
+  // constexpr auto N = count< fst_t<list>, Not<std::is_reference>::template type >::value;
+  // print_t< foldr_t< repeat_t< N, bind1< fork_values > >, appl, list > > s;
+
+  using args = signature_args< int&, bool, float>;
+  print_t< generate_overloads< args >::type > s;
   
   int i = 1;
   using conversion_t = double;
