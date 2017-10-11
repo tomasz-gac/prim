@@ -31,7 +31,11 @@ static constexpr std::size_t size(){ return 9; }
 template< template< typename... > class Op, typename... Ts >
 struct bind{
   template< typename... Us >
-  using type = typename Op<Ts..., Us... >::type;
+  struct type__{
+    using type = typename Op<Ts..., Us... >::type;
+  };
+  template< typename... Us >
+  using type = type__<Us...>;
   
   template< typename... Us >
   struct value__{
