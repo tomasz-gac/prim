@@ -49,10 +49,10 @@ struct enumerate;
 template< typename typelist >
 using enumerate_t = typename enumerate< typelist >::type;
 
-template< typename typelist_t, template< typename... > class UnaryOp >
+template< typename typelist_t, template< typename > class UnaryOp >
 struct map;
 
-template< typename typelist_t, template< typename... > class UnaryOp >
+template< typename typelist_t, template< typename > class UnaryOp >
 using map_t = typename map< typelist_t, UnaryOp >::type;
 
 template< typename typelist, typename... typelists >
@@ -68,19 +68,19 @@ template< typename T >
 using flatten_t = typename flatten<T>::type;
 
 template< typename typelist
-  , template< typename... > class BinaryOp
+  , template< typename, typename > class BinaryOp
   , typename init
 > struct foldr;
 
 template<   typename typelist
-	  , template< typename... > class BinaryOp
+          , template< typename, typename > class BinaryOp
           , typename init >
 using foldr_t = typename foldr< typelist, BinaryOp, init >::type;
 
-template< typename typelist, template< typename... > class UnaryOp >
+template< typename typelist, template< typename > class UnaryOp >
 struct filter;
 
-template< typename typelist, template< typename... > class UnaryOp >
+template< typename typelist, template< typename > class UnaryOp >
 using filter_t = typename filter< typelist, UnaryOp >::type;
 
 template< std::size_t N, typename T, typename = _<> >
@@ -144,7 +144,7 @@ template< template< typename... > class typelist, typename... Ts
 template<
   template< typename... > class typelist
 , typename... Ts
-, template< typename... > class UnaryOp
+, template< typename > class UnaryOp
   > struct map< typelist< Ts... >, UnaryOp >{
   using type = typelist< typename UnaryOp<Ts>::type... >;
 };
@@ -164,7 +164,7 @@ struct concat< typelist<Ts...> >
 template<
   template< typename... > class typelist
   , typename T, typename... Ts
-  , template< typename... > class BinaryOp
+  , template< typename, typename > class BinaryOp
   , typename result
 > struct foldr< typelist< T, Ts... >, BinaryOp, result >
   : foldr< typelist< Ts...>, BinaryOp, typename BinaryOp<T, result>::type >
@@ -172,7 +172,7 @@ template<
 
 template<
   template< typename... > class typelist
-  , template< typename... > class BinaryOp
+  , template< typename, typename > class BinaryOp
   , typename result
 > struct foldr< typelist< >, BinaryOp, result >
 { using type = result; };
@@ -196,19 +196,19 @@ struct ignore{
 };
 
 template<
-  template< typename... > class Predicate
-, template< typename... > class Then
-, template< typename... > class Else = ignore< Then >::template type
+  template< typename > class Predicate
+, template< typename > class Then
+, template< typename > class Else = ignore< Then >::template type
 > struct apply_if{
   template< typename T >
   using type = std::conditional< Predicate<T>::value, Then<T>, Else<T> >;
 };
 
-template< typename typelist, template< typename... > class UnaryOp >
+template< typename typelist, template< typename > class UnaryOp >
 struct filter
   : foldr<
     map_t< typelist, apply_if<UnaryOp, id<typelist>::template type>::template type >
-  , concat, id_t<typelist> >
+  , bind< 2, concat>::template type, id_t<typelist> >
 {  };
 
 template< typename T, T v >
@@ -217,26 +217,26 @@ struct v_{
   static constexpr T value = v;
 };
 
-template< template< typename... > class Predicate >
+template< template< typename > class Predicate >
 struct apply{
-  template< typename... Ts >
+  template< typename T >
   struct type__{
-    using type = v_< std::remove_cv_t<decltype(Predicate<Ts...>::value)>, Predicate<Ts...>::value >;
+    using type = v_< std::remove_cv_t<decltype(Predicate<T>::value)>, Predicate<T>::value >;
   };
-  template< typename... Ts >
-  using type = type__<Ts...>;
+  template< typename T >
+  using type = type__<T>;
 };
 
 template<
   typename typelist
-, template< typename... > class Predicate
+, template< typename > class Predicate
 , typename passed = id_t< typelist >
 , typename values = map_t< typelist, apply<Predicate>::template type >
 > struct split_pred;
 
 template<
   template< typename... > class typelist, typename T, typename... Ts,
-  template< typename... > class Pred, typename... Us,
+  template< typename > class Pred, typename... Us,
   bool... tail >
 struct split_pred<
   typelist<T, Ts...>, Pred, typelist<Us...>
@@ -246,7 +246,7 @@ struct split_pred<
 
 template<
   template< typename... > class typelist, typename... Ts,
-  template< typename... > class Pred, typename... Us,
+  template< typename > class Pred, typename... Us,
   bool... tail >
 struct split_pred< typelist< Ts...>, Pred, typelist<Us...>
 , typelist< v_<bool, false >, v_< bool, tail >... >
@@ -257,7 +257,7 @@ struct split_pred< typelist< Ts...>, Pred, typelist<Us...>
 
 template<
   template< typename... > class typelist, typename... Ts,
-  template< typename... > class Pred, typename... Us
+  template< typename > class Pred, typename... Us
 >
 struct split_pred< typelist< Ts...>, Pred, typelist<Us...>, typelist< > >
 {
@@ -266,10 +266,10 @@ struct split_pred< typelist< Ts...>, Pred, typelist<Us...>, typelist< > >
 };
 
 
-template< typename typelist, template< typename... > class Predicate >
+template< typename typelist, template< typename > class Predicate >
 using takeWhile_t = typename split_pred< typelist, Predicate >::take;
 
-template< typename typelist, template< typename... > class Predicate >
+template< typename typelist, template< typename > class Predicate >
 using dropWhile_t = typename split_pred< typelist, Predicate >::drop;
 
 // Template helper that checks if a given type is in typelist

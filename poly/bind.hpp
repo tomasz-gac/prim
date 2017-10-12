@@ -28,37 +28,80 @@ static constexpr std::size_t size(){ return 8; }
 template< template< typename,typename,typename,typename,typename,typename,typename,typename,typename > class Op >
 static constexpr std::size_t size(){ return 9; }
 
-template< template< typename... > class Op, typename... Ts >
-struct bind{
-  template< typename... Us >
-  struct type__{
-    using type = typename Op<Ts..., Us... >::type;
-  };
-  template< typename... Us >
-  using type = type__<Us...>;
+// template< template< typename... > class Op, typename... Ts >
+// struct bind{
+//   template< typename... Us >
+//   using type = Op<Ts..., Us... >;
+
   
-  template< typename... Us >
+//   template< typename... Us >
+//   struct value__{
+//     static constexpr auto value = Op<Ts..., Us... >::value;
+//   };
+
+//   template< typename... Us >
+//   using value = value__<Us...>;
+// };
+
+template< std::size_t, template< typename... > class Op, typename... Ts >
+struct bind;
+
+template< template< typename... > class Op, typename... Ts >
+struct bind< 1, Op, Ts... >{
+  template< typename T1 >
+  using type = Op<Ts..., T1 >;
+  
+  template< typename T1 >
   struct value__{
-    static constexpr auto value = Op<Ts..., Us... >::value;
+    static constexpr auto value = Op<Ts..., T1 >::value;
   };
 
-  template< typename... Us >
-  using value = value__<Us...>;
+  template< typename T1 >
+  using value = value__<T1>;
 };
 
 template< template< typename... > class Op, typename... Ts >
-struct bind1{
-  template< typename T >
-  using type = typename Op<Ts..., T >::type;
+struct bind< 2, Op, Ts... >{
+  template< typename T1, typename T2 >
+  using type = Op<Ts..., T1, T2 >;
   
-  template< typename... Us >
+  template< typename T1, typename T2 >
   struct value__{
-    static constexpr auto value = Op<Ts..., Us... >::value;
+    static constexpr auto value = Op<Ts..., T1, T2 >::value;
   };
 
-  template< typename... Us >
-  using value = value__<Us...>;
+  template< typename T1, typename T2 >
+  using value = value__<T1, T2>;
 };
+
+template< template< typename... > class Op, typename... Ts >
+struct bind< 3, Op, Ts... >{
+  template< typename T1, typename T2, typename T3 >
+  using type = Op<Ts..., T1, T2, T3 >;
+  
+  template< typename T1, typename T2, typename T3 >
+  struct value__{
+    static constexpr auto value = Op<Ts..., T1, T2, T3 >::value;
+  };
+
+  template< typename T1, typename T2, typename T3 >
+  using value = value__<T1, T2,T3>;
+};
+
+template< template< typename... > class Op, typename... Ts >
+struct bind< 4, Op, Ts... >{
+  template< typename T1, typename T2, typename T3, typename T4 >
+  using type = Op<Ts..., T1, T2, T3, T4 >;
+  
+  template< typename T1, typename T2, typename T3, typename T4 >
+  struct value__{
+    static constexpr auto value = Op<Ts..., T1, T2, T3, T4 >::value;
+  };
+
+  template< typename T1, typename T2, typename T3, typename T4 >
+  using value = value__<T1, T2,T3,T4>;
+};
+
 
 
 

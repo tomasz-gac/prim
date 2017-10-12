@@ -39,8 +39,8 @@ struct make_signature< Return, signature_args< Args... > >
 
 template<
   typename typelist
-, template< typename... > class Predicate
-, template< typename... > class UnaryOp
+, template< typename > class Predicate
+, template< typename > class UnaryOp
 >
 using apply_first_not_t =
   concat_t<
@@ -67,7 +67,7 @@ struct fork_value{
 
 template< typename T >
 struct fork_values{
-  using type = foldr_t< map_t< T, fork_value >, concat, id_t<T> >;
+  using type = foldr_t< map_t< T, fork_value >, bind<2, concat>::template type, id_t<T> >;
 };
 
 template< typename T >
@@ -75,7 +75,7 @@ static constexpr auto count_values = count< T, Not<std::is_reference>::template 
 
 template< typename Op, typename T >
 struct appl{
-  using type = typename Op::template type<T>;
+  using type = typename Op::template type<T>::type;
 };
 
 template< typename T >
@@ -86,8 +86,8 @@ private:
   
 public:
   using type = map_t<
-    foldr_t< repeat_t< N, bind1< fork_values > >, appl, id_t<args, args> >
-  , bind< make_signature, return_t<T> >::template type
+    foldr_t< repeat_t< N, bind<1,  fork_values > >, appl, id_t<args, args> >
+  , bind< 1, make_signature, return_t<T> >::template type
   >;
 };
 
