@@ -28,23 +28,15 @@ static constexpr std::size_t size(){ return 8; }
 template< template< typename,typename,typename,typename,typename,typename,typename,typename,typename > class Op >
 static constexpr std::size_t size(){ return 9; }
 
-// template< template< typename... > class Op, typename... Ts >
-// struct bind{
-//   template< typename... Us >
-//   using type = Op<Ts..., Us... >;
-
-  
-//   template< typename... Us >
-//   struct value__{
-//     static constexpr auto value = Op<Ts..., Us... >::value;
-//   };
-
-//   template< typename... Us >
-//   using value = value__<Us...>;
-// };
-
 template< std::size_t, template< typename... > class Op, typename... Ts >
 struct bind;
+
+template< template< typename... > class Op, typename... Ts >
+std::enable_if_t<
+  (size<Op>() > sizeof...(Ts) )
+  , bind< size<Op>() - sizeof...(Ts), Op, Ts... >
+> curry();
+
 
 template< template< typename... > class Op, typename... Ts >
 struct bind< 1, Op, Ts... >{

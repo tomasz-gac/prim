@@ -24,8 +24,19 @@ namespace impl__{
 
 
   // Defines an interface for call
-  template< typename Invoker, typename Signature = signature_t< Invoker > >
+  template< typename Invoker, typename Signature = typename generate_overloads< signature_t< Invoker > >::type >
   class IHolder;
+
+  template< typename Invoker, typename... Ts >
+  class IHolder< Invoker, overloads< Ts... > >
+    : public IHolder< Invoker, Ts >...
+  {  };
+
+  template< typename Invoker, typename... Ts >
+  class IHolder< const Invoker, overloads< Ts... > >
+    : public IHolder< const Invoker, Ts >...
+  {  };
+
 
   // non-const invoker specialization with non-const call method
   template< typename Invoker, typename Return, typename... Args >
@@ -44,6 +55,11 @@ namespace impl__{
     virtual ~IHolder() = default;
   };
 
+  template< typename Invoker >
+  class IHolder< Invoker, overloads< > >{  };
+
+  template< typename Invoker >
+  class IHolder< const Invoker, overloads< > >{  };
 
   // Helper function that calls invoke on a given concrete holder
   // non-const version
@@ -67,34 +83,56 @@ namespace impl__{
   // Concrete holder implementation
   // Sig argument is a signature of a given invoker, or a dummy value for empty interface
   template< typename Holder_t, typename Invoker
-	    , typename Sig = signature_t< Invoker >
+	    , typename Sig = typename generate_overloads< signature_t< Invoker > >::type
   > class Holder;
 
   // non-const invoker call implementation
-  template< typename Holder_t, typename Invoker, typename Return, typename... Args >
-  class Holder< Holder_t, Invoker, Signature< Return(Args...) > >
-    : public ::IHolder< Invoker >
+  template< typename Holder_t, typename Invoker, typename Return, typename... Args, typename... other >
+  class Holder< Holder_t, Invoker, overloads< Signature< Return(Args...) >, other... > >
+    : public Holder< Holder_t, Invoker, overloads<other...> >
   {
+  private:
+    static constexpr bool sane = sizeof...(Args) == 0 || disjunction< dont_overload<Args>... >::value;
+    static_assert( sane, "Overloads failed!" );
+    
   public:
     virtual Return call( Args... args ) override {
       auto& holder = static_cast< Holder_t& >(*this); // CRTP
-      return impl__::call<Invoker>( holder, args... );
+      return impl__::call<Invoker>( holder, static_cast<Args>(args)... );
     }
     virtual ~Holder() = default;
   };
 
   // const invoker call implementation
-  template< typename Holder_t, typename Invoker, typename Return, typename... Args >
-  class Holder< Holder_t, const Invoker, Signature< Return(Args...) > >
-    : public ::IHolder< const Invoker >
+  template< typename Holder_t, typename Invoker, typename Return, typename... Args, typename... other >
+  class Holder< Holder_t, const Invoker, overloads< Signature< Return(Args...) >, other... > >
+    : public Holder< Holder_t, const Invoker, overloads< other... > >
   {
+  private:
+    static constexpr bool sane = sizeof...(Args) == 0 || disjunction< dont_overload<Args>... >::value;
+    static_assert( sane, "Overloads failed!" );
+
   public:
     virtual Return call( Args... args ) const override {
+      static constexpr bool sane = sizeof...(Args) == 0 || disjunction< std::is_reference<Args>... >::value;
+      static_assert( sane, "Overloads failed!" );
       auto& holder = static_cast< const Holder_t& >(*this); // CRTP
-      return impl__::call<const Invoker>( holder, args... );
+      return impl__::call<const Invoker>( holder, static_cast<Args>(args)... );
     }
     virtual ~Holder() = default;
   };
+
+    // non-const invoker overload recursion termination
+  template< typename Holder_t, typename Invoker >
+  class Holder< Holder_t, Invoker, overloads<> >
+    : public ::IHolder< Invoker >
+  { };
+
+    // const invoker overload recursion termination
+  template< typename Holder_t, typename Invoker >
+  class Holder< Holder_t, const Invoker, overloads<> >
+    : public ::IHolder< const Invoker >
+  { };
 
 }
 

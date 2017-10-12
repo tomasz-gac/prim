@@ -9,6 +9,20 @@ struct id;
 template< typename typelist, typename... Ts >
 using id_t = typename id<typelist>::template type<Ts...>;
 
+template< typename From, typename To >
+struct repack;
+
+template<
+  template< typename... > class tl1, typename... Ts
+, template< typename... > class tl2, typename... Us
+> struct repack< tl1<Ts...>, tl2<Us...> >{
+  using type = tl2<Ts...>;
+};
+
+template< typename typelist1, typename typelist2 >
+using repack_t = typename repack< typelist1, typelist2 >::type;
+
+
 // Template helper that returns a head and tail of typelist
 template< typename typelist >
 struct split_front;
@@ -19,35 +33,8 @@ using head_t = typename split_front< typelist >::head;
 template< typename typelist >
 using tail_t = typename split_front< typelist >::tail;
 
-template< typename typelist >
-struct split_back;
-
-template< typename typelist >
-using last_t = typename split_back< typelist >::last;
-
-template< typename typelist >
-using init_t = typename split_back< typelist >::init;
-
-template< typename >
-struct length;
-
-template< typename typelist >
-constexpr std::size_t len(){ return length<typelist>{}; }
-
 template< typename... >
 struct _;
-
-template< typename T >
-using fst_t = head_t< T >;
-
-template< typename T >
-using snd_t = head_t< tail_t< T > >;
-
-template< typename typelist, typename enumerator = std::make_index_sequence< len<typelist>() > >
-struct enumerate;
-
-template< typename typelist >
-using enumerate_t = typename enumerate< typelist >::type;
 
 template< typename typelist_t, template< typename > class UnaryOp >
 struct map;
@@ -109,36 +96,6 @@ struct split_front< typelist< T, Ts... > >
 {
   using head = T;
   using tail = typelist<Ts...>;
-};
-
-template< template< typename... > class typelist, typename T, typename... Ts >
-struct split_back< typelist< Ts..., T > >
-{
-  using last = T;
-  using init = typelist<Ts...>;
-};
-
-template< template< typename... > class typelist, typename... Ts >
-struct length< typelist< Ts... > >
-  : std::integral_constant< std::size_t, sizeof...(Ts) >
-{  };
-
-template< typename typelist >
-struct is_null : std::integral_constant< bool, length<typelist>{} == 0 >
-{  };
-
-template< typename typelist >
-constexpr bool null(){ return is_null<typelist>{}; }
-
-template< std::size_t i >
-struct index : std::integral_constant< std::size_t, i >
-{  };
-
-template< template< typename... > class typelist, typename... Ts
-	  , template< typename T, T... > class enumerator, typename U, U... us
-> struct enumerate< typelist< Ts... >, enumerator< U, us... > >
-{
-  using type = typelist< _< index< us >, Ts > ... >;
 };
 
 template<
@@ -252,13 +209,13 @@ struct split_pred< typelist< Ts...>, Pred, typelist<Us...>
 };
 
 template<
-  template< typename... > class typelist, typename... Ts,
+  template< typename... > class typelist,
   template< typename > class Pred, typename... Us
 >
-struct split_pred< typelist< Ts...>, Pred, typelist<Us...>, typelist< > >
+struct split_pred< typelist<>, Pred, typelist<Us...>, typelist< > >
 {
   using take = typelist< Us... >;
-  using drop = typelist< Ts... >;
+  using drop = typelist<>;
 };
 
 

@@ -37,6 +37,10 @@ struct make_signature< Return, signature_args< Args... > >
   using type = Signature< Return(Args...) >;
 };
 
+template< typename Return, typename args_t >
+using make_signature_t = typename make_signature< Return, args_t >::type;
+
+// apply UnaryOp on first element of typelist that fails Predicate
 template<
   typename typelist
 , template< typename > class Predicate
@@ -49,40 +53,54 @@ using apply_first_not_t =
   , tail_t< dropWhile_t< typelist, Predicate > >
 >;
 
-template< typename T >
-using add_clvalue_reference = std::add_lvalue_reference<std::add_const_t< T > >;
+// helper template to contain overloads for Holder implementation
+template< typename... >
+struct overloads;
 
-template< typename T >
-using first_value_to_clvalue_t =
-  apply_first_not_t< T, std::is_reference, add_clvalue_reference >;
+// helper predicate that decides if a given type needs to be forwarded by const& and &&
+template< typename U >
+struct dont_overload
+  : std::integral_constant< bool, std::is_reference<U>::value || std::is_fundamental<U>::value>
+{  };
 
-template< typename T >
-using first_value_to_rvalue_t =
-  apply_first_not_t< T, std::is_reference, std::add_rvalue_reference >;
-
-template< typename T >
-using fork_value = id_t< T , first_value_to_rvalue_t<T>, first_value_to_clvalue_t<T> >;
-
-template< typename T >
-using fork_values = foldr_t< map_t< T, fork_value >, bind<2, concat>::template type, id_t<T> >;
-
-template< typename T >
-static constexpr auto count_values = count< T, Not<std::is_reference>::template type >::value;
-
-template< typename Op, typename T >
-using appl = typename Op::template type<T>;
-
+//template that computes a list of signatures required to perfect forward a function of signature T
 template< typename T >
 struct generate_overloads{
 private:
+  // U -> const U&
+  template< typename U >
+  using add_clvalue_reference = std::add_lvalue_reference<std::add_const_t< U > >;
+  //first value that fails dont_overload -> const&
+  template< typename U >
+  using first_value_to_clvalue_t =
+    apply_first_not_t< U, dont_overload, add_clvalue_reference >;
+  //first value that fails dont_overload -> &&
+  template< typename U >
+  using first_value_to_rvalue_t =
+    apply_first_not_t< U, dont_overload, std::add_rvalue_reference >;
+  //first value that fails dont_overload -> [ &&, const& ]
+  template< typename U >
+  using fork_value = id_t< U , first_value_to_rvalue_t<U>, first_value_to_clvalue_t<U> >;
+  // for each type in U, apply fork_value and flatten resulting list of lists
+  template< typename U >
+  using fork_values = foldr_t< map_t< U, fork_value >, bind<2, concat_t>::template type, id_t<U> >;
+  // T -> signature_args< T's args >
   using args = args_t<T>;
-  static constexpr auto N = count_values< args >;
+  // number of types that need to be forked
+  static constexpr auto N = count< args, Not<dont_overload>::template type >::value;
+  // helper template to apply a bound Op
+  template< typename Op, typename U >
+  using apply = typename Op::template type<U>;
   
 public:
-  using type = map_t<
-    foldr_t< repeat_t< N, bind<1,  fork_values > >, appl, id_t<args, args> >
-  , bind< 1, make_signature, return_t<T> >::template type
-  >;
+  using type =
+    repack_t< //repack resulting list to "overloads" template
+      map_t< //list of signature_args -> list of signatures
+        //apply fork_values N times to args repacked as signature_args< args >
+        foldr_t< repeat_t< N, bind<1,  fork_values > >, apply, id_t<args, args> >
+      , decltype(curry< make_signature_t, return_t<T> >())::template type
+      >
+    , overloads<>>;
 };
 
 

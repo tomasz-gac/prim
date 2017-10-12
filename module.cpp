@@ -50,25 +50,51 @@ private:
   Poly< convertible > poly_;  
 };
 
-template< typename >
-class print_t;
+struct A{
+  A( const A&  ){ std::cout << "A C-C" << std::endl; };
+  A(       A&& ){ std::cout << "A M-C" << std::endl; };
+  A() = default;
+  
+};
+
+struct proof
+  : Signature< void (A ) >
+{  };
+
+template< typename T >
+constexpr auto invoke< const proof, T > = []( const T&, A a ){};
+
+using proof_i = Interface< const proof >;
+
+class Ar{
+  virtual void f( A&& v ){};
+};
+class Al{
+  virtual void f( const A& v ){};
+};
+
+class T
+  : public Ar, public Al
+{  };
 
 int main()
 {
-   using args = signature_args< int&, bool, float >;
-   //   print_t< generate_overloads< args >::type > s;
-   constexpr auto N = count_values< args >;
-  
-  int i = 1;
-  using conversion_t = double;
-  convertible_to<conversion_t> cnv = i;
-  std::cout << cnv.get() << std::endl;
-  conversion_t tmp;
-  std::cin >> tmp;
-  cnv = tmp;
-  i += 1;
-  tmp = std::sqrt(cnv.get());
-  std::cout << tmp <<std::endl;
+  // using conversion_t = std::string;
+  // int i = 1;
+  // convertible_to<conversion_t> cnv = i;
+  // std::cout << cnv.get() << std::endl;
+  // conversion_t tmp;
+  // std::cin >> tmp;
+  // cnv = tmp;
+  // i += 1;
+  // tmp = cnv.get();
+  // std::cout << tmp <<std::endl;
+
+  A a;
+  T t;
+  t.f(a);
+  // Poly< proof_i > test = 1;
+  // test.call<proof>( std::move(a) );
 
   return 0; //"hello, world";
 }

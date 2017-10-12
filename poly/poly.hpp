@@ -56,7 +56,7 @@ public:
         &data_
 	->template as_holder<T>()
 	.template as_interface<Invokers>()...
-				  ) )
+       ) )
   {  }
   
 private:
