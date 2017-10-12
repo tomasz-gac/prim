@@ -146,7 +146,7 @@ template<
 , typename... Ts
 , template< typename > class UnaryOp
   > struct map< typelist< Ts... >, UnaryOp >{
-  using type = typelist< typename UnaryOp<Ts>::type... >;
+  using type = typelist< UnaryOp<Ts>... >;
 };
 
 template<
@@ -167,7 +167,7 @@ template<
   , template< typename, typename > class BinaryOp
   , typename result
 > struct foldr< typelist< T, Ts... >, BinaryOp, result >
-  : foldr< typelist< Ts...>, BinaryOp, typename BinaryOp<T, result>::type >
+  : foldr< typelist< Ts...>, BinaryOp, BinaryOp<T, result> >
 {  };
 
 template<
@@ -220,11 +220,7 @@ struct v_{
 template< template< typename > class Predicate >
 struct apply{
   template< typename T >
-  struct type__{
-    using type = v_< std::remove_cv_t<decltype(Predicate<T>::value)>, Predicate<T>::value >;
-  };
-  template< typename T >
-  using type = type__<T>;
+  using type = v_< std::remove_cv_t<decltype(Predicate<T>::value)>, Predicate<T>::value >;
 };
 
 template<

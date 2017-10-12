@@ -61,22 +61,16 @@ using first_value_to_rvalue_t =
   apply_first_not_t< T, std::is_reference, std::add_rvalue_reference >;
 
 template< typename T >
-struct fork_value{
-  using type = id_t< T , first_value_to_rvalue_t<T>, first_value_to_clvalue_t<T> >;
-};
+using fork_value = id_t< T , first_value_to_rvalue_t<T>, first_value_to_clvalue_t<T> >;
 
 template< typename T >
-struct fork_values{
-  using type = foldr_t< map_t< T, fork_value >, bind<2, concat>::template type, id_t<T> >;
-};
+using fork_values = foldr_t< map_t< T, fork_value >, bind<2, concat>::template type, id_t<T> >;
 
 template< typename T >
 static constexpr auto count_values = count< T, Not<std::is_reference>::template type >::value;
 
 template< typename Op, typename T >
-struct appl{
-  using type = typename Op::template type<T>::type;
-};
+using appl = typename Op::template type<T>;
 
 template< typename T >
 struct generate_overloads{

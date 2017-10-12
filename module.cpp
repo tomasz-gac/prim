@@ -55,8 +55,9 @@ class print_t;
 
 int main()
 {
-   using args = Signature< void(int&, bool, float)>;
-   print_t< generate_overloads< args >::type > s;
+   using args = signature_args< int&, bool, float >;
+   //   print_t< generate_overloads< args >::type > s;
+   constexpr auto N = count_values< args >;
   
   int i = 1;
   using conversion_t = double;
