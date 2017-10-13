@@ -58,17 +58,17 @@ struct A{
 };
 
 struct proof
-  : Signature< void (A ) >
+  : Signature< void (A,A&,A) >
 {  };
 
 template< typename T >
-constexpr auto invoke< proof, T > = []( T&, A a ){ std::cout << "non-const" << std::endl; };
+constexpr auto invoke< proof, T > = []( T&, auto... a ){ std::cout << "non-const" << std::endl; };
 
 template< typename T >
-constexpr auto invoke< const proof, const T > = []( const T&, A a ){ std::cout << "const" << std::endl; };
+constexpr auto invoke< const proof, const T > = []( const T&, auto... a ){ std::cout << "const" << std::endl; };
 
 
-using proof_i = Interface< proof, const proof >;
+using proof_i = Interface< const proof, proof >;
 
 int main()
 {
@@ -83,13 +83,12 @@ int main()
   // tmp = cnv.get();
   // std::cout << tmp <<std::endl;
 
-  A a1, a2;
+  A a;
   Poly< proof_i > test1 = 1;
-  const Poly< proof_i > test2 = 1;
-  test1.call<proof>( a1 );
-  test1.call<proof>( std::move(a1) );
-  test2.call<proof>( a2 );
-  test2.call<proof>( std::move(a2) );
+  // test1.call<proof>( a1 );
+  test1.call<proof>( a,a,a );
+  // test2.call<proof>( a2 );
+  // test2.call<proof>( std::move(a2) );
 
   return 0;
 }

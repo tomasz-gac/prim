@@ -63,6 +63,10 @@ struct dont_overload
   : std::integral_constant< bool, std::is_reference<U>::value || std::is_fundamental<U>::value>
 {  };
 
+#ifndef POLY_MAX_FORWARDED_ARGS
+  #define POLY_MAX_FORWARDED_ARGS 2
+#endif
+
 //template that computes a list of signatures required to perfect forward a function of signature T
 template< typename T >
 struct generate_overloads{
@@ -88,6 +92,10 @@ private:
   using args = args_t<T>;
   // number of types that need to be forked
   static constexpr auto N = count< args, Not<dont_overload>::template type >::value;
+
+  static_assert( N <= POLY_MAX_FORWARDED_ARGS,
+		 "Signature of the invoker exceeds maximum arguments to be forwarded" );
+  
   // helper template to apply a bound Op
   template< typename Op, typename U >
   using apply = typename Op::template type<U>;
