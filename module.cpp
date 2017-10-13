@@ -62,20 +62,13 @@ struct proof
 {  };
 
 template< typename T >
-constexpr auto invoke< const proof, T > = []( const T&, A a ){};
+constexpr auto invoke< proof, T > = []( T&, A a ){ std::cout << "non-const" << std::endl; };
 
-using proof_i = Interface< const proof >;
+template< typename T >
+constexpr auto invoke< const proof, const T > = []( const T&, A a ){ std::cout << "const" << std::endl; };
 
-class Ar{
-  virtual void f( A&& v ){};
-};
-class Al{
-  virtual void f( const A& v ){};
-};
 
-class T
-  : public Ar, public Al
-{  };
+using proof_i = Interface< proof, const proof >;
 
 int main()
 {
@@ -90,13 +83,15 @@ int main()
   // tmp = cnv.get();
   // std::cout << tmp <<std::endl;
 
-  A a;
-  T t;
-  t.f(a);
-  // Poly< proof_i > test = 1;
-  // test.call<proof>( std::move(a) );
+  A a1, a2;
+  Poly< proof_i > test1 = 1;
+  const Poly< proof_i > test2 = 1;
+  test1.call<proof>( a1 );
+  test1.call<proof>( std::move(a1) );
+  test2.call<proof>( a2 );
+  test2.call<proof>( std::move(a2) );
 
-  return 0; //"hello, world";
+  return 0;
 }
 
 

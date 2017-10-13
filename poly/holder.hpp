@@ -24,23 +24,20 @@ namespace impl__{
 
 
   // Defines an interface for call
-  template< typename Invoker, typename Signature = typename generate_overloads< signature_t< Invoker > >::type >
-  class IHolder;
+  template<
+    typename Invoker, typename Signature =
+      typename generate_overloads< signature_t< Invoker > >::type
+  > class IHolder;
 
-  template< typename Invoker, typename... Ts >
-  class IHolder< Invoker, overloads< Ts... > >
-    : public IHolder< Invoker, Ts >...
-  {  };
+  // template< typename Invoker >
+  // class IHolder< Invoker, overloads<> >{  };
 
-  template< typename Invoker, typename... Ts >
-  class IHolder< const Invoker, overloads< Ts... > >
-    : public IHolder< const Invoker, Ts >...
-  {  };
-
+  // template< typename Invoker >
+  // class IHolder< const Invoker, overloads<> >{  };
 
   // non-const invoker specialization with non-const call method
   template< typename Invoker, typename Return, typename... Args >
-  class IHolder< Invoker, Signature< Return(Args...) > >
+  class IHolder< Invoker, overloads< Signature< Return(Args...) > > >
   {
   public:
     virtual Return  call( Args... args ) = 0;
@@ -48,18 +45,25 @@ namespace impl__{
   };
   // Const invoker specialization with const call method
   template< typename Invoker, typename Return, typename... Args >
-  class IHolder< const Invoker, Signature< Return(Args...) > >
+  class IHolder< const Invoker, overloads< Signature< Return(Args...) > > >
   {
   public:
     virtual Return  call( Args... args ) const = 0;
     virtual ~IHolder() = default;
   };
 
-  template< typename Invoker >
-  class IHolder< Invoker, overloads< > >{  };
+  template< typename Invoker, typename o, typename... os >
+  class IHolder< Invoker, overloads< o, os... > >
+    : public IHolder< Invoker, overloads< os... > >
+    , public IHolder< Invoker, overloads< o > >
+  {
+  public:
+    using IHolder< Invoker, overloads< o > >::call;
+    using IHolder< Invoker, overloads< os... > >::call;
+  };
 
   template< typename Invoker >
-  class IHolder< const Invoker, overloads< > >{  };
+  class IHolder< Invoker, overloads< > >{  };
 
   // Helper function that calls invoke on a given concrete holder
   // non-const version
