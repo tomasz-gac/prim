@@ -85,7 +85,7 @@ namespace impl__{
   }
 
   // Concrete holder implementation
-  // Sig argument is a signature of a given invoker, or a dummy value for empty interface
+  // Sig argument is a signature of a given invoker
   template< typename Holder_t, typename Invoker
 	    , typename Sig = typename generate_overloads< signature_t< Invoker > >::type
   > class Holder;
@@ -95,14 +95,10 @@ namespace impl__{
   class Holder< Holder_t, Invoker, overloads< Signature< Return(Args...) >, other... > >
     : public Holder< Holder_t, Invoker, overloads<other...> >
   {
-  private:
-    static constexpr bool sane = sizeof...(Args) == 0 || disjunction< dont_overload<Args>... >::value;
-    static_assert( sane, "Overloads failed!" );
-    
   public:
     virtual Return call( Args... args ) override {
       auto& holder = static_cast< Holder_t& >(*this); // CRTP
-      return impl__::call<Invoker>( holder, static_cast<Args>(args)... );
+      return impl__::call<Invoker>( holder, std::forward<Args>(args)... );
     }
     virtual ~Holder() = default;
   };
@@ -112,16 +108,10 @@ namespace impl__{
   class Holder< Holder_t, const Invoker, overloads< Signature< Return(Args...) >, other... > >
     : public Holder< Holder_t, const Invoker, overloads< other... > >
   {
-  private:
-    static constexpr bool sane = sizeof...(Args) == 0 || disjunction< dont_overload<Args>... >::value;
-    static_assert( sane, "Overloads failed!" );
-
   public:
     virtual Return call( Args... args ) const override {
-      static constexpr bool sane = sizeof...(Args) == 0 || disjunction< std::is_reference<Args>... >::value;
-      static_assert( sane, "Overloads failed!" );
       auto& holder = static_cast< const Holder_t& >(*this); // CRTP
-      return impl__::call<const Invoker>( holder, static_cast<Args>(args)... );
+      return impl__::call<const Invoker>( holder, std::forward<Args>(args)... );
     }
     virtual ~Holder() = default;
   };
@@ -176,32 +166,38 @@ template< template< typename... > class typelist, typename... Invokers >
 class Holder_common< typelist< Invokers... > >
 {
 public:
-  template< typename T >
-  Holder< T, typelist< Invokers... > >& as_holder(){
-    return static_cast< Holder< T, typelist< Invokers... > >& >(*this);
-  }
-
-  template< typename T >
-  const Holder< T, typelist< Invokers... > >& as_holder() const {
-    return static_cast< const Holder< T, typelist< Invokers... > >& >(*this);
-  }
+  using interface_t = std::tuple< IHolder< Invokers >*... >;
+  
+  virtual std::unique_ptr< Holder_common >      copy() const = 0;
+  virtual interface_t interface() = 0;
 
   virtual ~Holder_common() = default;
 };
 
-// Concrete data holder of poly
-// Implements the interface of IHolder< Interface >
-template< typename T, template< typename... > class typelist, typename... Invokers >
-class Holder< T, typelist< Invokers... > >
-  : public impl__::Holder< Holder< T, typelist<Invokers...> >, Invokers >...
+template< typename Holder_t, typename Interface >
+class Holder_CRTP;
+
+template< typename Holder_t, template< typename... > class typelist, typename... Invokers >
+class Holder_CRTP< Holder_t, typelist< Invokers... > >
+  : public impl__::Holder< Holder_t, Invokers >...
   , public Holder_common< typelist<Invokers...> >
 {
-public:
-  template< typename... Ts >
-  Holder( Ts&&... vs )
-    : value( std::forward<Ts>(vs)... )
-  {  }
-  virtual ~Holder() = default;
+private:
+  using Holder_common = Holder_common< typelist<Invokers...> >;
+  using interface_t = typename Holder_common::interface_t;
+
+ public:
+  virtual std::unique_ptr< Holder_common > copy() const override {
+    return
+      std::unique_ptr< Holder_common >(
+        std::make_unique< Holder_t >( static_cast< const Holder_t&>(*this) )
+      );
+  }
+
+  virtual interface_t interface() override{
+    return std::make_tuple( &this->as_interface< Invokers >() ... );
+  }
+  virtual ~Holder_CRTP() = default;
 
   template< typename Invoker >
         IHolder< Invoker >& as_interface()
@@ -210,10 +206,22 @@ public:
   template< typename Invoker >
   const IHolder< Invoker >& as_interface() const
   {  return static_cast< const IHolder< Invoker >& >(*this); }
+};
+
+// Concrete data holder of poly
+// Implements the interface of IHolder< Interface >
+template< typename T, typename Interface >
+class Holder
+  : public Holder_CRTP< Holder< T, Interface >, typename Interface::interface >
+{
+ public:
+  template< typename... Ts >
+  Holder( Ts&&... vs )
+    : value( std::forward<Ts>(vs)... )
+  {  }
 
   T value;
 };
-
 
 
 #endif // __HOLDER_HPP__
