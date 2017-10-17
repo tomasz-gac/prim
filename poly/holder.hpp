@@ -29,15 +29,38 @@ namespace impl__{
       typename generate_overloads< signature_t< Invoker > >::type
   > class IHolder;
 
-  // template< typename Invoker >
-  // class IHolder< Invoker, overloads<> >{  };
 
-  // template< typename Invoker >
-  // class IHolder< const Invoker, overloads<> >{  };
-
+  class Anchor{
+  public:
+    virtual ~Anchor() = default;
+  };
+  
   // non-const invoker specialization with non-const call method
+  template< typename Invoker, typename Return, typename... Args, typename... sigs >
+  class IHolder< Invoker, overloads< Signature< Return(Args...) >, sigs... > >
+    : public IHolder< Invoker, overloads< sigs... > >
+  {
+  public:
+    using IHolder< Invoker, overloads< sigs... > >::call;
+    
+    virtual Return  call( Args... args ) = 0;
+    virtual ~IHolder() = default;
+  };
+  // Const invoker specialization with const call method
+  template< typename Invoker, typename Return, typename... Args, typename... sigs >
+  class IHolder< const Invoker, overloads< Signature< Return(Args...) >, sigs... > >
+    : public IHolder< const Invoker, overloads< sigs... > >  
+  {
+  public:
+    using IHolder< const Invoker, overloads< sigs... > >::call;
+    
+    virtual Return  call( Args... args ) const = 0;
+    virtual ~IHolder() = default;
+  };
+
   template< typename Invoker, typename Return, typename... Args >
   class IHolder< Invoker, overloads< Signature< Return(Args...) > > >
+    : public Anchor
   {
   public:
     virtual Return  call( Args... args ) = 0;
@@ -46,24 +69,28 @@ namespace impl__{
   // Const invoker specialization with const call method
   template< typename Invoker, typename Return, typename... Args >
   class IHolder< const Invoker, overloads< Signature< Return(Args...) > > >
+    : public Anchor
   {
   public:
     virtual Return  call( Args... args ) const = 0;
     virtual ~IHolder() = default;
   };
+  
 
-  template< typename Invoker, typename o, typename... os >
-  class IHolder< Invoker, overloads< o, os... > >
-    : public IHolder< Invoker, overloads< os... > >
-    , public IHolder< Invoker, overloads< o > >
-  {
-  public:
-    using IHolder< Invoker, overloads< o > >::call;
-    using IHolder< Invoker, overloads< os... > >::call;
-  };
+  // template< typename Invoker, typename o, typename... os >
+  // class IHolder< Invoker, overloads< o, os... > >
+  //   : public IHolder< Invoker, overloads< os... > >
+  //   , public IHolder< Invoker, overloads< o > >
+  // {
+  // public:
+  //   using IHolder< Invoker, overloads< o > >::call;
+  //   using IHolder< Invoker, overloads< os... > >::call;
+  // };
 
-  template< typename Invoker >
-  class IHolder< Invoker, overloads< > >{  };
+  // template< typename Invoker >
+  // class IHolder< Invoker, overloads< > >{
+  //   // static_assert( std::is_same< Invoker, overloads<> >::value, "" );
+  // };
 
   // Helper function that calls invoke on a given concrete holder
   // non-const version
@@ -170,6 +197,8 @@ public:
   
   virtual std::unique_ptr< Holder_common >      copy() const = 0;
   virtual interface_t interface() = 0;
+  virtual impl__::Anchor* getAnchor() = 0;
+  virtual const impl__::Anchor* getAnchor() const = 0;
 
   virtual ~Holder_common() = default;
 };
@@ -197,6 +226,10 @@ private:
   virtual interface_t interface() override{
     return std::make_tuple( &this->as_interface< Invokers >() ... );
   }
+
+  virtual impl__::Anchor* getAnchor() override { return this; }
+  virtual const impl__::Anchor* getAnchor() const override { return this; }
+  
   virtual ~Holder_CRTP() = default;
 
   template< typename Invoker >
@@ -205,7 +238,7 @@ private:
 
   template< typename Invoker >
   const IHolder< Invoker >& as_interface() const
-  {  return static_cast< const IHolder< Invoker >& >(*this); }
+  {  return static_cast< const IHolder< Invoker >& >(*this); }  
 };
 
 // Concrete data holder of poly

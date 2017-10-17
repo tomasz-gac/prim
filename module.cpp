@@ -73,12 +73,18 @@ struct Dynamic< Graph<Interface> >{
 struct Recursion{};
 
 struct print : Signature< void( std::ostream& ) >{};
+struct test : Signature< void( std::ostream& ) >{};
 
-struct printable : Interface< const print >{};
+struct printable : Interface< const print, const test >{};
 
 template< typename T >
 constexpr auto invoke< const print, T > =
   []( const T& v, std::ostream& str ){ print_impl(v, str); };
+
+template< typename T >
+constexpr auto invoke< const test, T > =
+  []( const T& v, std::ostream& str ){ str << "test" << std::endl; };
+
 
 template< typename T >
 void print_impl( const T& v, std::ostream& str ){ str << v << std::endl; }
@@ -104,6 +110,9 @@ void print_impl( const Graph< Interface >& graph, std::ostream& str ){
   graph.template call<print>(str);
 }
 
+template< typename T, T v >
+struct print_v;
+
 int main()
 {
   // using graph = Graph< void, int, float, bool >;
@@ -112,9 +121,13 @@ int main()
   // visitor v = []( auto& v){ std::cout <<  v.value << std::endl;  };
   // g.accept(v);
 
+  // print_v< bool,
+  // 	   std::is_base_of< impl__::IHolder< const print, overloads<> >, Holder< int, printable::interface > >::value > s;
+\
   auto node = Graph< printable >::make<Terminal>( int(3) );
   auto rec = Graph< printable >::make<Unary>( Recursion(), std::move(node) );
   node.call<print>( std::cout );
+  node.call<test>( std::cout );
   
   return 0;
 }
