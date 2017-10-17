@@ -29,12 +29,6 @@ namespace impl__{
       typename generate_overloads< signature_t< Invoker > >::type
   > class IHolder;
 
-
-  class Anchor{
-  public:
-    virtual ~Anchor() = default;
-  };
-  
   // non-const invoker specialization with non-const call method
   template< typename Invoker, typename Return, typename... Args, typename... sigs >
   class IHolder< Invoker, overloads< Signature< Return(Args...) >, sigs... > >
@@ -60,7 +54,6 @@ namespace impl__{
 
   template< typename Invoker, typename Return, typename... Args >
   class IHolder< Invoker, overloads< Signature< Return(Args...) > > >
-    : public Anchor
   {
   public:
     virtual Return  call( Args... args ) = 0;
@@ -69,7 +62,6 @@ namespace impl__{
   // Const invoker specialization with const call method
   template< typename Invoker, typename Return, typename... Args >
   class IHolder< const Invoker, overloads< Signature< Return(Args...) > > >
-    : public Anchor
   {
   public:
     virtual Return  call( Args... args ) const = 0;
@@ -187,20 +179,18 @@ class IHolder
 };
 
 template< typename Interface >
-class Holder_common;
+class Anchor;
 
 template< template< typename... > class typelist, typename... Invokers >
-class Holder_common< typelist< Invokers... > >
+class Anchor< typelist< Invokers... > >
 {
 public:
   using interface_t = std::tuple< IHolder< Invokers >*... >;
   
-  virtual std::unique_ptr< Holder_common >      copy() const = 0;
-  virtual interface_t interface() = 0;
-  virtual impl__::Anchor* getAnchor() = 0;
-  virtual const impl__::Anchor* getAnchor() const = 0;
+  virtual std::unique_ptr< Anchor >      copy() const = 0;
+  virtual interface_t                    interface() = 0;
 
-  virtual ~Holder_common() = default;
+  virtual ~Anchor() = default;
 };
 
 template< typename Holder_t, typename Interface >
@@ -209,43 +199,32 @@ class Holder_CRTP;
 template< typename Holder_t, template< typename... > class typelist, typename... Invokers >
 class Holder_CRTP< Holder_t, typelist< Invokers... > >
   : public impl__::Holder< Holder_t, Invokers >...
-  , public Holder_common< typelist<Invokers...> >
+  , public Anchor< typelist<Invokers...> >
 {
 private:
-  using Holder_common = Holder_common< typelist<Invokers...> >;
-  using interface_t = typename Holder_common::interface_t;
+  using Anchor = Anchor< typelist<Invokers...> >;
+  using interface_t = typename Anchor::interface_t;
 
  public:
-  virtual std::unique_ptr< Holder_common > copy() const override {
+  virtual std::unique_ptr< Anchor > copy() const override {
     return
-      std::unique_ptr< Holder_common >(
+      std::unique_ptr< Anchor >(
         std::make_unique< Holder_t >( static_cast< const Holder_t&>(*this) )
       );
   }
 
   virtual interface_t interface() override{
-    return std::make_tuple( &this->as_interface< Invokers >() ... );
+    return std::make_tuple( static_cast<IHolder< Invokers >*>(this) ... );
   }
 
-  virtual impl__::Anchor* getAnchor() override { return this; }
-  virtual const impl__::Anchor* getAnchor() const override { return this; }
-  
   virtual ~Holder_CRTP() = default;
-
-  template< typename Invoker >
-        IHolder< Invoker >& as_interface()
-  {  return static_cast<       IHolder< Invoker >& >(*this); }
-
-  template< typename Invoker >
-  const IHolder< Invoker >& as_interface() const
-  {  return static_cast< const IHolder< Invoker >& >(*this); }  
 };
 
 // Concrete data holder of poly
 // Implements the interface of IHolder< Interface >
 template< typename T, typename Interface >
 class Holder
-  : public Holder_CRTP< Holder< T, Interface >, typename Interface::interface >
+  : public Holder_CRTP< Holder< T, Interface >, typename Interface::interface_type >
 {
  public:
   template< typename... Ts >

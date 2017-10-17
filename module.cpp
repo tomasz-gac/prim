@@ -73,9 +73,9 @@ struct Dynamic< Graph<Interface> >{
 struct Recursion{};
 
 struct print : Signature< void( std::ostream& ) >{};
-struct test : Signature< void( std::ostream& ) >{};
+struct test : Signature< void( ) >{};
 
-struct printable : Interface< const print, const test >{};
+struct printable : Interface< const test, const print >{};
 
 template< typename T >
 constexpr auto invoke< const print, T > =
@@ -83,7 +83,7 @@ constexpr auto invoke< const print, T > =
 
 template< typename T >
 constexpr auto invoke< const test, T > =
-  []( const T& v, std::ostream& str ){ str << "test" << std::endl; };
+  []( const T& v ){ std::cout << "test" << std::endl; };
 
 
 template< typename T >
@@ -127,7 +127,7 @@ int main()
   auto node = Graph< printable >::make<Terminal>( int(3) );
   auto rec = Graph< printable >::make<Unary>( Recursion(), std::move(node) );
   node.call<print>( std::cout );
-  node.call<test>( std::cout );
+  node.call<test>( );
   
   return 0;
 }
