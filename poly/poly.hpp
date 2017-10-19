@@ -36,9 +36,10 @@ public:
     in_typelist<interface_type, std::remove_const_t<Invoker>>::value
   , return_t< Invoker > >
   {
-    using invoker_t = std::remove_const_t<Invoker>;
-    auto& interface = *std::get< IHolder< invoker_t >* >(interface_);
-    return interface.call( std::forward<Ts>(vs)... );
+    // using invoker_t = std::remove_const_t<Invoker>;
+    // auto& interface = *std::get< IHolder< invoker_t >* >(interface_);
+    auto invoker = impl__::type<Invoker>();
+    return interface_->call( invoker, std::forward<Ts>(vs)... );
   }
 
   template< typename Invoker, typename... Ts >
@@ -47,27 +48,29 @@ public:
     in_typelist<interface_type, std::add_const_t<Invoker>>::value
   , return_t< Invoker > >
   {
-    using invoker_t = std::add_const_t<Invoker>;
-    const auto& interface = *std::get< IHolder< invoker_t >* >(interface_);
-    return interface.call( std::forward<Ts>(vs)... );
+    // using invoker_t = std::add_const_t<Invoker>;
+    // const auto& interface = *std::get< IHolder< invoker_t >* >(interface_);
+    auto invoker = impl__::type<const Invoker>();
+    return interface_->call( invoker, std::forward<Ts>(vs)... );
   }
   
   template< typename T >
   Poly( T v )
     : data_( std::make_unique<Holder<T>>(std::move(v)))
-    , interface_( data_->interface() )
+    , interface_( static_cast< IHolder< interface_type >*>(&*data_) )
   {  }
 
   Poly( const Poly& other )
     : data_( other.data_->copy() )
-    , interface_( data_->interface() )
+    , interface_( static_cast< IHolder< interface_type >*>(&*data_) )
   {  }
 
   Poly( Poly&& other ) noexcept = default;
 
 private:
   std::unique_ptr< Anchor >    data_;
-  typename Anchor::interface_t interface_;
+  // typename Anchor::interface_t interface_;
+  IHolder< interface_type >* interface_;
 };
 
 template< typename Invoker, typename Interface, typename... Ts >

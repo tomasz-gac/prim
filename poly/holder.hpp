@@ -21,69 +21,72 @@ class Holder;
 // IHolder and Holder implementations
 namespace impl__{
 
-
+  template< typename T >
+  struct type{};
 
   // Defines an interface for call
   template<
-    typename Invoker, typename Signature =
-      typename generate_overloads< signature_t< Invoker > >::type
+    typename Interface, typename Signature =
+      typename generate_overloads< signature_t< head_t<Interface> > >::type
   > class IHolder;
 
   // non-const invoker specialization with non-const call method
-  template< typename Invoker, typename Return, typename... Args, typename... sigs >
-  class IHolder< Invoker, overloads< Signature< Return(Args...) >, sigs... > >
-    : public IHolder< Invoker, overloads< sigs... > >
+  template<
+      template< typename... > class typelist
+    , typename Invoker, typename... Invokers
+    , typename Return, typename... Args, typename... sigs >
+  class IHolder<
+    typelist< Invoker, Invokers...>
+  , overloads< Signature< Return(Args...) >, sigs... >
+    > : public IHolder< typelist< Invokers... >, overloads< sigs... > >
   {
   public:
-    using IHolder< Invoker, overloads< sigs... > >::call;
+    using IHolder< typelist< Invokers...>, overloads< sigs... > >::call;
     
-    virtual Return  call( Args... args ) = 0;
+    virtual Return  call( type<Invoker>, Args... args ) = 0;
     virtual ~IHolder() = default;
   };
   // Const invoker specialization with const call method
-  template< typename Invoker, typename Return, typename... Args, typename... sigs >
-  class IHolder< const Invoker, overloads< Signature< Return(Args...) >, sigs... > >
-    : public IHolder< const Invoker, overloads< sigs... > >  
+  template<
+      template< typename... > class typelist
+    , typename Invoker, typename... Invokers
+    , typename Return, typename... Args, typename... sigs >
+  class IHolder<
+    typelist< const Invoker, Invokers...>
+  , overloads< Signature< Return(Args...) >, sigs... >
+    > : public IHolder< typelist< Invokers... >, overloads< sigs... > >
   {
   public:
-    using IHolder< const Invoker, overloads< sigs... > >::call;
+    using IHolder< typelist< Invokers...>, overloads< sigs... > >::call;
     
-    virtual Return  call( Args... args ) const = 0;
+    virtual Return  call( type<const Invoker>, Args... args ) const = 0;
     virtual ~IHolder() = default;
   };
 
-  template< typename Invoker, typename Return, typename... Args >
-  class IHolder< Invoker, overloads< Signature< Return(Args...) > > >
+  template<
+      template< typename... > class typelist
+    , typename Invoker, typename... Invokers >
+  class IHolder< typelist<Invoker, Invokers...>, overloads<  > >
+    : public IHolder< typelist< Invokers... > >
   {
   public:
-    virtual Return  call( Args... args ) = 0;
+    using IHolder< typelist< Invokers... > >::call;
     virtual ~IHolder() = default;
   };
-  // Const invoker specialization with const call method
-  template< typename Invoker, typename Return, typename... Args >
-  class IHolder< const Invoker, overloads< Signature< Return(Args...) > > >
+
+  template< template< typename... > class typelist >
+  class IHolder< typelist< >, overloads<  > >
   {
+  protected:
+    struct None{};
+    virtual void call( type<None> ){};
   public:
-    virtual Return  call( Args... args ) const = 0;
     virtual ~IHolder() = default;
   };
+
   
 
-  // template< typename Invoker, typename o, typename... os >
-  // class IHolder< Invoker, overloads< o, os... > >
-  //   : public IHolder< Invoker, overloads< os... > >
-  //   , public IHolder< Invoker, overloads< o > >
-  // {
-  // public:
-  //   using IHolder< Invoker, overloads< o > >::call;
-  //   using IHolder< Invoker, overloads< os... > >::call;
-  // };
-
-  // template< typename Invoker >
-  // class IHolder< Invoker, overloads< > >{
-  //   // static_assert( std::is_same< Invoker, overloads<> >::value, "" );
-  // };
-
+  
   // Helper function that calls invoke on a given concrete holder
   // non-const version
   template< typename Invoker, typename T, typename Interface, typename... Args >
@@ -103,19 +106,37 @@ namespace impl__{
     return invoke< Invoker_t, type >( holder.value, std::forward<Args>(args)... );
   }
 
+  template< typename holder_t >
+  struct holder_interface;
+
+  template< typename T, template< typename... > class typelist, typename... Invokers >
+  struct holder_interface< ::Holder< T, typelist< Invokers ... > > >{
+    using type = ::IHolder< typelist< Invokers... > >;
+  };
+
+  template< typename holder_t >
+  using holder_interface_t = typename holder_interface<holder_t>::type;
+  
   // Concrete holder implementation
   // Sig argument is a signature of a given invoker
-  template< typename Holder_t, typename Invoker
-	    , typename Sig = typename generate_overloads< signature_t< Invoker > >::type
+  template< typename Holder_t, typename Interface
+	    , typename Sig =
+	    typename generate_overloads< signature_t< head_t<Interface> > >::type
   > class Holder;
 
   // non-const invoker call implementation
-  template< typename Holder_t, typename Invoker, typename Return, typename... Args, typename... other >
-  class Holder< Holder_t, Invoker, overloads< Signature< Return(Args...) >, other... > >
-    : public Holder< Holder_t, Invoker, overloads<other...> >
+  template< typename Holder_t,
+	    template< typename... > class interface,
+	    typename Invoker, typename... Invokers,
+	    typename Return, typename... Args, typename... other >
+  class Holder< Holder_t,
+		interface< Invoker, Invokers... >,
+		overloads< Signature< Return(Args...) >, other... >
+		>
+    : public Holder< Holder_t, interface< Invoker, Invokers... >, overloads<other...> >
   {
   public:
-    virtual Return call( Args... args ) override {
+    virtual Return call( type<Invoker>, Args... args ) override {
       auto& holder = static_cast< Holder_t& >(*this); // CRTP
       return impl__::call<Invoker>( holder, std::forward<Args>(args)... );
     }
@@ -123,28 +144,36 @@ namespace impl__{
   };
 
   // const invoker call implementation
-  template< typename Holder_t, typename Invoker, typename Return, typename... Args, typename... other >
-  class Holder< Holder_t, const Invoker, overloads< Signature< Return(Args...) >, other... > >
-    : public Holder< Holder_t, const Invoker, overloads< other... > >
+  template< typename Holder_t,
+	    template< typename... > class interface,
+	    typename Invoker, typename... Invokers,
+	    typename Return, typename... Args, typename... other >
+  class Holder< Holder_t,
+		interface< const Invoker, Invokers... >,
+		overloads< Signature< Return(Args...) >, other... >
+		>
+    : public Holder< Holder_t, interface< const Invoker, Invokers... >, overloads<other...> >
   {
   public:
-    virtual Return call( Args... args ) const override {
+    virtual Return call( type<const Invoker>, Args... args ) const override {
       auto& holder = static_cast< const Holder_t& >(*this); // CRTP
       return impl__::call<const Invoker>( holder, std::forward<Args>(args)... );
     }
     virtual ~Holder() = default;
   };
 
-    // non-const invoker overload recursion termination
-  template< typename Holder_t, typename Invoker >
-  class Holder< Holder_t, Invoker, overloads<> >
-    : public ::IHolder< Invoker >
+    // overloads<> recursion termination, consumes Invoker
+  template< typename Holder_t,
+	    template< typename... > class interface,
+	    typename Invoker, typename... Invokers >
+  class Holder< Holder_t, interface< Invoker, Invokers... >, overloads<> >
+    : public Holder< Holder_t, interface< Invokers... >, overloads<> >
   { };
-
-    // const invoker overload recursion termination
-  template< typename Holder_t, typename Invoker >
-  class Holder< Holder_t, const Invoker, overloads<> >
-    : public ::IHolder< const Invoker >
+    // interface<> recursion termination, inherits from appropriate ::IHolder
+  template< typename Holder_t,
+	    template< typename... > class interface >
+  class Holder< Holder_t, interface<>, overloads<> >
+    : public holder_interface_t< Holder_t >
   { };
 
 }
@@ -170,11 +199,11 @@ return_t<Invoker> call( const IHolder< Interface >& iholder, Args&&... args )
 // Base class of data holders of poly
 // Defines interface of call methods and
 // implements a call method that serves as disambiguation
-template< typename Invoker >
-class IHolder
-  : public impl__::IHolder< Invoker >
+template< template< typename... > class typelist, typename... Invokers >
+class IHolder< typelist< Invokers... > >
+  : public impl__::IHolder< typelist<Invokers...> >
 {
- public:
+ public:  
   virtual ~IHolder() = default;
 };
 
@@ -198,12 +227,11 @@ class Holder_CRTP;
 
 template< typename Holder_t, template< typename... > class typelist, typename... Invokers >
 class Holder_CRTP< Holder_t, typelist< Invokers... > >
-  : public impl__::Holder< Holder_t, Invokers >...
+  : public impl__::Holder< Holder_t, typelist< Invokers...> >
   , public Anchor< typelist<Invokers...> >
 {
 private:
   using Anchor = Anchor< typelist<Invokers...> >;
-  using interface_t = typename Anchor::interface_t;
 
  public:
   virtual std::unique_ptr< Anchor > copy() const override {
@@ -211,10 +239,6 @@ private:
       std::unique_ptr< Anchor >(
         std::make_unique< Holder_t >( static_cast< const Holder_t&>(*this) )
       );
-  }
-
-  virtual interface_t interface() override{
-    return std::make_tuple( static_cast<IHolder< Invokers >*>(this) ... );
   }
 
   virtual ~Holder_CRTP() = default;
