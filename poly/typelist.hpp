@@ -33,6 +33,12 @@ using head_t = typename split_front< typelist >::head;
 template< typename typelist >
 using tail_t = typename split_front< typelist >::tail;
 
+template< typename typelist_t, typename T >
+struct head_or_type;
+
+template< typename typelist_t, typename T >
+using head_or_t = typename head_or_type< typelist_t, T >::type;
+
 template< typename... >
 struct _;
 
@@ -76,6 +82,13 @@ struct repeat;
 template< std::size_t N, typename T, typename typelist = _<> >
 using repeat_t = typename repeat< N, T, typelist >::type;
 
+template< typename typelist_t >
+struct length;
+
+template< template< typename... > class typelist, typename... Ts >
+struct length< typelist<Ts...> >
+  : std::integral_constant< std::size_t, sizeof...(Ts) >
+{  };
 
 
 
@@ -97,6 +110,14 @@ struct split_front< typelist< T, Ts... > >
   using head = T;
   using tail = typelist<Ts...>;
 };
+
+template< template< typename... > class typelist, typename U, typename... Us, typename T >
+struct head_or_type< typelist<U, Us...>, T >
+{ using type = U; };
+
+template< template< typename... > class typelist, typename T >
+struct head_or_type< typelist<>, T >
+{ using type = T; };
 
 template<
   template< typename... > class typelist

@@ -24,10 +24,15 @@ namespace impl__{
   template< typename T >
   struct type{};
 
+  template< typename T >
+  struct t_{ using type = T; };
+
   // Defines an interface for call
   template<
-    typename Interface, typename Signature =
-      typename generate_overloads< signature_t< head_t<Interface> > >::type
+    typename Interface, typename Signature = typename
+    std::conditional< length<Interface>::value == 0,
+		      t_< overloads<> >,
+		      generate_overloads< head_t<Interface > > >::type::type
   > class IHolder;
 
   // non-const invoker specialization with non-const call method
@@ -38,10 +43,10 @@ namespace impl__{
   class IHolder<
     typelist< Invoker, Invokers...>
   , overloads< Signature< Return(Args...) >, sigs... >
-    > : public IHolder< typelist< Invokers... >, overloads< sigs... > >
+    > : public IHolder< typelist< Invoker, Invokers... >, overloads< sigs... > >
   {
   public:
-    using IHolder< typelist< Invokers...>, overloads< sigs... > >::call;
+    using IHolder< typelist< Invoker, Invokers...>, overloads< sigs... > >::call;
     
     virtual Return  call( type<Invoker>, Args... args ) = 0;
     virtual ~IHolder() = default;
@@ -54,28 +59,29 @@ namespace impl__{
   class IHolder<
     typelist< const Invoker, Invokers...>
   , overloads< Signature< Return(Args...) >, sigs... >
-    > : public IHolder< typelist< Invokers... >, overloads< sigs... > >
+    > : public IHolder< typelist< const Invoker, Invokers... >, overloads< sigs... > >
   {
   public:
-    using IHolder< typelist< Invokers...>, overloads< sigs... > >::call;
+    using IHolder< typelist< const Invoker, Invokers...>, overloads< sigs... > >::call;
     
     virtual Return  call( type<const Invoker>, Args... args ) const = 0;
     virtual ~IHolder() = default;
   };
 
-  template<
-      template< typename... > class typelist
-    , typename Invoker, typename... Invokers >
+  template< template< typename... > class typelist, typename Invoker, typename... Invokers >
   class IHolder< typelist<Invoker, Invokers...>, overloads<  > >
     : public IHolder< typelist< Invokers... > >
   {
   public:
     using IHolder< typelist< Invokers... > >::call;
+    
     virtual ~IHolder() = default;
   };
 
-  template< template< typename... > class typelist >
-  class IHolder< typelist< >, overloads<  > >
+
+  template<
+      template< typename... > class typelist >
+  class IHolder< typelist<>, overloads<  > >
   {
   protected:
     struct None{};
@@ -83,9 +89,6 @@ namespace impl__{
   public:
     virtual ~IHolder() = default;
   };
-
-  
-
   
   // Helper function that calls invoke on a given concrete holder
   // non-const version
