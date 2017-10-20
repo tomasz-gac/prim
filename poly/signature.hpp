@@ -139,9 +139,4 @@ public:
     , overloads<>>;
 };
 
-template< typename Invoker >
-using invoker_overloads_t =
-  typename generate_overloads< signature_t< Invoker > >::type;
-
-
 #endif // __SIGNATURE_HPP__
