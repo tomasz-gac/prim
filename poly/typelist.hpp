@@ -90,6 +90,15 @@ struct length< typelist<Ts...> >
   : std::integral_constant< std::size_t, sizeof...(Ts) >
 {  };
 
+template< typename typelist_t >
+struct assert_unique_elements;
+
+template< template< typename... > class typelist, typename... Ts >
+struct assert_unique_elements< typelist< Ts... > >
+  : Ts...
+{  };
+
+
 
 
 template<class...> struct disjunction : std::false_type { };

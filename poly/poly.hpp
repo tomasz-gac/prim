@@ -6,8 +6,12 @@
 #include "holder.hpp"
 
 template< typename... Ts >
-struct Interface{
+class Interface{
+public:
   using interface_type = Interface<Ts...>;
+private:  
+  static assert_unique_elements< Interface >
+    assert_unique_tags;
 };
 
 template< typename Interface_type >
@@ -18,6 +22,8 @@ public:
 private:
   template< typename T >
   using Holder = Holder<T, Interface_type>;
+
+  std::unique_ptr< IHolder< interface_type > > data_;
 public:
   template< typename T >
   Poly& operator=( T v ){
@@ -29,23 +35,23 @@ public:
   
   
 
-  template< typename Invoker, typename... Ts >
-  auto call( Ts&&... vs ) ->
-  std::enable_if_t<
-    in_typelist<interface_type, std::remove_const_t<Invoker>>::value
-  , return_t< Invoker > >
+  template<
+    typename Invoker
+    , typename = std::enable_if_t< in_typelist<interface_type, std::remove_const_t<Invoker>>::value >
+    , typename... Ts
+  > auto call( Ts&&... vs )
   {
-    impl__::type<Invoker>* invoker = nullptr;
+    type<Invoker>* invoker = nullptr;
     return data_->call( invoker, std::forward<Ts>(vs)... );
   }
 
-  template< typename Invoker, typename... Ts >
-  auto call( Ts&&... vs ) const ->
-  std::enable_if_t<
-    in_typelist<interface_type, std::add_const_t<Invoker>>::value
-  , return_t< Invoker > >
+  template<
+    typename Invoker
+  , typename = std::enable_if_t< in_typelist<interface_type, std::add_const_t<Invoker>>::value >
+  , typename... Ts
+  > auto call( Ts&&... vs ) const
   {
-    impl__::type<const Invoker>* invoker = nullptr;
+    type<const Invoker>* invoker = nullptr;
     return data_->call( invoker, std::forward<Ts>(vs)... );
   }
   
@@ -59,18 +65,17 @@ public:
   {  }
 
   Poly( Poly&& other ) noexcept = default;
-
-private:
-  std::unique_ptr< IHolder< interface_type > > data_;
 };
 
 template< typename Invoker, typename Interface, typename... Ts >
-return_t< Invoker > call( Poly< Interface >& poly, Ts&&... vs ){
+//return_t< Invoker >
+auto call( Poly< Interface >& poly, Ts&&... vs ){
   return poly.template call<Invoker>( std::forward< Ts... >(vs)... );
 }
 
 template< typename Invoker, typename Interface, typename... Ts >
-return_t< Invoker > call( const Poly< Interface >& poly, Ts&&... vs ){
+//return_t< Invoker >
+auto call( const Poly< Interface >& poly, Ts&&... vs ){
   return poly.template call<Invoker>( std::forward< Ts... >(vs)... );
 }
 

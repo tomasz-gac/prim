@@ -1,21 +1,32 @@
 #include <iostream>
 #include "graph_interface.hpp"
+#include "poly/overloaded.hpp"
 
 struct print : Signature< void( std::ostream& ) >{};
-struct test : Signature< void( forward<int> ) >{};
 
-struct printable : Interface< const test, const print >{};
+template< typename T >
+struct test_o : Signature< void( forward<T> ) >{};
+
+template< typename... Ts >
+struct overloaded_test : Overloaded< test_o<Ts>... >{};
+
+using otest = overloaded_test< int, float, bool, std::string >;
+
+struct printable : Interface< const otest, const print >{};
 
 template< typename T >
 constexpr auto invoke< const print, T > =
   []( const T& v, std::ostream& str ){ print_impl(v, str); };
 
-template< typename T >
-constexpr auto invoke< const test, T > =
+template< typename O, typename T >
+constexpr auto invoke< const test_o<O>, T > =
   []( const T& v, auto&& f ){
     std::cout << "test" << std::endl;
-    std::cout << (std::is_rvalue_reference<decltype(f)>::value ? "rv" : "lv") << std::endl;
+    std::cout << (std::is_const<std::remove_reference_t<decltype(f)>>::value ? "const " : "")
+              << typeid(f).name() 
+              << (std::is_rvalue_reference<decltype(f)>::value ? "&&" : "&") << std::endl;
   };
+
 
 
 template< typename T >
@@ -43,14 +54,17 @@ void print_impl( const Graph< Interface >& graph, std::ostream& str ){
 }
 
 
+
 int main()
 {
   auto node = Graph< printable >::make<Terminal>( int(3) );
   node.call<print>( std::cout );
-  node.call<test>( 3 );
+  auto t = std::string("test");
+  node.call<otest>( t );
+  node.call<otest>( int() );  
   int i = 4;
-  node.call<test>( i );
-  
+  node.call<otest>( i );
+
   return 0;
 }
 

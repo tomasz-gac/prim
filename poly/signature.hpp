@@ -4,8 +4,9 @@
 #include <type_traits>
 #include "typelist.hpp"
 
+// helper template to contain overloads for Holder implementation
 template< typename... >
-struct signature_args;
+struct overloads;
 
 // Type that encodes a signature for a given invoker
 // Invokers are meant to derive from this type
@@ -14,19 +15,111 @@ class Signature;
 
 template< typename Return, typename... Args >
 struct Signature< Return(Args...)>{
-  using return_type = Return;
+private:
+  struct generate_overloads;
+  
+public:
+  using overloads_type = typename generate_overloads::type;
   using signature_type = Signature;
-  using args_type = signature_args< Args... >;
 };
+
+template< typename T >
+using overloads_t = typename T::overloads_type;
 
 template< typename T >
 using signature_t = typename T::signature_type;
 
-template< typename T >
-using return_t = typename T::return_type;
+template< typename Tag, typename... Tags >
+struct Overloaded
+{
+public:
+  using signature_type = Overloaded;
+  using overloads_type = concat_t< overloads_t< Tag >, overloads_t<Tags>... >;
+private:
+  static assert_unique_elements< overloads_type >
+    assert_unique_signatures;
+};
+
+template< typename >
+struct unknown_invoker;
+
+template< typename Return, typename... Args, typename... Other >
+struct unknown_invoker< overloads< Signature< Return(Args...) >, Other... > >
+  : unknown_invoker< overloads< Other... > >
+{
+  using unknown_invoker< overloads< Other... > >::resolve;
+  
+  template< typename Invoker >
+  static Invoker resolve( Args... );  
+};
+
+template< typename Return, typename... Args >
+struct unknown_invoker< overloads< Signature< Return(Args...) > > >
+{
+  template< typename Invoker >
+  static Invoker resolve( Args... );  
+};
+
+template< typename Invoker, typename = overloads_t< Invoker > >
+struct overloaded_invoker;
+
+template< typename Invoker, typename Return, typename... Args, typename... Other >
+struct overloaded_invoker< Invoker, overloads< Signature< Return(Args...) >, Other... > >
+  : overloaded_invoker< Invoker, overloads< Other... > >
+{
+  using overloaded_invoker< Invoker,overloads< Other... > >::resolve;
+  
+  template< typename >
+  static Invoker resolve( Args... );  
+};
+
+template< typename Invoker, typename Return, typename... Args >
+struct overloaded_invoker< Invoker, overloads< Signature< Return(Args...) > > >
+{
+  template< typename >
+  static Invoker resolve( Args... );  
+};
+
+template< typename Invoker >
+struct invoker_resolution;
+
+template< typename Return, typename... Args >
+struct invoker_resolution< Signature<Return(Args...)> >
+  : unknown_invoker< overloads_t<Signature<Return(Args...)>> >
+{
+  using unknown_invoker< overloads_t<Signature<Return(Args...)>> >::resolve;
+};
+
+template< typename Tag, typename... Tags >
+struct invoker_resolution< Overloaded< Tag, Tags... > >
+  : invoker_resolution< Overloaded< Tags... > >
+  , overloaded_invoker< Tag >
+{
+  using invoker_resolution< Overloaded< Tags... > >::resolve;
+  using overloaded_invoker< Tag >::resolve;
+};
+
+template< typename Tag >
+struct invoker_resolution< Overloaded< Tag > >
+  : overloaded_invoker< Tag >
+{
+  using overloaded_invoker< Tag >::resolve;
+};
+
+template< typename Invoker, typename... Args >
+using resolve_invoker =
+  decltype( invoker_resolution< signature_t< Invoker > >
+	    ::template resolve<Invoker>(std::declval<Args>()...)
+	    );
+
 
 template< typename T >
-using args_t = typename T::args_type;
+struct forward{
+  using type = std::remove_reference_t<T>;
+};
+
+template< typename... >
+struct signature_args;
 
 template< typename R, typename args_t >
 struct make_signature;
@@ -40,78 +133,72 @@ struct make_signature< Return, signature_args< Args... > >
 template< typename Return, typename args_t >
 using make_signature_t = typename make_signature< Return, args_t >::type;
 
-// apply UnaryOp on first element of typelist that fails Predicate
-template<
-  typename typelist
-, template< typename > class Predicate
-, template< typename > class UnaryOp
->
-using apply_first_not_t =
-  concat_t<
-    takeWhile_t< typelist, Predicate >
-  , id_t< typelist, typename UnaryOp< head_t<dropWhile_t<typelist, Predicate>> >::type >
-  , tail_t< dropWhile_t< typelist, Predicate > >
->;
-
-// helper template to contain overloads for Holder implementation
-template< typename... >
-struct overloads;
-
-template< typename T >
-struct forward{
-  using type = std::remove_reference_t<T>;
-};
-
-template< typename T >
-struct unforward__{ using type = T; };
-
-template< typename T >
-struct unforward__<forward<T>>{ using type = typename forward<T>::type; };
-
-template< typename T >
-using unforward = typename unforward__<T>::type;
-
-template< typename T >
-struct is_forwarded
-  : std::integral_constant< bool, !std::is_same< T, unforward<T> >::value >
-{  };
-
-// helper predicate that decides if a given type needs to be forwarded by const& and &&
-template< typename U >
-struct dont_overload
-  : std::integral_constant< bool, !is_forwarded< U >::value >
-{ };
 
 //template that computes a list of signatures required to perfect forward a function of signature T
-template< typename T >
-struct generate_overloads{
+template< typename Return, typename... Args >
+struct Signature< Return(Args...) >::generate_overloads{
 private:
-  // U -> const U&
-  template< typename U >
-  using add_clvalue_reference =
-    std::add_lvalue_reference<std::add_const_t< unforward<U> > >;
+  // T -> signature_args< T's args >
+  using args = signature_args< Args... >;
 
-  // U -> U&&
-  template< typename U >
+  // apply UnaryOp on first element of typelist that fails Predicate
+  template<
+    typename typelist
+    , template< typename > class Predicate
+    , template< typename > class UnaryOp
+    >
+  using apply_first_not_t =
+    concat_t<
+    takeWhile_t< typelist, Predicate >
+    , id_t< typelist, typename UnaryOp< head_t<dropWhile_t<typelist, Predicate>> >::type >
+    , tail_t< dropWhile_t< typelist, Predicate > >
+    >;
+
+  template< typename T >
+  struct unforward__{ using type = T; };
+
+  template< typename T >
+  struct unforward__<forward<T>>{ using type = typename forward<T>::type; };
+
+  template< typename T >
+  using unforward = typename unforward__<T>::type;
+
+  template< typename T >
+  struct is_forwarded
+    : std::integral_constant< bool, !std::is_same< T, unforward<T> >::value >
+  {  };
+
+  // helper predicate that decides if a given type needs to be forwarded by const& and &&
+  template< typename T >
+  struct dont_overload
+    : std::integral_constant< bool, !is_forwarded< T >::value >
+  { };
+  
+  
+  // U -> const T&
+  template< typename T >
+  using add_clvalue_reference =
+    std::add_lvalue_reference<std::add_const_t< unforward<T> > >;
+
+  // T -> T&&
+  template< typename T >
   using add_rvalue_reference =
-    std::add_rvalue_reference< unforward<U> >;
+    std::add_rvalue_reference< unforward<T> >;
   
   //first value that fails dont_overload -> const&
-  template< typename U >
+  template< typename T >
   using first_value_to_clvalue_t =
-    apply_first_not_t< U, dont_overload, add_clvalue_reference >;
+    apply_first_not_t< T, dont_overload, add_clvalue_reference >;
   //first value that fails dont_overload -> &&
-  template< typename U >
+  template< typename T >
   using first_value_to_rvalue_t =
-    apply_first_not_t< U, dont_overload, add_rvalue_reference >;
+    apply_first_not_t< T, dont_overload, add_rvalue_reference >;
   //first value that fails dont_overload -> [ &&, const& ]
-  template< typename U >
-  using fork_value = id_t< U , first_value_to_rvalue_t<U>, first_value_to_clvalue_t<U> >;
-  // for each type in U, apply fork_value and flatten resulting list of lists
-  template< typename U >
-  using fork_values = foldr_t< map_t< U, fork_value >, bind<2, concat_t>::template type, id_t<U> >;
-  // T -> signature_args< T's args >
-  using args = args_t<T>;
+  template< typename T >
+  using fork_value = id_t< T , first_value_to_rvalue_t<T>, first_value_to_clvalue_t<T> >;
+  // for each type in T, apply fork_value and flatten resulting list of lists
+  template< typename T >
+  using fork_values = foldr_t< map_t< T, fork_value >, bind<2, concat_t>::template type, id_t<T> >;
   // number of types that need to be forked
   static constexpr auto N = count< args, Not<dont_overload>::template type >::value;
 
@@ -125,8 +212,8 @@ private:
   #endif
   
   // helper template to apply a bound Op
-  template< typename Op, typename U >
-  using apply = typename Op::template type<U>;
+  template< typename Op, typename T >
+  using apply = typename Op::template type<T>;
   
 public:
   using type =
@@ -134,9 +221,60 @@ public:
       map_t< //list of signature_args -> list of signatures
         //apply fork_values N times to args repacked as signature_args< args >
         foldr_t< repeat_t< N, bind<1,  fork_values > >, apply, id_t<args, args> >
-      , decltype(curry< make_signature_t, return_t<T> >())::template type
+      , decltype(curry< make_signature_t, Return >())::template type
       >
     , overloads<>>;
 };
+
+template< typename T >
+struct type;
+
+// Defines an interface for call
+// implements all overloads for a single Tag
+template< typename Tag, typename overloads = typename Tag::overloads_type >
+class Invoker;
+
+// non-const invoker specialization with non-const call metho
+// Consumes a single Signature<> from overloads<> typelist
+template< typename Tag, typename Return, typename... Args, typename... sigs >
+class Invoker< Tag, overloads< Signature< Return(Args...) >, sigs... >>
+  : public Invoker< Tag, overloads< sigs... > >
+{
+public:
+  // Forward the already defined call method from base class
+  using Invoker< Tag, overloads< sigs... > >::call;
+    
+  virtual Return  call( type<Tag>*, Args... args ) = 0;
+  virtual ~Invoker() = default;
+};
+  
+// Const invoker specialization with const call method
+// Consumes a single Signature<> from overloads<> typelist  
+template< typename Tag, typename Return, typename... Args, typename... sigs >
+class Invoker< const Tag, overloads< Signature< Return(Args...) >, sigs... >
+  > : public Invoker< const Tag, overloads< sigs... > >
+{
+public:
+  // Forward the already defined call method from base class    
+  using Invoker< const Tag, overloads< sigs... > >::call;
+    
+  virtual Return  call( type<const Tag>*, Args... args ) const = 0;
+  virtual ~Invoker() = default;
+};
+
+// Recursion termination. Defines a dummy call to keep consistency
+// with call forwarding
+template< typename Tag >
+class Invoker< Tag, overloads<  > >
+{
+private:
+  struct Invalid;
+protected:
+  // Dummy call method for consistency in forwarding    
+  virtual void call( type<Invalid>* ){};
+public:
+  virtual ~Invoker() = default;
+};
+
 
 #endif // __SIGNATURE_HPP__
