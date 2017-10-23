@@ -1,6 +1,8 @@
 #include <iostream>
 #include "graph_interface.hpp"
 #include "poly/overloaded.hpp"
+#include "poly/storage.hpp"
+#include <cstddef>
 
 struct print : Signature< void( std::ostream& ) >{};
 
@@ -64,6 +66,10 @@ int main()
   node.call<otest>( int() );  
   int i = 4;
   node.call<otest>( i );
+
+  using T = std::reference_wrapper<int>;
+  static_storage< T, sizeof(T), alignof(T) > storage(i);
+  std::cout << alignof(std::max_align_t) << std::endl;
 
   return 0;
 }
