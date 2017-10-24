@@ -1,6 +1,5 @@
 #include <iostream>
 #include "graph_interface.hpp"
-#include "poly/overloaded.hpp"
 #include "poly/storage.hpp"
 #include <cstddef>
 

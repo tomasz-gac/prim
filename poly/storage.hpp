@@ -1,38 +1,37 @@
 #ifndef __STORAGE_HPP__
 #define __STORAGE_HPP__
 
-template< typename >
-class storage_traits;
+#include <memory>
 
-template< typename T, typename Storage  >
-constexpr bool fits(){
-  return
-    sizeof(T) <= sizeof( Storage ) &&
-    alignof( T ) <= alignof( Storage ) &&
-    alignof( Storage ) % alignof( T ) == 0;
-}
-
-
-template< std::size_t Size, std::size_t Align = 0 >
-class static_storage{
+template< typename Interface, std::size_t Size, std::size_t Align = 0 >
+class sbo_storage{
 public:
   static constexpr std::size_t size = Size;
   static constexpr std::size_t align = Align == 0 ? alignof( std::aligned_storage< size > ) : Align;
 
 private:
-  using storage_type = std::aligned_storage_t< size, align >;
+  using static_storage = std::aligned_storage_t< size, align >;
 public:
   template< typename T >
-  T* allocate( 
+  sbo_storage( T&& value ){
+    auto buffer = &static_;
+    size_t space = size;
+    if( std::align( alignof(T), size, buffer, space ) ){
+      data_ = new(&buffer) T(std::forward<T>(value) );
+      is_static_ = true;
+    } else {
+      data_ = new T(std::forward<T>(value) );
+      is_static_ = false;      
+    }
+  }
+
+  ~sbo_storage()
   
 private:
-  storage_type buffer_;
+  bool is_static_;
+  Interface* data_;
+  static_storage storage_;  
 };
-
-
-
-
-
 
 
 
