@@ -1,6 +1,6 @@
 #include <iostream>
 #include "graph_interface.hpp"
-#include "poly/storage.hpp"
+#include "poly/static_allocator.hpp"
 #include <cstddef>
 
 struct print : Signature< void( std::ostream& ) >{};
@@ -67,7 +67,8 @@ int main()
   node.call<otest>( i );
 
   using T = std::reference_wrapper<int>;
-  static_storage< T, sizeof(T), alignof(T) > storage(i);
+  static_allocator< sizeof(T), alignof(T) > alloc;
+  alloc.allocate<T>(i);
   std::cout << alignof(std::max_align_t) << std::endl;
 
   return 0;
