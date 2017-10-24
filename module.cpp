@@ -1,6 +1,5 @@
 #include <iostream>
-#include "graph_interface.hpp"
-#include "poly/static_allocator.hpp"
+#include "example/graph_interface.hpp"
 #include <cstddef>
 
 struct print : Signature< void( std::ostream& ) >{};
@@ -54,6 +53,34 @@ void print_impl( const Graph< Interface >& graph, std::ostream& str ){
   graph.template call<print>(str);
 }
 
+template< typename >
+struct IData_traits;
+
+template< typename IData, typename T >
+using Holder_t = typename IData_traits< IData >::template type<T>;
+
+template< typename Allocator_t = void >
+class polymorphic_eraser{
+    
+  template< typename T >
+  void erase( T&& value ){
+    data_ = new Holder_type<T>( std::forward<T>(value) );
+  };
+
+  template< typename T >
+  T& retrieve(){
+    return static_cast< Holder_type<T>& >( *data_ ).held;
+  };
+
+  template< typename T >
+  T& retrieve() const {
+    return static_cast< const Holder_type<T>& >( *data_ ).held;
+  };
+
+  
+
+};
+
 
 
 int main()
@@ -65,11 +92,6 @@ int main()
   node.call<otest>( int() );  
   int i = 4;
   node.call<otest>( i );
-
-  using T = std::reference_wrapper<int>;
-  static_allocator< sizeof(T), alignof(T) > alloc;
-  alloc.allocate<T>(i);
-  std::cout << alignof(std::max_align_t) << std::endl;
 
   return 0;
 }

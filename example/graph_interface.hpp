@@ -1,7 +1,7 @@
 #ifndef __GRAPH_INTERFACE_HPP__
 #define __GRAPH_INTERFACE_HPP__
 
-#include "poly/poly.hpp"
+#include "../poly/poly.hpp"
 
 #include <array>
 #include <vector>

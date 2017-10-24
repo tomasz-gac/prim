@@ -6,7 +6,7 @@
 
 // Template variable that implements invocation of an Invoker for type T
 // Requires a function call operator ( T, args... ) 
-template< typename Invoker, typename T >
+template< typename Invoker, typename T, typename = void >
 static constexpr auto invoke = Invoker();
 
 // Abstract base class for data holders of poly
