@@ -53,36 +53,6 @@ void print_impl( const Graph< Interface >& graph, std::ostream& str ){
   graph.template call<print>(str);
 }
 
-template< typename >
-struct IData_traits;
-
-template< typename IData, typename T >
-using Holder_t = typename IData_traits< IData >::template type<T>;
-
-template< typename Allocator_t = void >
-class polymorphic_eraser{
-    
-  template< typename T >
-  void erase( T&& value ){
-    data_ = new Holder_type<T>( std::forward<T>(value) );
-  };
-
-  template< typename T >
-  T& retrieve(){
-    return static_cast< Holder_type<T>& >( *data_ ).held;
-  };
-
-  template< typename T >
-  T& retrieve() const {
-    return static_cast< const Holder_type<T>& >( *data_ ).held;
-  };
-
-  
-
-};
-
-
-
 int main()
 {
   auto node = Graph< printable >::make<Terminal>( int(3) );
