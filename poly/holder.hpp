@@ -9,39 +9,39 @@
 template< typename Invoker, typename T, typename = void >
 static constexpr auto invoke = Invoker();
 
-// Abstract base class for data holders of poly
+// Abstract base class for data vtables of poly
 template< typename Interface >
-class IHolder;
+class IVTable;
 
-// Concrete data holder of poly
+// Concrete data vtable of poly
 template< typename T, typename Interface >
-class Holder;
+class VTable;
 
 
-// IHolder and Holder implementations
+// IVTable and VTable implementations
 namespace impl__{
 
   // Defines an interface for call
   // Terminates on empty Interface
   template< typename Interface >
-  class IHolder;
+  class IVTable;
 
   // Consume a single Tag and delegate implementation to an Invoker
   template< template< typename... > class typelist, typename Tag, typename... Tags >
-  class IHolder< typelist< Tag, Tags...>>
-    : public IHolder< typelist< Tags... > >
+  class IVTable< typelist< Tag, Tags...>>
+    : public IVTable< typelist< Tags... > >
     , public ::Invoker< Tag >
   {
   public:
     // Forward the already defined call method from base class
     using ::Invoker< Tag >::call;
-    using IHolder< typelist< Tags... > >::call;
+    using IVTable< typelist< Tags... > >::call;
   };
 
   // Recursion termination. Defines a dummy call to keep consistency
   // with call forwarding
   template< template< typename... > class typelist >
-  class IHolder< typelist<> >  
+  class IVTable< typelist<> >  
   {
   private:
     struct Invalid;
@@ -49,40 +49,20 @@ namespace impl__{
     // Dummy call method for consistency in forwarding    
     virtual void call( type<Invalid>* ){};
   public:
-    virtual ~IHolder() = default;
+    virtual ~IVTable() = default;
   };
 
-  // Helper function that calls invoke on a given concrete holder
-  // non-const version
-  template< typename Invoker, typename T, typename Interface, typename... Args >
-  auto call( ::Holder< T, Interface >& holder, Args&&... args )
-  {
-    using resolved_invoker = resolve_invoker< Invoker, Args... >;
-    using Invoker_t = std::remove_const_t<resolved_invoker>;
-    using type = std::remove_const_t<T>;
-    return invoke< Invoker_t, type >( holder.value, std::forward<Args>(args)... );
-  }
-
-  // const version
-  template< typename Invoker, typename T, typename Interface, typename... Args >
-  auto call( const ::Holder< T, Interface >& holder, Args&&... args ){
-    using resolved_invoker = resolve_invoker< Invoker, Args... >;
-    using Invoker_t = std::add_const_t<resolved_invoker>;
-    using type = std::add_const_t<T>;
-    return invoke< Invoker_t, type >( holder.value, std::forward<Args>(args)... );
-  }
-
-  //deduces appropriate IHolder for a given holder_t to inherit from
-  template< typename holder_t >
-  struct holder_interface;
+  //deduces appropriate IVTable for a given vtable_t to inherit from
+  template< typename vtable_t >
+  struct vtable_interface;
 
   template< typename T, typename Interface >
-  struct holder_interface< ::Holder< T, Interface > >{
-    using type = ::IHolder< typename Interface::interface_type >;
+  struct vtable_interface< ::VTable< T, Interface > >{
+    using type = ::IVTable< typename Interface::interface_type >;
   };
 
-  template< typename holder_t >
-  using holder_interface_t = typename holder_interface<holder_t>::type;
+  template< typename vtable_t >
+  using vtable_interface_t = typename vtable_interface<vtable_t>::type;
 
   //calls generate_overloads on Interface if it is non-empty.
   template< typename Interface >
@@ -91,113 +71,124 @@ namespace impl__{
   		        overloads<>,
 		        overloads_t<head_or_t<Interface,Signature< void()>>> >;
   
-  // Concrete holder implementation
+
+  // Concrete vtable implementation
   // Implements call methods by using invoke template variable
   template<
-    typename Holder_t
+    typename VTable_t
   , typename Interface
   , typename overloads = interface_overloads_t<Interface>
-  > class Holder;
+  > class VTable;
 
+  
   // non-const invoker call implementation
   // Consumes a single Signature<> from overloads<> typelist  
-  template< typename Holder_t,
+  template< typename VTable_t,
 	    template< typename... > class interface,
 	    typename Tag, typename... Tags,
 	    typename Return, typename... Args, typename... other >
-  class Holder< Holder_t,
+  class VTable< VTable_t,
 		interface< Tag, Tags... >,
 		overloads< Signature< Return(Args...) >, other... > >
-    : public Holder< Holder_t, interface< Tag, Tags... >, overloads<other...> >
+    : public VTable< VTable_t, interface< Tag, Tags... >, overloads<other...> >
   {
   public:
-    virtual Return call( type<Tag>*, Args... args ) override final {
-      auto& holder = static_cast< Holder_t& >(*this); // CRTP
-      return impl__::call<Tag>( holder, std::forward<Args>(args)... );
+    virtual Return call( type<Tag>*, erased_t<Args>... args ) override final {
+      using resolved_invoker = resolve_invoker< Tag, Args... >;
+      using T = typename VTable_t::type;
+      return invoke< resolved_invoker, T >
+      	( Eraser<Args>::template unerase<T>
+	  ( static_cast<erased_t<Args>&&>(args) )...
+	  );
     }
-    virtual ~Holder() = default;
+    virtual ~VTable() = default;
   };
 
   // const invoker call implementation
   // Consumes a single Signature<> from overloads<> typelist  
-  template< typename Holder_t,
+  template< typename VTable_t,
 	    template< typename... > class interface,
 	    typename Tag, typename... Tags,
 	    typename Return, typename... Args, typename... other >
-  class Holder< Holder_t,
+  class VTable< VTable_t,
 		interface< const Tag, Tags... >,
 		overloads< Signature< Return(Args...) >, other... > >
-    : public Holder< Holder_t, interface< const Tag, Tags... >, overloads<other...> >
+    : public VTable< VTable_t, interface< const Tag, Tags... >, overloads<other...> >
   {
   public:
-    virtual Return call( type<const Tag>*, Args... args ) const override final {
-      auto& holder = static_cast< const Holder_t& >(*this); // CRTP
-      return impl__::call<const Tag>( holder, std::forward<Args>(args)... );
+    virtual Return call( type<const Tag>*, erased_t<Args>... args ) const override final {
+      using resolved_invoker = const resolve_invoker< Tag, Args... >;
+      using T = const typename VTable_t::type;  
+      return invoke< resolved_invoker, T >
+      	( Eraser<Args>::template unerase<T>
+	  ( static_cast<erased_t<Args&&>>(args) )...
+	  );
     }
-    virtual ~Holder() = default;
+    virtual ~VTable() = default;
   };
 
     // overloads<> recursion termination, consumes Invoker
-  template< typename Holder_t,
+  template< typename VTable_t,
 	    template< typename... > class interface,
 	    typename Tag, typename... Tags >
-  class Holder< Holder_t, interface< Tag, Tags... >, overloads<> >
-    : public Holder< Holder_t, interface< Tags... > >
+  class VTable< VTable_t, interface< Tag, Tags... >, overloads<> >
+    : public VTable< VTable_t, interface< Tags... > >
   { };
-    // interface<> recursion termination, inherits from appropriate ::IHolder
-  template< typename Holder_t,
+    // interface<> recursion termination, inherits from appropriate ::IVTable
+  template< typename VTable_t,
 	    template< typename... > class interface >
-  class Holder< Holder_t, interface<>, overloads<> >
-    : public holder_interface_t< Holder_t >
+  class VTable< VTable_t, interface<>, overloads<> >
+    : public vtable_interface_t< VTable_t >
   { };
 
 }
 
-// Base class of data holders of poly
+// Base class of data vtables of poly
 // Defines interface of call methods
 template< template< typename... > class typelist, typename... Invokers >
-class IHolder< typelist< Invokers... > >
-  : public impl__::IHolder< typelist<Invokers...> >
+class IVTable< typelist< Invokers... > >
+  : public impl__::IVTable< typelist<Invokers...> >
 {
 public:
-  virtual std::unique_ptr< IHolder > copy() const = 0;
+  virtual std::unique_ptr< IVTable > copy() const = 0;
 };
 
 
-// Holder_CRTP is needed to hide the interface typelist in Holder
+// VTable_CRTP is needed to hide the interface typelist in VTable
 // to prevent excessive compilation error lengths
-template< typename Holder_t, typename Interface >
-class Holder_CRTP;
+template< typename VTable_t, typename Interface >
+class VTable_CRTP;
 
-template< typename Holder_t, template< typename... > class typelist, typename... Invokers >
-class Holder_CRTP< Holder_t, typelist< Invokers... > >
-  : public impl__::Holder< Holder_t, typelist< Invokers...> >
+template< typename VTable_t, template< typename... > class typelist, typename... Invokers >
+class VTable_CRTP< VTable_t, typelist< Invokers... > >
+  : public impl__::VTable< VTable_t, typelist< Invokers...> >
 {
 private:
-  using IHolder = IHolder< typelist< Invokers...> >;
+  using IVTable = IVTable< typelist< Invokers...> >;
 
 public:
-  virtual std::unique_ptr< IHolder > copy() const override {
+  virtual std::unique_ptr< IVTable > copy() const override {
     return
-      std::unique_ptr< IHolder >(
-        std::make_unique< Holder_t >( static_cast< const Holder_t&>(*this) )
+      std::unique_ptr< IVTable >(
+        std::make_unique< VTable_t >( static_cast< const VTable_t&>(*this) )
       );
   }
 };
 
-// Concrete data holder of poly
-// Implements the interface of IHolder< Interface >
+// Concrete data vtable of poly
+// Implements the interface of IVTable< Interface >
 template< typename T, typename Interface >
-class Holder
-  : public Holder_CRTP< Holder< T, Interface >, typename Interface::interface_type >
+class VTable
+  : public VTable_CRTP< VTable< T, Interface >, typename Interface::interface_type >
 {
 public:
-  template< typename... Ts >
-  Holder( Ts&&... vs )
-    : value( std::forward<Ts>(vs)... )
-  {  }
+  using type = T;
+  // template< typename... Ts >
+  // VTable( Ts&&... vs )
+  //   : value( std::forward<Ts>(vs)... )
+  // {  }
 
-  T value;
+  // T value;
 };
 
 

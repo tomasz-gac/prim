@@ -3,6 +3,9 @@
 
 #include <type_traits>
 #include "typelist.hpp"
+#include "placeholder.hpp"
+
+
 
 // helper template to contain overloads for Holder implementation
 template< typename... >
@@ -40,9 +43,14 @@ private:
     assert_unique_signatures;
 };
 
+
+// Helper template for overload resolution of Overloaded base class
+// This template is used for Signature< ... > Invokers
 template< typename >
 struct unknown_invoker;
 
+// Implements resolve function for all overloads of a Signature
+// Resolves into Invoker specified as template parameter of resolve function
 template< typename Return, typename... Args, typename... Other >
 struct unknown_invoker< overloads< Signature< Return(Args...) >, Other... > >
   : unknown_invoker< overloads< Other... > >
@@ -60,9 +68,14 @@ struct unknown_invoker< overloads< Signature< Return(Args...) > > >
   static Invoker resolve( Args... );  
 };
 
+// Helper template for overload resolution of Overloaded base class
+// This template is used for Overloaded< ... > Invokers
 template< typename Invoker, typename = overloads_t< Invoker > >
 struct overloaded_invoker;
 
+
+// Implements resolve function for all overloads of a Overloaded< ... >
+// Resolves into Invoker specified as a part of Overloaded base
 template< typename Invoker, typename Return, typename... Args, typename... Other >
 struct overloaded_invoker< Invoker, overloads< Signature< Return(Args...) >, Other... > >
   : overloaded_invoker< Invoker, overloads< Other... > >
@@ -80,6 +93,7 @@ struct overloaded_invoker< Invoker, overloads< Signature< Return(Args...) > > >
   static Invoker resolve( Args... );  
 };
 
+// Template that merges unknown_invoker and overloaded_invoker into a branch for resolution
 template< typename Invoker >
 struct invoker_resolution;
 
@@ -106,6 +120,7 @@ struct invoker_resolution< Overloaded< Tag > >
   using overloaded_invoker< Tag >::resolve;
 };
 
+//Template that returns a specific invoker to pass to invoke<> based on Args
 template< typename Invoker, typename... Args >
 using resolve_invoker =
   decltype( invoker_resolution< signature_t< Invoker > >
@@ -229,52 +244,6 @@ public:
 template< typename T >
 struct type;
 
-// Defines an interface for call
-// implements all overloads for a single Tag
-template< typename Tag, typename overloads = typename Tag::overloads_type >
-class Invoker;
-
-// non-const invoker specialization with non-const call metho
-// Consumes a single Signature<> from overloads<> typelist
-template< typename Tag, typename Return, typename... Args, typename... sigs >
-class Invoker< Tag, overloads< Signature< Return(Args...) >, sigs... >>
-  : public Invoker< Tag, overloads< sigs... > >
-{
-public:
-  // Forward the already defined call method from base class
-  using Invoker< Tag, overloads< sigs... > >::call;
-    
-  virtual Return  call( type<Tag>*, Args... args ) = 0;
-  virtual ~Invoker() = default;
-};
-  
-// Const invoker specialization with const call method
-// Consumes a single Signature<> from overloads<> typelist  
-template< typename Tag, typename Return, typename... Args, typename... sigs >
-class Invoker< const Tag, overloads< Signature< Return(Args...) >, sigs... >
-  > : public Invoker< const Tag, overloads< sigs... > >
-{
-public:
-  // Forward the already defined call method from base class    
-  using Invoker< const Tag, overloads< sigs... > >::call;
-    
-  virtual Return  call( type<const Tag>*, Args... args ) const = 0;
-  virtual ~Invoker() = default;
-};
-
-// Recursion termination. Defines a dummy call to keep consistency
-// with call forwarding
-template< typename Tag >
-class Invoker< Tag, overloads<  > >
-{
-private:
-  struct Invalid;
-protected:
-  // Dummy call method for consistency in forwarding    
-  virtual void call( type<Invalid>* ){};
-public:
-  virtual ~Invoker() = default;
-};
 
 
 #endif // __SIGNATURE_HPP__

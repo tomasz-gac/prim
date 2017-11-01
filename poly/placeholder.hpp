@@ -1,77 +1,67 @@
 #ifndef __PLACEHOLDER_HPP__
 #define __PLACEHOLDER_HPP__
 
-#include "signature.hpp"
-
 struct T{};
 
-template< typename Eraser_t >
-struct Erased;
+template< typename From, typename To >
+struct copy_cv{ using type = std::remove_const_t<std::remove_volatile_t<To>>; };
+template< typename From, typename To >
+struct copy_cv< const From, To >{ using type = std::add_const_t<std::remove_volatile_t<To>>; };
+template< typename From, typename To >
+struct copy_cv< volatile From, To >{ using type = std::remove_const_t<std::add_volatile_t<To>>; };
+template< typename From, typename To >
+struct copy_cv< const volatile From, To >{ using type = std::add_const_t<std::add_volatile_t<To>>; };
+
+template< typename From, typename To >
+using copy_cv_t = typename copy_cv<From,To>::type;
+
+template< typename From, typename To >
+struct copy_ref{ using type = To; };
+template< typename From, typename To >
+struct copy_ref< From&, To >{ using type = std::add_lvalue_reference_t<To>; };
+template< typename From, typename To >
+struct copy_ref< From&&, To >{ using type = std::add_rvalue_reference_t<To>; };
+
+template< typename From, typename To >
+using copy_ref_t = typename copy_ref<From,To>::type;
+
+template< typename From, typename To >
+using copy_cv_ref_t = copy_ref_t< From, copy_cv_t< std::remove_reference_t<From>, To> >;
+
+
+template< typename SignatureType, bool = std::is_same< ::T, std::remove_cv_t<std::decay_t<SignatureType>>>::value>
+struct Eraser;
+
+template< typename SignatureType >
+struct Eraser< SignatureType, false >
+{
+  template< typename T, typename U >
+  static decltype(auto) unerase( U&& value ){
+    return std::forward<U>( value );
+  }
+
+  using erased = SignatureType;
+};
+
+
+template< typename SignatureT >
+struct Eraser< SignatureT, true >{
+private:
+  static_assert( std::is_same< std::decay_t< SignatureT >, ::T >::value );
+  using noref_T = std::remove_reference_t<SignatureT>;
+public:
+  
+  using erased = copy_cv_ref_t< SignatureT, void* >;
+  
+  template< typename T >
+  static decltype(auto) unerase( erased data ){
+    using cv_T = copy_cv_t< noref_T, std::decay_t<T> >;
+    using ref_T = copy_ref_t< SignatureT, cv_T >;
+    return static_cast<ref_T&&>(*reinterpret_cast<cv_T*>(data));
+  }
+};
 
 template< typename T >
-struct is_erased : std::false_type {};
-
-template< typename Eraser_t >
-struct is_erased< Erased<Eraser_t>> : std::true_type {};
-
-template< typename T, typename Eraser_t >
-struct erase_placeholder{
-  using type = T;
-};
-
-template< typename Eraser_t >
-struct erase_placeholder<::T, Eraser_t >{
-  using type = Erased<Eraser_t>;
-};
-
-template< typename T, typename Eraser_t >
-using erase_placeholder_t = typename erase_placeholder<T, Eraser_t>::type;
-
-template< typename T, typename Unerased >
-struct unerase_placeholder{
-  using type = T;
-};
-
-template< typename Eraser_t, typename Unerased >
-struct unerase_placeholder< Erased<Eraser_t>, Unerased >{
-  using type = Unerased;
-};
-
-template< typename T, typename Unerased >
-using unerase_placeholder_t = typename unerase_placeholder< T, Unerased >::type;
-
-template< typename T, typename Unerased, typename = std::enable_if_t< !is_erased<T>{} > >
-decltype(auto) unerase( T&& value ){
-  return std::forward<T>(value);
-}
-
-template< typename Eraser_t, typename T >
-Erased<Eraser_t> erase( T&& value ){
-  return {std::forward<T>(value)};
-}
-
-template<>
-struct Erased<void*>{
-  using eraser_type = void*;
-
-  template< typename T >
-  Erased( T&& v )
-    : value( reinterpret_cast< void* >(&v) )
-  {  }
-
-  Erased(const Erased& ) = default;
-  Erased(      Erased&&) = default;
-
-  void* value;
-};
-
-template< typename Unerased >
-decltype(auto) unerase( Erased<void*> erased ){
-  using raw = std::decay_t<Unerased>;
-  return
-    static_cast<Unerased&&>( *reinterpret_cast< raw* >( erased.value ) );
-};
-
-
+using erased_t = typename Eraser<T>::erased;
 
 #endif // __PLACEHOLDER_HPP__
