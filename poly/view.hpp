@@ -1,8 +1,5 @@
-#ifndef __POLY_HPP__
-#define __POLY_HPP__
-
-template< typename... >
-struct print_ts;
+#ifndef __VIEW_HPP__
+#define __VIEW_HPP__
 
 #include <memory>
 #include <tuple>
@@ -18,7 +15,7 @@ private:
 };
 
 template< typename Interface_type >
-class Poly
+class View
 {
 public:
   using interface_type = typename Interface_type::interface_type;
@@ -26,17 +23,19 @@ private:
   // template< typename T >
   // using VTable = VTable_impl<T, Interface_type>;
 
-  VTable<interface_type> vtable_;
+  using VTable = repack_t< interface_type, Local<> >;
+
+  VTable vtable_;
   void* data_;
   
 public:
   template< typename T >
-  Poly& operator=( T v ){
-    return *this = Poly( std::move(v) );
+  View& operator=( T v ){
+    return *this = View( std::move(v) );
   }
   
-  Poly& operator=( const Poly&  other ){ return *this = Poly( other ); }
-  Poly& operator=(       Poly&& other ) noexcept = default;
+  View& operator=( const View&  other ){ return *this = View( other ); }
+  View& operator=(       View&& other ) noexcept = default;
 
   template<
     typename Invoker
@@ -44,8 +43,7 @@ public:
   , typename... Ts 
   > auto call( Ts&&... vs )
   {
-    type<Invoker>* invoker = nullptr;
-    return vtable_->call( invoker, unpack(std::forward<Ts>(vs))... );
+    return ::call<Invoker>(vtable_, unpack(std::forward<Ts>(vs))... );
   }
 
   template<
@@ -54,27 +52,26 @@ public:
   , typename... Ts
   > auto call( Ts&&... vs ) const
   {
-    type<const Invoker>* invoker = nullptr;
-    return vtable_->call( invoker, unpack(std::forward<Ts>(vs))... );
+    return ::call<const Invoker>(vtable_, unpack(std::forward<Ts>(vs))... );
   }
 
   
   template< typename T >
-  Poly( T v )
-    : vtable_( VTable<interface_type>::template make<T>() )
-    , data_( reinterpret_cast< void* >(new T( std::move( v ))))
+  View( T& v )
+    : vtable_( VTable::template make<T>() )
+    , data_( reinterpret_cast< void* >(&v) )
   {  }
 
-  Poly( const Poly& other )
+  View( const View& other )
     : vtable_( other.vtable_ )
     , data_( other.data_ )
   {  }
 
-  Poly( Poly&& other ) noexcept = default;
+  View( View&& other ) noexcept = default;
 private:
   template< typename U >
   static decltype(auto) unpack( U&& value ){
-    return unpack_impl( std::is_same< std::decay_t<U>, Poly >(), std::forward<U>(value) );
+    return unpack_impl( std::is_same< std::decay_t<U>, View >(), std::forward<U>(value) );
   }
   
   template< typename U >
@@ -90,17 +87,5 @@ private:
     return static_cast< copy_cv_ref_t<U&&, void*> >(v.data_);
   }
 };
-
-template< typename Invoker, typename Interface, typename... Ts >
-//return_t< Invoker >
-auto call( Poly< Interface >& poly, Ts&&... vs ){
-  return poly.template call<Invoker>( std::forward< Ts... >(vs)... );
-}
-
-template< typename Invoker, typename Interface, typename... Ts >
-//return_t< Invoker >
-auto call( const Poly< Interface >& poly, Ts&&... vs ){
-  return poly.template call<Invoker>( std::forward< Ts... >(vs)... );
-}
 
 #endif // __POLY_HPP__

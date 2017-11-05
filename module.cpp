@@ -1,11 +1,8 @@
 #include <iostream>
 #include <typeinfo>
-// #include "example/graph_interface.hpp"
 #include <cassert>
-#include "poly/poly.hpp"
-
-template< typename >
-struct print_t;
+#include "poly/view.hpp"
+#include "poly/vtable.hpp"
 
 template< typename T >
 void print_type( T&& value ){
@@ -34,11 +31,6 @@ constexpr auto invoke< assign, T > =
   value = std::forward<decltype(v)>(v);
 };
 
-
-struct destruct : Signature< void( const T& ) >{};
-template< typename T>
-constexpr auto invoke< const destruct, T > = []( const T& v){ v.~T(); };
-
 struct copy : Signature< void( const T&, void* ) >{};
 template< typename T >
 constexpr auto invoke< const copy, T, std::enable_if_t< std::is_copy_constructible<T>::value> >
@@ -46,17 +38,36 @@ constexpr auto invoke< const copy, T, std::enable_if_t< std::is_copy_constructib
 
 struct printable : Interface< const print, assign > {};
 
+template< size_t n >
+struct N : Signature< void( N<n> ) >{};
+
+template< size_t i, typename T >
+constexpr auto invoke< const N<i>, T > = []( auto ){ std::cout << "C" << i << std::endl; };
+
+template< size_t i, typename T >
+constexpr auto invoke< N<i>, T > = []( auto ){ std::cout << i << std::endl; };
+
+template< size_t... is >
+struct Ns : Overloaded< N< is >... >{};
+
+
+
 int main()
 {
-  Poly< printable > i = 1;
+  auto t = Local< Ns< 1,2,3,4 >, const N<5>, N<6> >::make<int>();
+  call<const N<5>>( t, N<5>() );
+  call<Ns<1,2,3,4>>( t, N<1>() );
+  
+  int s = 1;
+  View< printable > i = s;
   const auto& ci = i;
   i.call< print >( i );
-  auto j = Poly< printable >(3);
+  int r = 3;
+  auto j = View< printable >(r);
   const auto& cj = j;
   i.call< assign >( i, cj );
   ci.call< print >( i );
   i.call< assign >( i, std::move(j) );
   ci.call< print >( i );
-  std::cout << sizeof( VTable<printable> ) << std::endl;
   return 0;
 }

@@ -244,6 +244,12 @@ public:
 template< typename T >
 struct type;
 
+//calls generate_overloads on Interface if it is non-empty.
+template< typename Interface >
+using interface_overloads_t = typename
+  std::conditional_t< length<Interface>::value == 0,
+		      overloads<>,
+		      overloads_t<head_or_t<Interface,Signature< void()>>> >;
 
 
 #endif // __SIGNATURE_HPP__
