@@ -5,8 +5,6 @@
 #include "typelist.hpp"
 #include "placeholder.hpp"
 
-
-
 // helper template to contain overloads for Holder implementation
 template< typename... >
 struct overloads;

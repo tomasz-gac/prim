@@ -3,16 +3,18 @@
 
 #include "signature.hpp"
 
-// Template variable that implements invocation of an Invoker for type T
-// Requires a function call operator ( T, args... ) 
-template< typename Invoker, typename T, typename = void >
-static constexpr auto invoke = Invoker();
+// // Template variable that implements invocation of an Invoker for type T
+// // Requires a function call operator ( T, args... ) 
+// template< typename Invoker, typename T, typename = void >
+// static constexpr auto invoke = Invoker();
+
+template< typename >
+struct Tag{};
 
 template< typename Tag, typename T, typename Return, typename... Args >
 static Return thunk( erased_t<Args>... args ) {
-  using resolved_invoker = resolve_invoker< Tag, Args... >;
-  return invoke< resolved_invoker, T >
-    ( Eraser<Args>::template unerase<T>
+  auto invoker = ::Tag< resolve_invoker< Tag, Args... > >();
+  return invoke( invoker, Eraser<Args>::template unerase<T>
       ( static_cast<erased_t<Args>&&>(args) )...
       );
 }
@@ -39,6 +41,8 @@ thunk_type<Signature> get_thunk(){
   return impl__::thunk_type<Signature>::template get_thunk<Tag, T>();
 }
 
+struct invalid_arguments;
+
 namespace impl__{
   template< typename >
   struct unerase_signature;
@@ -55,8 +59,7 @@ namespace impl__{
   template<>
   struct unerase_signature< overloads<> >
   {
-    struct Invalid;
-    static Invalid get( ... );
+    static invalid_arguments get( ... );
   };
 }
 

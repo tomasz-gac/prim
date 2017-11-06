@@ -50,16 +50,6 @@ public:
 	    typename = enable_if_supports< const View, Invoker > >
   decltype(auto) call( Ts&&... vs ) const 
   { return ::call<const Invoker>(vtable_, unpack(std::forward<Ts>(vs))... ); }
-
-  template< typename Invoker, typename... Ts,
-	    typename = enable_if_supports< volatile View, Invoker > >
-  decltype(auto) call( Ts&&... vs ) volatile
-  { return ::call<volatile Invoker>(vtable_, unpack(std::forward<Ts>(vs))... ); }
-
-  template< typename Invoker, typename... Ts,
-	    typename = enable_if_supports< const volatile View, Invoker > >
-  decltype(auto) call( Ts&&... vs ) const volatile
-  { return ::call<const volatile Invoker>(vtable_, unpack(std::forward<Ts>(vs))... ); }
   
   template< typename T >
   View( T& v )

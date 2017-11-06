@@ -90,6 +90,8 @@ public:
 template< typename Invoker, typename VTable, typename... Args >
 decltype(auto) call( const VTable& vtbl, Args&&... args ){
   using Signature = unerase_signature< Invoker, Args&&... >;
+  static_assert( !std::is_same< Signature, invalid_arguments >::value,
+  		 "Invoker cannot be called with supplied arguments" );
   return (*vtbl.template get<Invoker, Signature>())( std::forward<Args>(args)... );
 }
 

@@ -4,6 +4,14 @@
 #include "poly/view.hpp"
 #include "poly/vtable.hpp"
 
+template< typename >
+struct Invoker;
+
+template< typename Return, typename... Args >
+struct Invoker< Return(Args...) >
+  : public Signature< Return(Args...) >
+{  };
+
 template< typename T >
 void print_type( T&& value ){
   std::cout << (std::is_const<std::remove_reference_t<T&&>>::value ? "const " : "")
@@ -12,52 +20,32 @@ void print_type( T&& value ){
 	    << (std::is_rvalue_reference<T&&>::value ? "&&" : "&") << " == " << value << std::endl;
 }
 
-struct print : Signature< void(const T&) >{  };
-
+struct print : Invoker< void(const T&) >{  };
 struct assign : Signature< void( T&, forward<T> ) > {  };
 
 template< typename T >
-constexpr auto invoke< const print, const T > = []( auto&& value ){
+void invoke( Tag< const print >, T&& value ){
   print_type( std::forward<decltype(value)>(value) );
-};
+}
 
-template< typename... >
-using void_t = void;
-
-template< typename T >
-constexpr auto invoke< assign, T > =
-[]( T& value, auto&& v ) {
+template< typename T, typename T2 >
+void invoke( Tag< assign >, T& value, T2&& v ){
   std::cout << "assign" << std::endl;
   print_type( std::forward<decltype(v)>(v) );
   value = std::forward<decltype(v)>(v);
 };
 
 struct copy : Signature< void( const T&, void* ) >{};
-template< typename T >
-constexpr auto invoke< const copy, T, std::enable_if_t< std::is_copy_constructible<T>::value> >
-= []( const T& v, void* ptr){ new(ptr) T( v ); };
 
-struct printable : Interface< const volatile print, assign > {};
+template< typename T, typename = std::enable_if_t< std::is_copy_constructible<T>::value> >
+void invoke( Tag< const copy >, const T& v, void* ptr){
+  new(ptr) T( v );
+}
 
-template< size_t n >
-struct N : Signature< void( N<n> ) >{};
-
-template< size_t i, typename T >
-constexpr auto invoke< volatile N<i>, T > = []( auto ){ std::cout << "V" << i << std::endl; };
-
-template< size_t i, typename T >
-constexpr auto invoke< N<i>, T > = []( auto ){ std::cout << i << std::endl; };
-
-template< size_t... is >
-struct Ns : Overloaded< N< is >... >{};
+struct printable : Interface< const print, assign > {};
 
 int main()
 {
-  // using o = Ns< 1,2,3,4 >;
-  // auto t = Local< o, volatile N<5>, N<6> >::make<int>();
-  // call<volatile N<5>>( t, N<5>() );
-  // call<o>( t, N<1>() );
-  
   int s = 1;
   View< printable > i = s;
   const auto& ci = i;
