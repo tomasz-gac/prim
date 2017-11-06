@@ -7,6 +7,7 @@
 template< typename T >
 void print_type( T&& value ){
   std::cout << (std::is_const<std::remove_reference_t<T&&>>::value ? "const " : "")
+	    << (std::is_volatile<std::remove_reference_t<T&&>>::value ? "volatile " : "")
 	    << typeid(value).name() 
 	    << (std::is_rvalue_reference<T&&>::value ? "&&" : "&") << " == " << value << std::endl;
 }
@@ -36,13 +37,13 @@ template< typename T >
 constexpr auto invoke< const copy, T, std::enable_if_t< std::is_copy_constructible<T>::value> >
 = []( const T& v, void* ptr){ new(ptr) T( v ); };
 
-struct printable : Interface< const print, assign > {};
+struct printable : Interface< const volatile print, assign > {};
 
 template< size_t n >
 struct N : Signature< void( N<n> ) >{};
 
 template< size_t i, typename T >
-constexpr auto invoke< const N<i>, T > = []( auto ){ std::cout << "C" << i << std::endl; };
+constexpr auto invoke< volatile N<i>, T > = []( auto ){ std::cout << "V" << i << std::endl; };
 
 template< size_t i, typename T >
 constexpr auto invoke< N<i>, T > = []( auto ){ std::cout << i << std::endl; };
@@ -50,13 +51,12 @@ constexpr auto invoke< N<i>, T > = []( auto ){ std::cout << i << std::endl; };
 template< size_t... is >
 struct Ns : Overloaded< N< is >... >{};
 
-
-
 int main()
 {
-  auto t = Local< Ns< 1,2,3,4 >, const N<5>, N<6> >::make<int>();
-  call<const N<5>>( t, N<5>() );
-  call<Ns<1,2,3,4>>( t, N<1>() );
+  // using o = Ns< 1,2,3,4 >;
+  // auto t = Local< o, volatile N<5>, N<6> >::make<int>();
+  // call<volatile N<5>>( t, N<5>() );
+  // call<o>( t, N<1>() );
   
   int s = 1;
   View< printable > i = s;

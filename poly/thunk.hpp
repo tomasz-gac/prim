@@ -61,7 +61,7 @@ namespace impl__{
 }
 
 template< typename Invoker, typename... Args >
-auto unerase_signature( Args&&... args ) ->
-  decltype( impl__::unerase_signature< overloads_t<Invoker> >::get( std::forward<Args>(args)... ) );
+using unerase_signature =
+  decltype( impl__::unerase_signature< overloads_t<Invoker> >::get( std::declval<Args>()... ) );
 
 #endif // __THUNK_HPP__

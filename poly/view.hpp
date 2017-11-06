@@ -9,10 +9,14 @@ template< typename... Ts >
 class Interface{
 public:
   using interface_type = Interface<Ts...>;
+
 private:  
   static assert_unique_elements< Interface >
     assert_unique_tags;
 };
+
+template< typename Interface, typename Invoker >
+constexpr bool supports(){ return in_typelist< Interface, Invoker >::value; }
 
 template< typename Interface_type >
 class View
@@ -20,10 +24,10 @@ class View
 public:
   using interface_type = typename Interface_type::interface_type;
 private:
-  // template< typename T >
-  // using VTable = VTable_impl<T, Interface_type>;
-
   using VTable = repack_t< interface_type, Local<> >;
+  template< typename CV, typename Invoker >
+  using enable_if_supports =
+    std::enable_if_t< supports<interface_type, copy_cv_t< CV, Invoker>>() >;
 
   VTable vtable_;
   void* data_;
@@ -37,24 +41,25 @@ public:
   View& operator=( const View&  other ){ return *this = View( other ); }
   View& operator=(       View&& other ) noexcept = default;
 
-  template<
-    typename Invoker
-  , typename = std::enable_if_t< in_typelist<interface_type, std::remove_const_t<Invoker>>::value >
-  , typename... Ts 
-  > auto call( Ts&&... vs )
-  {
-    return ::call<Invoker>(vtable_, unpack(std::forward<Ts>(vs))... );
-  }
+  template< typename Invoker, typename... Ts,
+	    typename = enable_if_supports< View, Invoker > >
+  decltype(auto) call( Ts&&... vs )
+  { return ::call<Invoker>(vtable_, unpack(std::forward<Ts>(vs))... ); }
+  
+  template< typename Invoker, typename... Ts,
+	    typename = enable_if_supports< const View, Invoker > >
+  decltype(auto) call( Ts&&... vs ) const 
+  { return ::call<const Invoker>(vtable_, unpack(std::forward<Ts>(vs))... ); }
 
-  template<
-    typename Invoker
-  , typename = std::enable_if_t< in_typelist<interface_type, std::add_const_t<Invoker>>::value >
-  , typename... Ts
-  > auto call( Ts&&... vs ) const
-  {
-    return ::call<const Invoker>(vtable_, unpack(std::forward<Ts>(vs))... );
-  }
+  template< typename Invoker, typename... Ts,
+	    typename = enable_if_supports< volatile View, Invoker > >
+  decltype(auto) call( Ts&&... vs ) volatile
+  { return ::call<volatile Invoker>(vtable_, unpack(std::forward<Ts>(vs))... ); }
 
+  template< typename Invoker, typename... Ts,
+	    typename = enable_if_supports< const volatile View, Invoker > >
+  decltype(auto) call( Ts&&... vs ) const volatile
+  { return ::call<const volatile Invoker>(vtable_, unpack(std::forward<Ts>(vs))... ); }
   
   template< typename T >
   View( T& v )
