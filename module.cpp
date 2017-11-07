@@ -2,7 +2,6 @@
 #include <typeinfo>
 #include <cassert>
 #include "poly/view.hpp"
-#include "poly/vtable.hpp"
 
 template< typename >
 struct Invoker;
@@ -10,7 +9,7 @@ struct Invoker;
 template< typename Return, typename... Args >
 struct Invoker< Return(Args...) >
   : public Signature< Return(Args...) >
-{  };
+{ };
 
 template< typename T >
 void print_type( T&& value ){
@@ -31,8 +30,8 @@ void invoke( Tag< const print >, T&& value ){
 template< typename T, typename T2 >
 void invoke( Tag< assign >, T& value, T2&& v ){
   std::cout << "assign" << std::endl;
-  print_type( std::forward<decltype(v)>(v) );
-  value = std::forward<decltype(v)>(v);
+  print_type( std::forward<T2>(v) );
+  value = std::forward<T2>(v);
 };
 
 struct copy : Signature< void( const T&, void* ) >{};
@@ -44,6 +43,8 @@ void invoke( Tag< const copy >, const T& v, void* ptr){
 
 struct printable : Interface< const print, assign > {};
 
+template< typename >
+class print_t;
 int main()
 {
   int s = 1;
@@ -57,5 +58,7 @@ int main()
   ci.call< print >( i );
   i.call< assign >( i, std::move(j) );
   ci.call< print >( i );
+  auto vtable = ci.call< printable::vtable  >( ci );
+  call< const print >( vtable, ci.data_ );
   return 0;
 }

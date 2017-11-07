@@ -11,14 +11,22 @@
 template< typename >
 struct Tag{};
 
-template< typename Tag, typename T, typename Return, typename... Args >
-static Return thunk( erased_t<Args>... args ) {
-  auto invoker = ::Tag< resolve_invoker< Tag, Args... > >();
-  return invoke( invoker, Eraser<Args>::template unerase<T>
-      ( static_cast<erased_t<Args>&&>(args) )...
-      );
-}
 namespace impl__{
+  template< typename >
+  struct thunk_impl_;
+
+  template< typename Return, typename... Args >
+  struct thunk_impl_< Signature< Return(Args...) > >{
+    
+    template< typename Tag, typename T >
+      static Return thunk( erased_t<Args>... args ) {
+      auto invoker = ::Tag< resolve_invoker< Tag, Args... > >();
+      return invoke( invoker, Eraser<Args>::template unerase<T>
+		     ( static_cast<erased_t<Args>&&>(args) )...
+		     );
+    }
+  };
+  
   template< typename Signature >
   struct thunk_type;
 
@@ -28,7 +36,7 @@ namespace impl__{
     
     template< typename Tag, typename T >
     static type get_thunk(){
-      return &::thunk< Tag, T, Return, Args... >;
+      return &thunk_impl_< Signature<Return(Args...)> >::template thunk< Tag, T >;
     }
   };
 }

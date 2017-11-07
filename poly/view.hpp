@@ -5,10 +5,25 @@
 #include <tuple>
 #include "vtable.hpp"
 
+template< typename... Tags >
+struct vtable : Signature<Local< Tags..., const vtable<Tags...> >( const T& ) >{};
+
+template< typename Interface >
+using interface_t = typename Interface::interface_type;
+
+template< typename Interface >
+using vtable_t = std::add_const_t<repack_t< interface_t<Interface>, vtable<>>>;
+
+template< typename... Tags, typename T >
+decltype(auto) invoke( Tag< const vtable<Tags...> >, const T& ){
+  return Local<Tags..., const vtable<Tags...> >::template make<std::decay_t<T>>();
+}
+
 template< typename... Ts >
 class Interface{
 public:
-  using interface_type = Interface<Ts...>;
+  using interface_type = Interface<Ts..., const vtable<Ts...>>;
+  using vtable = const vtable< Ts... >;
 
 private:  
   static assert_unique_elements< Interface >
@@ -30,6 +45,7 @@ private:
     std::enable_if_t< supports<interface_type, copy_cv_t< CV, Invoker>>() >;
 
   VTable vtable_;
+public:
   void* data_;
   
 public:
