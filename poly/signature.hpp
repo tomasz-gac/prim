@@ -5,7 +5,7 @@
 #include "typelist.hpp"
 #include "placeholder.hpp"
 
-// helper template to contain overloads for Holder implementation
+// helper template to contain overloads of an invoker
 template< typename... >
 struct overloads;
 
@@ -40,6 +40,22 @@ private:
   static assert_unique_elements< overloads_type >
     assert_unique_signatures;
 };
+
+template< typename... Tags >
+class Interface{
+public:
+  using interface_type = Interface;
+
+private:  
+  static assert_unique_elements< Interface >
+    assert_unique_tags;
+};
+
+template< typename I >
+using interface_t = typename I::interface_type;
+
+template< typename Interface, typename Invoker >
+constexpr bool supports(){ return in_typelist< Interface, Invoker >::value; }
 
 
 // Helper template for overload resolution of Overloaded base class
@@ -162,7 +178,7 @@ private:
     >
   using apply_first_not_t =
     concat_t<
-    takeWhile_t< typelist, Predicate >
+      takeWhile_t< typelist, Predicate >
     , id_t< typelist, typename UnaryOp< head_t<dropWhile_t<typelist, Predicate>> >::type >
     , tail_t< dropWhile_t< typelist, Predicate > >
     >;
@@ -238,16 +254,5 @@ public:
       >
     , overloads<>>;
 };
-
-template< typename T >
-struct type;
-
-//calls generate_overloads on Interface if it is non-empty.
-template< typename Interface >
-using interface_overloads_t = typename
-  std::conditional_t< length<Interface>::value == 0,
-		      overloads<>,
-		      overloads_t<head_or_t<Interface,Signature< void()>>> >;
-
 
 #endif // __SIGNATURE_HPP__

@@ -19,8 +19,9 @@ namespace impl__{
   struct thunk_impl_< Signature< Return(Args...) > >{
     
     template< typename Tag, typename T >
-      static Return thunk( erased_t<Args>... args ) {
-      auto invoker = ::Tag< resolve_invoker< Tag, Args... > >();
+    static Return thunk( erased_t<Args>... args ) {
+      static_assert( std::is_empty< Tag >::value, "Tags may have no data members" );
+      auto invoker = resolve_invoker< Tag, Args... >();
       return invoke( invoker, Eraser<Args>::template unerase<T>
 		     ( static_cast<erased_t<Args>&&>(args) )...
 		     );

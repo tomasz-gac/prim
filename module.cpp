@@ -3,14 +3,6 @@
 #include <cassert>
 #include "poly/view.hpp"
 
-template< typename >
-struct Invoker;
-
-template< typename Return, typename... Args >
-struct Invoker< Return(Args...) >
-  : public Signature< Return(Args...) >
-{ };
-
 template< typename T >
 void print_type( T&& value ){
   std::cout << (std::is_const<std::remove_reference_t<T&&>>::value ? "const " : "")
@@ -19,46 +11,56 @@ void print_type( T&& value ){
 	    << (std::is_rvalue_reference<T&&>::value ? "&&" : "&") << " == " << value << std::endl;
 }
 
-struct print : Invoker< void(const T&) >{  };
-struct assign : Signature< void( T&, forward<T> ) > {  };
+struct print : Signature< void (const T&) >{  };
+struct assign : Signature< void ( T&, forward<T> ) > {  };
 
 template< typename T >
-void invoke( Tag< const print >, T&& value ){
+void invoke( print, const T& value ){
   print_type( std::forward<decltype(value)>(value) );
 }
 
 template< typename T, typename T2 >
-void invoke( Tag< assign >, T& value, T2&& v ){
+void invoke( assign, T& value, T2&& v ){
   std::cout << "assign" << std::endl;
   print_type( std::forward<T2>(v) );
   value = std::forward<T2>(v);
 };
 
-struct copy : Signature< void( const T&, void* ) >{};
+template< typename T >
+struct as : Signature< T&( ::T& ) >{  };
 
-template< typename T, typename = std::enable_if_t< std::is_copy_constructible<T>::value> >
-void invoke( Tag< const copy >, const T& v, void* ptr){
-  new(ptr) T( v );
+template< typename T, typename U >
+T& invoke( as<T>, U& value ){
+  return value;
+};
+
+struct printable : Interface< print, assign > {};
+
+template< typename T >
+struct test : Signature< void (const T&) >{};
+
+template< typename T >
+void invoke( test<T>, const T& val ){
+  std::cout << val << std::endl;
 }
 
-struct printable : Interface< const print, assign > {};
-
-template< typename >
-class print_t;
 int main()
 {
   int s = 1;
   View< printable > i = s;
+  View< printable > k = i;
+  k[ print() ](k);
   const auto& ci = i;
-  i.call< print >( i );
+  i[ print() ]( i );
   int r = 3;
   auto j = View< printable >(r);
   const auto& cj = j;
-  i.call< assign >( i, cj );
-  ci.call< print >( i );
-  i.call< assign >( i, std::move(j) );
-  ci.call< print >( i );
-  auto vtable = ci.call< printable::vtable  >( ci );
-  call< const print >( vtable, ci.data_ );
+  i[assign()]( i, cj );
+  ci[print()]( i );
+  i[assign()]( i, std::move(j) );
+  ci[print()]( i );
+  auto tvtbl = Local< Interface< test<int>, test<double> > >::make();
+  tvtbl[ test<double>() ]( 1337.14 );
+  
   return 0;
 }

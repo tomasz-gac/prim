@@ -5,33 +5,11 @@
 #include <tuple>
 #include "vtable.hpp"
 
-template< typename... Tags >
-struct vtable : Signature<Local< Tags..., const vtable<Tags...> >( const T& ) >{};
+template< typename Interface_type >
+class View;
 
-template< typename Interface >
-using interface_t = typename Interface::interface_type;
-
-template< typename Interface >
-using vtable_t = std::add_const_t<repack_t< interface_t<Interface>, vtable<>>>;
-
-template< typename... Tags, typename T >
-decltype(auto) invoke( Tag< const vtable<Tags...> >, const T& ){
-  return Local<Tags..., const vtable<Tags...> >::template make<std::decay_t<T>>();
-}
-
-template< typename... Ts >
-class Interface{
-public:
-  using interface_type = Interface<Ts..., const vtable<Ts...>>;
-  using vtable = const vtable< Ts... >;
-
-private:  
-  static assert_unique_elements< Interface >
-    assert_unique_tags;
-};
-
-template< typename Interface, typename Invoker >
-constexpr bool supports(){ return in_typelist< Interface, Invoker >::value; }
+template< typename T > struct is_view : std::false_type{};
+template< typename Interface > struct is_view< View<Interface> > : std::true_type{};
 
 template< typename Interface_type >
 class View
@@ -39,15 +17,13 @@ class View
 public:
   using interface_type = typename Interface_type::interface_type;
 private:
-  using VTable = repack_t< interface_type, Local<> >;
-  template< typename CV, typename Invoker >
-  using enable_if_supports =
-    std::enable_if_t< supports<interface_type, copy_cv_t< CV, Invoker>>() >;
+  using VTable = Local<Interface_type>;
+  template< typename Invoker >
+  using enable_if_supports = std::enable_if_t< supports<interface_type, Invoker>() >;
 
   VTable vtable_;
-public:
   void* data_;
-  
+
 public:
   template< typename T >
   View& operator=( T v ){
@@ -57,15 +33,38 @@ public:
   View& operator=( const View&  other ){ return *this = View( other ); }
   View& operator=(       View&& other ) noexcept = default;
 
-  template< typename Invoker, typename... Ts,
-	    typename = enable_if_supports< View, Invoker > >
-  decltype(auto) call( Ts&&... vs )
-  { return ::call<Invoker>(vtable_, unpack(std::forward<Ts>(vs))... ); }
+  template< typename Invoker, typename = enable_if_supports< Invoker > >
+  auto operator[]( const Invoker& )
+  { return get< Invoker >(); }
+
+  template< typename Invoker, typename = enable_if_supports< Invoker > >
+  auto operator[]( const Invoker& ) const
+  { return get< Invoker >(); }
+
   
-  template< typename Invoker, typename... Ts,
-	    typename = enable_if_supports< const View, Invoker > >
-  decltype(auto) call( Ts&&... vs ) const 
-  { return ::call<const Invoker>(vtable_, unpack(std::forward<Ts>(vs))... ); }
+  template< typename Invoker, typename = enable_if_supports< Invoker > >
+  auto get()
+  {
+    return [this]( auto&&... args ){
+      return vtable_.template get<Invoker>()( unpack(std::forward<decltype(args)>(args))... );
+    };
+  }
+  
+  template< typename Invoker, typename = enable_if_supports< Invoker > >
+  auto get() const
+  {
+    return [this]( auto&&... args ){
+      return vtable_.template get<Invoker>()( unpack(std::forward<decltype(args)>(args))... );
+    };
+  }
+
+  
+  template< typename Invoker >
+  explicit
+  operator View< typename Interface< Invoker >::interface_type >() const {
+    using i_t = typename Interface< Invoker >::interface_type;
+    return View< i_t >( data_, static_cast< typename i_t::VTable >( vtable_ ) );
+  }
   
   template< typename T >
   View( T& v )
@@ -73,13 +72,18 @@ public:
     , data_( reinterpret_cast< void* >(&v) )
   {  }
 
-  View( const View& other )
-    : vtable_( other.vtable_ )
-    , data_( other.data_ )
-  {  }
-
-  View( View&& other ) noexcept = default;
+  View( const View& ) = default;
+  View( View& v ) : View( const_cast< const View& >(v)){ } 
+  View( View&& ) noexcept = default;
 private:
+  template< typename I >
+  friend class View;
+  
+  View( void* data, VTable vtable )
+    : vtable_(vtable)
+    , data_(data)
+  {  }
+  
   template< typename U >
   static decltype(auto) unpack( U&& value ){
     return unpack_impl( std::is_same< std::decay_t<U>, View >(), std::forward<U>(value) );
