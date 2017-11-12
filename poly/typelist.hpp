@@ -90,12 +90,17 @@ struct length< typelist<Ts...> >
   : std::integral_constant< std::size_t, sizeof...(Ts) >
 {  };
 
+namespace impl__ {
+  template< typename T >
+  struct host_type{};
+}
+
 template< typename typelist_t >
 struct assert_unique_elements;
 
 template< template< typename... > class typelist, typename... Ts >
 struct assert_unique_elements< typelist< Ts... > >
-  : Ts...
+  : impl__::host_type< Ts >...
 {  };
 
 

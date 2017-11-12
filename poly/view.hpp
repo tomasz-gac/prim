@@ -5,21 +5,21 @@
 #include <tuple>
 #include "vtable.hpp"
 
-template< typename Interface_type >
+template< typename Tag >
 class View;
 
 template< typename T > struct is_view : std::false_type{};
 template< typename Interface > struct is_view< View<Interface> > : std::true_type{};
 
-template< typename Interface_type >
+template< typename Tag >
 class View
 {
 public:
-  using interface_type = typename Interface_type::interface_type;
+  using interface = interface_t<Tag>;
 private:
-  using VTable = Local<Interface_type>;
+  using VTable = Local<Tag, EraseVoidPtr >;
   template< typename Invoker >
-  using enable_if_supports = std::enable_if_t< supports<interface_type, Invoker>() >;
+  using enable_if_supports = std::enable_if_t< supports<interface, Invoker>() >;
 
   VTable vtable_;
   void* data_;
@@ -45,48 +45,52 @@ public:
   template< typename Invoker, typename = enable_if_supports< Invoker > >
   auto get()
   {
-    return [this]( auto&&... args ){
-      return vtable_.template get<Invoker>()( unpack(std::forward<decltype(args)>(args))... );
+    return [this]( auto&&... args ) -> decltype(auto){
+      return
+	vtable_.template get<Invoker>()
+	  ( data_, unpack( std::forward<decltype(args)>(args) )... );
     };
   }
   
   template< typename Invoker, typename = enable_if_supports< Invoker > >
   auto get() const
   {
-    return [this]( auto&&... args ){
-      return vtable_.template get<Invoker>()( unpack(std::forward<decltype(args)>(args))... );
+    return [this]( auto&&... args ) -> decltype(auto) {
+      return 
+	vtable_.template get<Invoker>()
+	  ( data_, unpack( std::forward<decltype(args)>(args) )... );
     };
   }
-
   
-  template< typename Invoker >
-  explicit
-  operator View< typename Interface< Invoker >::interface_type >() const {
-    using i_t = typename Interface< Invoker >::interface_type;
-    return View< i_t >( data_, static_cast< typename i_t::VTable >( vtable_ ) );
-  }
-  
+  template< typename To, typename From >
+  friend View< To > interface_cast( const View<From>& view );// {
+ 
   template< typename T >
+  explicit operator T() const { return *reinterpret_cast< T* >(data_); }
+ 
+  template< typename T >
+  explicit operator T() { return *reinterpret_cast< T* >(data_); }
+
+  template< typename T, typename = std::enable_if_t< !is_view<std::decay_t<T>>::value > >
   View( T& v )
-    : vtable_( VTable::template make<T>() )
+    : vtable_( VTable::template make< T >() )
     , data_( reinterpret_cast< void* >(&v) )
   {  }
 
   View( const View& ) = default;
-  View( View& v ) : View( const_cast< const View& >(v)){ } 
   View( View&& ) noexcept = default;
 private:
   template< typename I >
   friend class View;
-  
+
   View( void* data, VTable vtable )
     : vtable_(vtable)
     , data_(data)
   {  }
-  
+
   template< typename U >
   static decltype(auto) unpack( U&& value ){
-    return unpack_impl( std::is_same< std::decay_t<U>, View >(), std::forward<U>(value) );
+    return unpack_impl( is_view< std::decay_t<U> >(), std::forward<U>(value) );
   }
   
   template< typename U >
@@ -101,6 +105,26 @@ private:
   {
     return static_cast< copy_cv_ref_t<U&&, void*> >(v.data_);
   }
+  
 };
+
+template< typename To, typename From >
+View< To > interface_cast( const View<From>& view ){
+  return std::move(View< To >( view.data_,
+			       interface_cast< To >( view.vtable_ )) );
+}
+
+
+// template< typename... Views >
+// class T_pack{
+// private:
+//   std::tuple< Views... > views_;
+
+//   std::tuple< 
+    
+// public:
+  
+// };
+
 
 #endif // __POLY_HPP__
