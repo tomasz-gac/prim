@@ -124,7 +124,7 @@ public:
 
   template< typename Tag >
   const TThunk< Tag >& get() const {
-    return vtable_.template get< TThunk<Tag> >();
+    return vtable_.template get< Tag >();
   }
 };
 
