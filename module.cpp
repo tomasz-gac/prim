@@ -12,10 +12,38 @@ struct printable :
   ::type_id type_id;
 };
 
-struct convertible : Interface< as<int&>, as<float&>, as<bool> >{};
+struct convertible : Interface< as<float&>, as<int&>, as<bool> >{};
+
+template< typename... Ts >
+struct only{
+  template< typename T >
+  using type = typename disjunction< std::is_same< T, Ts >... >::type;
+};
+
+template< typename... Ts >
+struct except{
+  template< typename T >
+  using type =
+    std::integral_constant< bool, !disjunction< std::is_same< T, Ts >... >::type::value >;
+};
+
+template< typename T, typename... Ts >
+struct join{
+  struct type : concat_t< interface_t<T>, interface_t< Ts >... >{  };
+};
+
+template< typename... Ts >
+using join_t = typename join<Ts...>::type;
+
+
+template< typename ... >
+struct print_ts;
 
 int main()
 {
+  using tl = std::tuple< float, int, bool, int, std::string >;
+  print_ts< filter_t< tl, except<std::string>::template type > > fq;
+  
   std::cout << std::boolalpha;
   printable p;
     

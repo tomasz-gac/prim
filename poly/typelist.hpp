@@ -70,12 +70,6 @@ template<   typename typelist
           , typename init >
 using foldr_t = typename foldr< typelist, BinaryOp, init >::type;
 
-template< typename typelist, template< typename > class UnaryOp >
-struct filter;
-
-template< typename typelist, template< typename > class UnaryOp >
-using filter_t = typename filter< typelist, UnaryOp >::type;
-
 template< std::size_t N, typename T, typename = _<> >
 struct repeat;
 
@@ -187,21 +181,32 @@ struct ignore{
   using type = Op<>;
 };
 
-template<
-  template< typename > class Predicate
-, template< typename > class Then
-, template< typename > class Else = ignore< Then >::template type
-> struct apply_if{
+
+template< template< typename > class UnaryOp >
+struct include_if{
   template< typename T >
-  using type = std::conditional< Predicate<T>::value, Then<T>, Else<T> >;
+  using type = std::conditional_t< UnaryOp<T>::value, _<T>, _<> >;
 };
 
+template< typename typelist, template< typename... > class Op >
+struct expand;
+
+template< template< typename... > class typelist, typename... Ts, template< typename... > class Op >
+struct expand< typelist<Ts...>, Op >
+{
+  using type = Op<Ts...>;
+};
+
+template< typename typelist, template< typename... > class Op >
+using expand_t = typename expand< typelist, Op >::type;
+
+
 template< typename typelist, template< typename > class UnaryOp >
-struct filter
-  : foldr<
-    map_t< typelist, apply_if<UnaryOp, id<typelist>::template type>::template type >
-  , bind< 2, concat>::template type, id_t<typelist> >
-{  };
+using filter_t =
+  repack_t< typename expand_t<
+	      map_t< typelist, include_if<UnaryOp>::template type >, concat
+	      >::type
+	    , typelist >;
 
 template< typename T, T v >
 struct v_{
