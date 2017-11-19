@@ -53,49 +53,4 @@ using copy_cv_ref_t = copy_ref_t< From, copy_cv_t< std::remove_reference_t<From>
 template< typename T >
 using is_placeholder = is_T<std::remove_cv_t<std::decay_t<T>>>;
 
-template< typename SigT >
-using erased_t = std::conditional_t<
-  is_placeholder< SigT >::value,
-  copy_cv_ref_t< SigT, void* >,
-  SigT
->;
-
-template<
-  typename T, typename SignatureType,
-  bool = is_placeholder<SignatureType>::value
-  >
-struct Unerase_impl;
-
-template< typename ActualT, typename SignatureType >
-struct Unerase_impl< SignatureType, ActualT, false >
-{
-  template< typename U >
-  static decltype(auto) apply( U&& value ){
-    return std::forward<U>( value );
-  }
-};
-
-
-template< typename ActualT, typename SignatureT >
-struct Unerase_impl< ActualT, SignatureT, true >{
-private:
-  using noref_T = std::remove_reference_t<SignatureT>;
-public:
-  using erased = erased_t< SignatureT >;
-  
-  static decltype(auto) apply( erased data ){
-    using cv_T = copy_cv_t< noref_T, std::decay_t<ActualT> >;
-    using ref_T = copy_ref_t< SignatureT, cv_T >;
-    return static_cast<ref_T&&>(*reinterpret_cast<cv_T*>(data));
-  }
-};
-
-template< typename SignatureT >
-struct EraseVoidPtr{
-  using type = erased_t< SignatureT >;
-
-  template< typename ActualT >
-  using Reverse = Unerase_impl< ActualT, SignatureT >;
-};
-
 #endif // __PLACEHOLDER_HPP__

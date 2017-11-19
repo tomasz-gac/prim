@@ -84,21 +84,48 @@ struct length< typelist<Ts...> >
   : std::integral_constant< std::size_t, sizeof...(Ts) >
 {  };
 
-namespace impl__ {
+template< typename... Ts >
+struct unique_ : unique_<Ts>...
+{
   template< typename T >
-  struct host_type{};
-}
+    static constexpr bool is_unique = !std::is_base_of< unique_<T>, unique_ >::value;
+};
+
+template< typename T >
+struct unique_<T>{ 
+  template< typename U >
+    static constexpr bool is_unique = !std::is_same< U, T >::value;
+ 
+};
 
 template< typename typelist_t >
 struct assert_unique_elements;
 
 template< template< typename... > class typelist, typename... Ts >
 struct assert_unique_elements< typelist< Ts... > >
-  : impl__::host_type< Ts >...
+  : unique_< Ts... >
 {  };
 
 
+namespace impl__{
 
+template< typename T, typename... Ts >
+struct remove_duplicates;
+
+template< typename... Us, typename T, typename... Ts >
+struct remove_duplicates< unique_< Us... >, T, Ts... >
+  : std::conditional_t< unique_< Us... >::template is_unique<T>,
+                        remove_duplicates< unique_< Us..., T >, Ts... >,
+  			remove_duplicates< unique_< Us... >, Ts... > >
+{  };
+					   
+template< typename... Us >
+struct remove_duplicates< unique_< Us... > >{ using type = unique_< Us... >; };
+
+};
+
+template< typename... Ts >
+using remove_duplicates_t = typename impl__::remove_duplicates< unique_<>, Ts... >::type;
 
 template<class...> struct disjunction : std::false_type { };
 template<class B1> struct disjunction<B1> : B1 { };
@@ -203,9 +230,7 @@ using expand_t = typename expand< typelist, Op >::type;
 
 template< typename typelist, template< typename > class UnaryOp >
 using filter_t =
-  repack_t< typename expand_t<
-	      map_t< typelist, include_if<UnaryOp>::template type >, concat
-	      >::type
+  repack_t< expand_t< map_t< typelist, include_if<UnaryOp>::template type >, concat_t >
 	    , typelist >;
 
 template< typename T, T v >

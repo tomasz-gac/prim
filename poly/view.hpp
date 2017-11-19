@@ -6,29 +6,22 @@
 #include "vtable.hpp"
 
 template<
-  typename Tag
-  , template< typename, template< typename > class > class VTable  
+  typename VTable
 >
 class View;
 
 template< typename T > struct is_view : std::false_type{};
 template<
   typename Interface
-, template< typename, template< typename > class > class VTable
-> struct is_view< View<Interface, VTable> > : std::true_type{};
+> struct is_view< View<Interface> > : std::true_type{};
 
 template<
-  typename Tag
-, template <
-    typename
-  , template< typename > class Transform
-  > class VTablePolicy = Remote
+  typename VTable
 > class View
 {
 public:
-  using interface = interface_t<Tag>;
+  using interface = interface_t<VTable>;
 private:
-  using VTable = VTablePolicy<Tag, EraseVoidPtr >;
   template< typename Invoker >
   using enable_if_supports = std::enable_if_t< supports<interface, Invoker>() >;
 
@@ -74,10 +67,8 @@ public:
   }
   
   template<
-    typename To
-  , typename From
-  , template< typename, template< typename > class > class VTable
-  > friend View< To, Local > interface_cast( const View<From, VTable>& view );
+    typename To, typename From
+    > friend View< Local<To> > interface_cast( const View<From>& view );
  
   template< typename T >
   explicit operator T() const { return *reinterpret_cast< T* >(data_); }
@@ -94,7 +85,7 @@ public:
   View( const View& ) = default;
   View( View&& ) noexcept = default;
 private:
-  template< typename I, template< typename, template< typename > class > class VTbl >
+  template< typename I >
   friend class View;
 
   View( void* data, VTable vtable )
@@ -122,23 +113,11 @@ private:
   
 };
 
-template< typename To, typename From, template< typename, template< typename > class > class VTable >
-View< To, Local > interface_cast( const View<From, VTable>& view ){
-  return std::move(View< To, Local >( view.data_,
-				       interface_cast< To >( view.vtable_ )) );
+template< typename To, typename From >
+View< Local<To> > interface_cast( const View<From>& view ){
+  return std::move(View< Local<To> >( view.data_,
+				      interface_cast< To >( view.vtable_ )) );
 }
-
-
-// template< typename... Views >
-// class T_pack{
-// private:
-//   std::tuple< Views... > views_;
-
-//   std::tuple< 
-    
-// public:
-  
-// };
 
 
 #endif // __POLY_HPP__

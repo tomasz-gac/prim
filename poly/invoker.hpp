@@ -21,6 +21,18 @@ using interface_t = typename I::interface;
 template< typename T >
 using overloads_t = typename T::overloads;
 
+template< typename T, typename... Ts >
+struct join{
+  struct type :
+    expand_t< expand_t< concat_t< interface_t<T>, interface_t< Ts >... >
+			, remove_duplicates_t>
+	      , Interface >
+  {  };
+};
+
+template< typename T, typename... Ts >
+using join_t = typename join<T, Ts...>::type;
+
 template< typename Interface, typename Invoker >
 constexpr bool supports(){ return in_typelist< Interface, Invoker >::value; }
 

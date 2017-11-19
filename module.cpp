@@ -27,30 +27,26 @@ struct except{
     std::integral_constant< bool, !disjunction< std::is_same< T, Ts >... >::type::value >;
 };
 
-template< typename T, typename... Ts >
-struct join{
-  struct type : concat_t< interface_t<T>, interface_t< Ts >... >{  };
-};
-
-template< typename... Ts >
-using join_t = typename join<Ts...>::type;
-
-
 template< typename ... >
 struct print_ts;
 
 int main()
 {
-  using tl = std::tuple< float, int, bool, int, std::string >;
-  print_ts< filter_t< tl, except<std::string>::template type > > fq;
   
+  // using tl = std::tuple< float, int, bool, int, std::string >;
+  // print_ts< filter_t< tl, except<std::string>::template type > > fq;
+  printable p; 
   std::cout << std::boolalpha;
-  printable p;
+  
+  float f = 1.11;
+  // View< Remote< join_t< printable, convertible, print > > > fff = f;
+  View< VTable< Local<print>, Remote< printable > > > fff = f;
+  fff[ p.print ]();
     
   int s = 1;
-  View< printable, Local > i = s;
-  View< printable, Remote > ii = s;
-  std::cout << sizeof( i ) << " " << sizeof(ii) << std::endl;
+  View< Local< printable > > i = s;
+  View< Remote< printable > > ii = s;
+  std::cout << sizeof( fff ) << " " << sizeof( i ) << " " << sizeof(ii) << std::endl;
   auto k = interface_cast<print>(i);
   auto c = interface_cast<convertible>(i);
   const auto& ci = i;
@@ -63,7 +59,7 @@ int main()
   };
   std::cout << c[ as<bool>() ]() << std::endl;
   int s2 = 3;
-  View< printable > i2 = s2;
+  View< Remote<printable> > i2 = s2;
   i[ p.assign ]( i2 );
   k[ p.print ](); 
   std::cout << i[ p.type_id ]().name() << std::endl;
