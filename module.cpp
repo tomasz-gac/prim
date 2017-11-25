@@ -27,20 +27,20 @@ struct except{
     std::integral_constant< bool, !disjunction< std::is_same< T, Ts >... >::type::value >;
 };
 
+
 template< typename ... >
 struct print_ts;
 
 int main()
 {
-  
-  // using tl = std::tuple< float, int, bool, int, std::string >;
-  // print_ts< filter_t< tl, except<std::string>::template type > > fq;
   printable p; 
   std::cout << std::boolalpha;
   
   float f = 1.11;
-  // View< Remote< join_t< printable, convertible, print > > > fff = f;
-  View< VTable< Local<print>, Remote< printable > > > fff = f;
+  struct printfl : decltype( interface(print(), as<float>()) ){};
+  using vtbl = decltype(make_vtable( local( printfl() ),
+				     remote( printable()) ) );
+  View< vtbl > fff = f;
   fff[ p.print ]();
     
   int s = 1;

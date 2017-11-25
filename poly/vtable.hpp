@@ -179,7 +179,10 @@ private:
   ) const {
     return get<Tag>( std::index_sequence<Indices... >(),
 		     std::integer_sequence< bool, contains... >() );
-
+  }
+  template< typename Tag, bool alwaysFalse = false >
+  decltype(auto) get( std::index_sequence<>, std::integer_sequence<bool> ){
+    static_assert( alwaysFalse, "VTable does not support Tag" );
   }
 };
 
@@ -194,7 +197,11 @@ LocalVTable<To, Transform> interface_cast( const RemoteVTable<From, Transform>& 
 }
 
 template< typename SigT >
-using erased_t = std::conditional_t< is_placeholder< SigT >::value, copy_cv_ref_t< SigT, void* >, SigT>;
+using erased_t =
+  std::conditional_t<
+    is_placeholder< SigT >::value
+  , copy_cv_ref_t< SigT, void* >
+  , SigT>;
 
 template< typename SignatureT >
 struct EraseVoidPtr{
@@ -206,12 +213,14 @@ struct EraseVoidPtr{
     using noref_T = std::remove_reference_t<SignatureT>;
     using erased = erased_t< SignatureT >;
   public:
+    // Given ActualT unerase data and apply cv-ref qualifiers if SignatureT is a placeholder
+    template< typename = std::enable_if_t< is_placeholder<SignatureT>::value> >
     static decltype(auto) apply( erased data ){
       using cv_T = copy_cv_t< noref_T, std::decay_t<ActualT> >;
       using ref_T = copy_ref_t< SignatureT, cv_T >;
       return static_cast<ref_T&&>(*reinterpret_cast<cv_T*>(data));
     }
-    
+    // Forwards if data is not erased
     template< typename U >
     static decltype(auto) apply( U&& value ){
       return std::forward<U>( value );
@@ -224,6 +233,21 @@ using Local = LocalVTable< Interface, EraseVoidPtr >;
 
 template< typename Interface >
 using Remote = RemoteVTable< Interface, EraseVoidPtr >;
+
+template< typename Interface, bool AlwaysFalse = false >
+Remote< Interface > remote( Interface ){
+  static_assert( AlwaysFalse, "Function used for type deduction only. Use with decltype" );
+};
+
+template< typename Interface, bool AlwaysFalse = false >
+Local< Interface > local( Interface ){
+  static_assert( AlwaysFalse, "Function used for type deduction only. Use with decltype" );
+};
+
+template< typename... Ts, bool AlwaysFalse = false > 
+VTable<Ts...> make_vtable( Ts... ){
+  static_assert( AlwaysFalse, "Function used for type deduction only. Use with decltype" );
+};
 
 #endif // __VTABLE_HPP__
 

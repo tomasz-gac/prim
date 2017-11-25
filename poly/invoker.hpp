@@ -22,7 +22,7 @@ template< typename T >
 using overloads_t = typename T::overloads;
 
 template< typename T, typename... Ts >
-struct join{
+struct joined{
   struct type :
     expand_t< expand_t< concat_t< interface_t<T>, interface_t< Ts >... >
 			, remove_duplicates_t>
@@ -31,10 +31,13 @@ struct join{
 };
 
 template< typename T, typename... Ts >
-using join_t = typename join<T, Ts...>::type;
+using join_t = typename joined<T, Ts...>::type;
+
+template< typename Interface, typename... Interfaces >
+join_t< Interface, Interfaces... > interface( Interface, Interfaces... ){ return {}; }
 
 template< typename Interface, typename Invoker >
-constexpr bool supports(){ return in_typelist< Interface, Invoker >::value; }
+constexpr bool supports(){ return !is_unique< Interface, Invoker >::value; }
 
 // Type that encodes a signature for a given invoker
 template< typename Tag, typename... >

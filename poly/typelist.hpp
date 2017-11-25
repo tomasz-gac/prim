@@ -12,15 +12,14 @@ using id_t = typename id<typelist>::template type<Ts...>;
 template< typename From, typename To >
 struct repack;
 
-template<
-  template< typename... > class tl1, typename... Ts
-, template< typename... > class tl2, typename... Us
-> struct repack< tl1<Ts...>, tl2<Us...> >{
-  using type = tl2<Ts...>;
-};
-
 template< typename typelist1, typename typelist2 >
 using repack_t = typename repack< typelist1, typelist2 >::type;
+
+template< typename typelist, template< typename... > class Op >
+struct expand;
+
+template< typename typelist, template< typename... > class Op >
+using expand_t = typename expand< typelist, Op >::type;
 
 
 // Template helper that returns a head and tail of typelist
@@ -88,14 +87,19 @@ template< typename... Ts >
 struct unique_ : unique_<Ts>...
 {
   template< typename T >
-    static constexpr bool is_unique = !std::is_base_of< unique_<T>, unique_ >::value;
+    using is_unique = std::integral_constant< bool, !std::is_base_of< unique_<T>, unique_ >::value >;
 };
 
 template< typename T >
 struct unique_<T>{ 
   template< typename U >
-    static constexpr bool is_unique = !std::is_same< U, T >::value;
- 
+  using is_unique = std::integral_constant< bool, !std::is_same< U, T >::value >;
+};
+
+template<>
+struct unique_<>{
+  template< typename T >
+  using is_unique = std::true_type;
 };
 
 template< typename typelist_t >
@@ -106,6 +110,8 @@ struct assert_unique_elements< typelist< Ts... > >
   : unique_< Ts... >
 {  };
 
+template< typename typelist, typename T >
+using is_unique = typename expand_t< typelist, unique_ >::template is_unique<T>;
 
 namespace impl__{
 
@@ -114,7 +120,7 @@ struct remove_duplicates;
 
 template< typename... Us, typename T, typename... Ts >
 struct remove_duplicates< unique_< Us... >, T, Ts... >
-  : std::conditional_t< unique_< Us... >::template is_unique<T>,
+  : std::conditional_t< unique_< Us... >::template is_unique<T>::value,
                         remove_duplicates< unique_< Us..., T >, Ts... >,
   			remove_duplicates< unique_< Us... >, Ts... > >
 {  };
@@ -215,18 +221,18 @@ struct include_if{
   using type = std::conditional_t< UnaryOp<T>::value, _<T>, _<> >;
 };
 
-template< typename typelist, template< typename... > class Op >
-struct expand;
+template<
+  template< typename... > class tl1, typename... Ts
+, template< typename... > class tl2, typename... Us
+> struct repack< tl1<Ts...>, tl2<Us...> >{
+  using type = tl2<Ts...>;
+};
 
 template< template< typename... > class typelist, typename... Ts, template< typename... > class Op >
 struct expand< typelist<Ts...>, Op >
 {
   using type = Op<Ts...>;
 };
-
-template< typename typelist, template< typename... > class Op >
-using expand_t = typename expand< typelist, Op >::type;
-
 
 template< typename typelist, template< typename > class UnaryOp >
 using filter_t =
