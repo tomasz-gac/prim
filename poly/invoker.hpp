@@ -6,13 +6,13 @@
 #include "placeholder.hpp"
 
 template< typename... Tags >
-class Interface {
+struct Interface : unique_typelist<Tags...>{
 public:
   using interface = Interface;
 
-private:  
-  static assert_unique_elements< Interface >
-    assert_unique_tags;
+// private:  
+//   static assert_unique_elements< Interface >
+//     assert_unique_tags;
 };
 
 template< typename I >
@@ -21,49 +21,45 @@ using interface_t = typename I::interface;
 template< typename T >
 using overloads_t = typename T::overloads;
 
-template< typename T, typename... Ts >
-struct joined{
-  struct type :
-    expand_t< expand_t< concat_t< interface_t<T>, interface_t< Ts >... >
-			, remove_duplicates_t>
-	      , Interface >
-  {  };
-};
+template< typename... Ts >
+using join_t =
+  remove_duplicates_t< concat_t< Interface<>, interface_t< Ts >... > >;
 
-template< typename T, typename... Ts >
-using join_t = typename joined<T, Ts...>::type;
 
 template< typename Interface, typename... Interfaces >
 join_t< Interface, Interfaces... > interface( Interface, Interfaces... ){ return {}; }
 
 template< typename Interface, typename Invoker >
-constexpr bool supports(){ return !is_unique< Interface, Invoker >::value; }
+constexpr bool supports(){ return Interface::template contains< Invoker >::value; }
 
 // Type that encodes a signature for a given invoker
 template< typename Tag, typename... >
 class Invoker;
 
 template< typename Tag, typename Return, typename... Args >
-struct Invoker< Tag, Return(Args...)> {
+struct Invoker< Tag, Return(Args...)>
+  : Interface< Tag >
+  , unique_typelist< Return(Args...)>
+{
 private:
   struct generate_overloads;
   
 public:
   using overloads = typename generate_overloads::type;
-  using interface = typename Interface<Tag>::interface;
 };
 
 // Type that encodes a set of overloaded operations
 template< typename Tag, typename Sig, typename... Sigs >
 struct Invoker< Tag, Sig, Sigs... >
+  : Interface< Tag >
+  , unique_typelist< Sig, Sigs... >
 {
 public:
   using overloads = concat_t<
     overloads_t< Invoker< Tag, Sig> >, overloads_t<Invoker< Tag, Sigs>>... >;
-  using interface = typename Interface<Tag>::interface;  
 private:
-  static assert_unique_elements< overloads >
-    assert_unique_signatures;
+  // static assert_unique_elements< overloads >
+  //   assert_unique_signatures;
 };
 
 template< typename T >
@@ -181,5 +177,16 @@ public:
       >
   , ::overloads<>>;
 };
+
+template< typename... Tags1, typename... Tags2 >
+Interface< Tags1..., Tags2... >
+operator+( const Interface< Tags1... >&, const Interface< Tags2... >& )
+{ return {}; }
+
+template< typename... Tags1, typename... Tags2 >
+diff_unique_t< Interface< Tags1...>, Interface< Tags2... > >
+operator-( const Interface< Tags1... >&, const Interface< Tags2... >& )
+{ return {}; }
+
 
 #endif // __SIGNATURE_HPP__

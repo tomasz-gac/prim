@@ -66,10 +66,6 @@ public:
     };
   }
   
-  template<
-    typename To, typename From
-    > friend View< Local<To> > interface_cast( const View<From>& view );
- 
   template< typename T >
   explicit operator T() const { return *reinterpret_cast< T* >(data_); }
  
@@ -84,6 +80,12 @@ public:
 
   View( const View& ) = default;
   View( View&& ) noexcept = default;
+
+  template< typename OtherVTable >
+  View( const View< OtherVTable >& other )
+    : vtable_( other.vtable_ )
+    , data_( other.data_ )
+  {  }
 private:
   template< typename I >
   friend class View;
@@ -112,12 +114,5 @@ private:
   }
   
 };
-
-template< typename To, typename From >
-View< Local<To> > interface_cast( const View<From>& view ){
-  return std::move(View< Local<To> >( view.data_,
-				      interface_cast< To >( view.vtable_ )) );
-}
-
 
 #endif // __POLY_HPP__

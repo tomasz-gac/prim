@@ -2,6 +2,7 @@
 #include <typeinfo>
 #include <cassert>
 #include "poly/view.hpp"
+#include "poly/vtable.hpp"
 #include "helpers.hpp"
 
 struct printable :
@@ -14,20 +15,6 @@ struct printable :
 
 struct convertible : Interface< as<float&>, as<int&>, as<bool> >{};
 
-template< typename... Ts >
-struct only{
-  template< typename T >
-  using type = typename disjunction< std::is_same< T, Ts >... >::type;
-};
-
-template< typename... Ts >
-struct except{
-  template< typename T >
-  using type =
-    std::integral_constant< bool, !disjunction< std::is_same< T, Ts >... >::type::value >;
-};
-
-
 template< typename ... >
 struct print_ts;
 
@@ -37,18 +24,18 @@ int main()
   std::cout << std::boolalpha;
   
   float f = 1.11;
-  struct printfl : decltype( interface(print(), as<float>()) ){};
-  using vtbl = decltype(make_vtable( local( printfl() ),
-				     remote( printable()) ) );
+  struct printfl : decltype( print() + as<float>() ) {};
+  struct pnoint : decltype(printable() - as<int&>()) {};
+  using vtbl = decltype(vtable( local( printfl() ), remote( pnoint() ) ) );
+
   View< vtbl > fff = f;
   fff[ p.print ]();
-    
   int s = 1;
-  View< Local< printable > > i = s;
-  View< Remote< printable > > ii = s;
+  View< impl_t<Local< printable >> > i = s;
+  View< impl_t<Remote< printable >> > ii = s;
   std::cout << sizeof( fff ) << " " << sizeof( i ) << " " << sizeof(ii) << std::endl;
-  auto k = interface_cast<print>(i);
-  auto c = interface_cast<convertible>(i);
+  View< impl_t<Local< print >> > k(i);
+  View< impl_t<Local< convertible >> > c(i);  
   const auto& ci = i;
   k[ p.print ]();
   c[ as<int&>() ]() = 5;
@@ -59,7 +46,7 @@ int main()
   };
   std::cout << c[ as<bool>() ]() << std::endl;
   int s2 = 3;
-  View< Remote<printable> > i2 = s2;
+  View< impl_t<Remote<printable>> > i2 = s2;
   i[ p.assign ]( i2 );
   k[ p.print ](); 
   std::cout << i[ p.type_id ]().name() << std::endl;
