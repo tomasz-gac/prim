@@ -26,16 +26,16 @@ int main()
   float f = 1.11;
   struct printfl : decltype( print() + as<float>() ) {};
   struct pnoint : decltype(printable() - as<int&>()) {};
-  using vtbl = decltype(vtable( local( printfl() ), remote( pnoint() ) ) );
+  using vtbl = decltype(joinVT( localVT( printfl() ) ,remoteVT( pnoint() ) ) );
 
   View< vtbl > fff = f;
   fff[ p.print ]();
   int s = 1;
-  View< impl_t<Local< printable >> > i = s;
-  View< impl_t<Remote< printable >> > ii = s;
+  View< LocalVT< printable > > i = s;
+  View< RemoteVT< printable > > ii = s;
   std::cout << sizeof( fff ) << " " << sizeof( i ) << " " << sizeof(ii) << std::endl;
-  View< impl_t<Local< print >> > k(i);
-  View< impl_t<Local< convertible >> > c(i);  
+  View< LocalVT< print > > k(i);
+  View< LocalVT< convertible > > c(i);
   const auto& ci = i;
   k[ p.print ]();
   c[ as<int&>() ]() = 5;
@@ -46,7 +46,7 @@ int main()
   };
   std::cout << c[ as<bool>() ]() << std::endl;
   int s2 = 3;
-  View< impl_t<Remote<printable>> > i2 = s2;
+  View< RemoteVT<printable> > i2 = s2;
   i[ p.assign ]( i2 );
   k[ p.print ](); 
   std::cout << i[ p.type_id ]().name() << std::endl;

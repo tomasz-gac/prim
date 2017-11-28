@@ -4,6 +4,7 @@
 #include <memory>
 #include <tuple>
 #include "vtable.hpp"
+#include "implementation.hpp"
 
 template<
   typename VTable
@@ -16,16 +17,17 @@ template<
 > struct is_view< View<Interface> > : std::true_type{};
 
 template<
-  typename VTable
+  typename Impl_tag
 > class View
 {
 public:
-  using interface = interface_t<VTable>;
+  using implementation = impl_t<Impl_tag>;
+  using interface = interface_t<implementation>;
 private:
   template< typename Invoker >
   using enable_if_supports = std::enable_if_t< supports<interface, Invoker>() >;
 
-  VTable vtable_;
+  implementation vtable_;
   void* data_;
 
 public:
@@ -74,15 +76,15 @@ public:
 
   template< typename T, typename = std::enable_if_t< !is_view<std::decay_t<T>>::value > >
   View( T& v )
-    : vtable_( VTable::template make< T >() )
+    : vtable_( implementation::template make< T >() )
     , data_( reinterpret_cast< void* >(&v) )
   {  }
 
   View( const View& ) = default;
   View( View&& ) noexcept = default;
 
-  template< typename OtherVTable >
-  View( const View< OtherVTable >& other )
+  template< typename OtherImplementation >
+  View( const View< OtherImplementation >& other )
     : vtable_( other.vtable_ )
     , data_( other.data_ )
   {  }
@@ -90,7 +92,7 @@ private:
   template< typename I >
   friend class View;
 
-  View( void* data, VTable vtable )
+  View( void* data, implementation vtable )
     : vtable_(vtable)
     , data_(data)
   {  }

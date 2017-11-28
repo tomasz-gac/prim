@@ -3,7 +3,6 @@
 
 #include "thunk.hpp"
 
-
 // VTable that holds thunks locally
 template< typename Interface, template< typename > class Transform >
 class LocalVTable{
