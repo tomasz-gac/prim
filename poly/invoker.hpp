@@ -179,7 +179,7 @@ public:
 };
 
 template< typename... Tags1, typename... Tags2 >
-Interface< Tags1..., Tags2... >
+sum_unique_t< Interface< Tags1...>, Interface<Tags2...> >
 operator+( const Interface< Tags1... >&, const Interface< Tags2... >& )
 { return {}; }
 
