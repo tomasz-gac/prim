@@ -12,10 +12,8 @@ void print_type( T&& value ){
 }
 
 struct print  : Invoker< print, void (const T&) >{  };
-struct assign : Invoker< assign, void ( T&, forward<T> ) > {  };
 struct test   : Invoker< test, void (const int&)
 			     , void (const double&) >{  };
-struct type_id : Invoker< type_id, const std::type_info& ( const T& ) >{};
 
 template< typename T >
 struct as : Invoker< as<T>, T( ::T& ) >{  };
@@ -25,10 +23,6 @@ void invoke( print, const T& value ){
   print_type( std::forward<const T&>(value) );
 }
 
-template< typename T, typename T2 >
-void invoke( assign, T& value, T2&& v ){
-  value = std::forward<T2>(v);
-}
 
 template< typename T >
 T& invoke( as<T&>, T& value ){ return value; }
@@ -41,8 +35,5 @@ T invoke( as<T>, const U& value ){ return value; }
 
 template< typename T >
 void invoke( test, const T& val ){ std::cout << typeid(T).name() << " " << val << std::endl; }
-
-template< typename T >
-const std::type_info& invoke( type_id, const T& ){ return typeid(T); }
 
 #endif // __HELPERS_HPP__

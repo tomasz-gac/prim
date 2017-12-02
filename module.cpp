@@ -4,6 +4,7 @@
 #include "poly/view.hpp"
 #include "poly/vtable.hpp"
 #include "helpers.hpp"
+#include "poly/builtins.hpp"
 
 struct printable :
   Interface< print, assign, type_id, as<int&>, as<float&>, as<bool> >
@@ -24,11 +25,22 @@ int main()
   std::cout << std::boolalpha;
   
   float f = 1.11;
-  struct printfl : decltype( print() + as<float>() ) {};
+  struct printfl : decltype( print() + as<float>() + storage() + copy() ) {};
   struct pnoint : decltype(printable() - as<int&>()) {};
   using vtbl = decltype(joinVT( localVT( printfl() ) ,remoteVT( pnoint() ) ) );
 
   View< vtbl > fff = f;
+  
+  auto storage = fff[ ::storage() ]();
+  assert( storage.size == sizeof(f) );
+  assert( storage.alignment == alignof(f) );
+
+  fff[print()]();
+  void* ptr = std::malloc( sizeof(f) );
+  fff[ copy() ]( ptr );
+  std::cout << *reinterpret_cast<float*>(ptr) << std::endl;
+  std::free(ptr);
+
   fff[ p.print ]();
   int s = 1;
   View< LocalVT< printable > > i = s;
