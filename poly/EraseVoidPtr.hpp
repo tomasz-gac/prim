@@ -3,12 +3,13 @@
 
 #include "placeholder.hpp"
 
+struct Erased{ void* data; };
 
 template< typename SigT >
 using erased_t =
   std::conditional_t<
     is_placeholder< SigT >::value
-  , copy_cv_ref_t< SigT, void* >
+  , copy_cv_ref_t< SigT, Erased >
   , SigT>;
 
 template< typename SignatureT >
@@ -26,7 +27,7 @@ struct EraseVoidPtr{
     static decltype(auto) apply( erased data ){
       using cv_T = copy_cv_t< noref_T, std::decay_t<ActualT> >;
       using ref_T = copy_ref_t< SignatureT, cv_T >;
-      return static_cast<ref_T&&>(*reinterpret_cast<cv_T*>(data));
+      return static_cast<ref_T&&>(*reinterpret_cast<cv_T*>(data.data));
     }
     // Forwards if data is not erased
     template< typename U >

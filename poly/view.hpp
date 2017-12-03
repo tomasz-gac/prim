@@ -28,7 +28,7 @@ private:
   using enable_if_supports = std::enable_if_t< supports<interface, Invoker>() >;
 
   implementation vtable_;
-  void* data_;
+  Erased data_;
 
 public:
   template< typename T >
@@ -77,7 +77,7 @@ public:
   template< typename T, typename = std::enable_if_t< !is_view<std::decay_t<T>>::value > >
   View( T& v )
     : vtable_( implementation::template make< T >() )
-    , data_( reinterpret_cast< void* >(&v) )
+    , data_{ reinterpret_cast< void* >(&v) }
   {  }
 
   View( const View& ) = default;
@@ -109,10 +109,10 @@ private:
   }
   
   template< typename U >
-  static copy_cv_ref_t<U&&, void*>
+  static copy_cv_ref_t<U&&, Erased >
   unpack_impl( std::true_type, U&& v )
   {
-    return static_cast< copy_cv_ref_t<U&&, void*> >(v.data_);
+    return static_cast< copy_cv_ref_t<U&&, Erased > >(v.data_);
   }
   
 };

@@ -41,7 +41,6 @@ int main()
   std::cout << *reinterpret_cast<float*>(ptr) << std::endl;
   std::free(ptr);
 
-  fff[ p.print ]();
   int s = 1;
   View< LocalVT< printable > > i = s;
   View< RemoteVT< printable > > ii = s;

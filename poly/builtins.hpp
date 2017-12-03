@@ -3,8 +3,8 @@
 
 #include "invoker.hpp"
 
-struct copy : Invoker< copy, void (void*, const T& ) >{  };
-struct move : Invoker< move, void (void*,       T&& ) >{  };
+struct copy : Invoker< copy, void (const T&,  void*) >{  };
+struct move : Invoker< move, void (      T&&, void* ) >{  };
 struct destroy : Invoker< destroy, void ( const T& ) >{  };
 
 struct assign      : Invoker< assign     , void ( T&, forward<T> ) > {  };
@@ -17,10 +17,10 @@ struct storage_info;
 struct storage : Invoker< storage, storage_info ( const T& ) >{  };
 
 template< typename T >
-void invoke( copy, void* ptr, const T& v ){ new (ptr) T( v ); }
+void invoke( copy, const T& v, void* ptr ){ new (ptr) T( v ); }
 
 template< typename T >
-void invoke( move, void* ptr, T v ){ new (ptr) T( std::move(v) ); }
+void invoke( move, T v, void* ptr ){ new (ptr) T( std::move(v) ); }
 
 template< typename T >
 void invoke( destroy, const T& v ){  v.~T(); }
