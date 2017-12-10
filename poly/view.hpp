@@ -27,16 +27,22 @@ private:
   template< typename Invoker >
   using enable_if_supports = std::enable_if_t< supports<interface, Invoker>() >;
 
+protected:
   implementation vtable_;
   Erased data_;
 
+  View( void* data, implementation vtable )
+    : vtable_(vtable)
+    , data_{ data }
+  {  }
+
 public:
-  template< typename T >
-  View& operator=( T v ){
-    return *this = View( std::move(v) );
+  template< typename T, typename std::enable_if_t< !is_view<T>::value> >
+  View& operator=( T& v ){
+    return *this = View( v );
   }
   
-  View& operator=( const View&  other ){ return *this = View( other ); }
+  View& operator=( const View&  other ) = default;
   View& operator=(       View&& other ) noexcept = default;
 
   template< typename Invoker, typename = enable_if_supports< Invoker > >
@@ -67,7 +73,17 @@ public:
 	  ( data_, unpack( std::forward<decltype(args)>(args) )... );
     };
   }
+
+  template< typename Invoker, typename... Args, typename = enable_if_supports< Invoker > >
+  decltype(auto) call( Args&&... args ){
+    return get<Invoker>()( std::forward<Args>(args)... );
+  }
   
+  template< typename Invoker, typename... Args, typename = enable_if_supports< Invoker > >
+  decltype(auto) call( Args&&... args ) const {
+    return get<Invoker>()( std::forward<Args>(args)... );
+  }
+
   template< typename T >
   explicit operator T() const { return *reinterpret_cast< T* >(data_); }
  
@@ -88,14 +104,10 @@ public:
     : vtable_( other.vtable_ )
     , data_( other.data_ )
   {  }
+
 private:
   template< typename I >
   friend class View;
-
-  View( void* data, implementation vtable )
-    : vtable_(vtable)
-    , data_(data)
-  {  }
 
   template< typename U >
   static decltype(auto) unpack( U&& value ){

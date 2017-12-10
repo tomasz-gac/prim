@@ -13,10 +13,10 @@ private:
   template< typename Invoker >
   using TThunk = Thunk< Invoker, Transform >;
   // Singleton reference
-  VTable& vtable_;
+  VTable* vtable_;
 
   RemoteVTable( VTable& vtbl )
-    : vtable_( vtbl )
+    : vtable_( &vtbl )
   {  };
   
 public:
@@ -40,7 +40,7 @@ public:
 
   template< typename Tag >
   const TThunk< Tag >& get() const {
-    return vtable_.template get< Tag >();
+    return vtable_->template get< Tag >();
   }
 };
 

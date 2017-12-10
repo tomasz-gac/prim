@@ -4,7 +4,7 @@
 #include "invoker.hpp"
 
 struct copy : Invoker< copy, void (const T&,  void*) >{  };
-struct move : Invoker< move, void (      T&&, void* ) >{  };
+struct move : Invoker< move, void (      T&,  void* ) >{  };
 struct destroy : Invoker< destroy, void ( const T& ) >{  };
 
 struct assign      : Invoker< assign     , void ( T&, forward<T> ) > {  };
@@ -20,7 +20,7 @@ template< typename T >
 void invoke( copy, const T& v, void* ptr ){ new (ptr) T( v ); }
 
 template< typename T >
-void invoke( move, T v, void* ptr ){ new (ptr) T( std::move(v) ); }
+void invoke( move, T& v, void* ptr ){ new (ptr) T( std::move(v) ); }
 
 template< typename T >
 void invoke( destroy, const T& v ){  v.~T(); }
@@ -47,11 +47,20 @@ void invoke( assign, T& value, T2&& v ){
 }
 
 struct storage_info{
-  std::size_t size;
-  std::size_t alignment;
+private:
+  storage_info( size_t s, size_t a )
+    : size(s), alignment(a) {  }
+public:
+  template< typename T >
+  static storage_info get()
+  { return { sizeof(T), alignof(T) }; }
+  
+  const std::size_t size;
+  const std::size_t alignment;
 };
 
+
 template< typename T >
-storage_info invoke( storage, const T& ){ return { sizeof(T), alignof(T) }; }
+storage_info invoke( storage, const T& ){ return storage_info::get<T>(); }
 
 #endif // __BUILTINS_HPP__

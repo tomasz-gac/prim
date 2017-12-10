@@ -46,6 +46,11 @@ private:
   
 public:
   using overloads = typename generate_overloads::type;
+
+  // template< typename... Ts >
+  // static Return invoke( Ts&&... args ){
+  //   return ::invoke( Tag(), std::forward<Ts>(args)... );
+  // }
 };
 
 // Type that encodes a set of overloaded operations
@@ -57,6 +62,7 @@ struct Invoker< Tag, Sig, Sigs... >
 public:
   using overloads = concat_t<
     overloads_t< Invoker< Tag, Sig> >, overloads_t<Invoker< Tag, Sigs>>... >;
+  
 private:
   // static assert_unique_elements< overloads >
   //   assert_unique_signatures;
