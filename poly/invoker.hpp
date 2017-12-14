@@ -29,8 +29,13 @@ using join_t =
 template< typename Interface, typename... Interfaces >
 join_t< Interface, Interfaces... > interface( Interface, Interfaces... ){ return {}; }
 
-template< typename Interface, typename Invoker >
-constexpr bool supports(){ return Interface::template contains< Invoker >::value; }
+template< typename Interface, typename Invoker, typename... Invokers >
+constexpr bool supports(){
+  return disjunction<
+    typename Interface::template contains< Invoker >,
+    typename Interface::template contains< Invokers >...
+    >();
+}
 
 // Type that encodes a signature for a given invoker
 template< typename Tag, typename... >
