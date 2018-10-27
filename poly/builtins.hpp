@@ -23,7 +23,7 @@ template< typename T >
 void invoke( move, T& v, void* ptr ){ new (ptr) T( std::move(v) ); }
 
 template< typename T >
-void invoke( destroy, const T& v ){  v.~T(); }
+void invoke( destroy, const T& v ){ v.~T(); }
 
 template< typename T >
 const std::type_info& invoke( type_id, const T& ){ return typeid(T); }

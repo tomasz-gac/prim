@@ -15,7 +15,6 @@ void invoke( print, const A& a ){
   std::cout << "A:" << &a  << std::endl;
 };
 
-
 int main()
 {
 
@@ -28,8 +27,13 @@ int main()
     Poly< RemoteVT< p >, StackAllocator<1> > Ant2 = Ant;
     Ant2.call<print>();
     Poly< RemoteVT< p >, StackAllocator<1> > Ant3 = std::move(Ant);
-    Ant3.call<print>();    
-    
+    Ant3.call<print>();
+    Poly< RemoteVT< p >, StackAllocator<sizeof(int)> > CInt = Int;
+    CInt.call<print>();
+    Poly< RemoteVT< p > > MInt = CInt;
+    MInt = std::move(CInt);
+    MInt.call<print>();
+      
     std::cout << "end" << std::endl;
   }
   

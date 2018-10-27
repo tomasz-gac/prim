@@ -36,6 +36,9 @@ protected:
     , data_{ data }
   {  }
 
+  void reset(){ data_ = { nullptr }; }
+  bool is_empty() const { return !data_.data; }
+
 public:
   template< typename T, typename std::enable_if_t< !is_view<T>::value> >
   View& operator=( T& v ){

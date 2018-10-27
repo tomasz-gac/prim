@@ -20,6 +20,8 @@ void test_view(){
   printable p; 
   std::cout << std::boolalpha;
 
+  std::cout << "test_view()" << std::endl;
+
   float f = 1.11;
   float f2 = 2.22;
   struct printfl : decltype( print() + as<float>() + storage() ) {};
@@ -39,7 +41,7 @@ void test_view(){
   int s = 1;
   View< LocalVT< printable > > i = s;
   View< RemoteVT< printable > > ii = s;
-  std::cout << sizeof( fff ) << " " << sizeof( i ) << " " << sizeof(ii) << std::endl;
+  std::cout << sizeof(int*) << " " << sizeof( fff ) << " " << sizeof( i ) << " " << sizeof(ii) << std::endl;
   View< LocalVT< print > > k(i);
   View< LocalVT< convertible > > c(i);
   const auto& ci = i;
