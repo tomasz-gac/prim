@@ -1,42 +1,37 @@
-
 #include <iostream>
-#include <typeinfo>
-#include "test.hpp"
 #include "poly/poly.hpp"
-#include "poly/allocator.hpp"
+#include "test/tracker.hpp"
+#include "test/memory.hpp"
 
-template< typename ... >
-struct print_ts;
+struct Storable
+  : decltype( copy() + move() + destroy() + storage() )
+{  };
 
-
-struct A{ ~A(){ std::cout << "~A():" << this << std::endl; } };
-
-void invoke( print, const A& a ){
-  std::cout << "A:" << &a  << std::endl;
+struct A{
+  A() = default;
+  A( A&& ) { throw std::logic_error("throw");  }
+  A( const A& ){  }
 };
 
 int main()
 {
-
+  Tracker tracker;
+  // TODO : Obsluga wyjatkow konstruktorow
+  // TODO : destruktor test poly
   {
-    using p = decltype( print() + destroy() +  copy() + move() + ::storage() );
-    Poly< RemoteVT< p > > Int{ in_place<int>(), 33};
-    Int.call<print>();
-    Poly< RemoteVT< p >, StackAllocator<1> > Ant{in_place<A>()};
-    Ant.call<print>();
-    Poly< RemoteVT< p >, StackAllocator<1> > Ant2 = Ant;
-    Ant2.call<print>();
-    Poly< RemoteVT< p >, StackAllocator<1> > Ant3 = std::move(Ant);
-    Ant3.call<print>();
-    Poly< RemoteVT< p >, StackAllocator<sizeof(int)> > CInt = Int;
-    CInt.call<print>();
-    Poly< RemoteVT< p > > MInt = CInt;
-    MInt = std::move(CInt);
-    MInt.call<print>();
-      
-    std::cout << "end" << std::endl;
+    std::cout << std::boolalpha;
+    Poly< RemoteVT<Storable> > t{ in_place<Guard<A>>(), tracker };
+    Poly< RemoteVT<Storable> > t2{ in_place<Guard<A>>(), tracker};
+    try{
+      t = std::move(t2);
+    } catch (std::logic_error e){ }
+    static_assert( !std::is_nothrow_move_constructible<decltype(t)>::value,
+		   "Poly falsly assumed to be not nothrow constructible" );
   }
+  assert( tracker.objects.count() == 0 );
   
-  test_view();
+  test_memory();
+  std::cout << "passed" << std::endl;
+									 
   return 0;
 }

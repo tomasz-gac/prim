@@ -4,7 +4,13 @@
 #include "invoker.hpp"
 
 struct copy : Invoker< copy, void (const T&,  void*) >{  };
-struct move : Invoker< move, void (      T&,  void* ) >{  };
+
+template< bool is_noexcept >
+struct move_ : Invoker< move_<is_noexcept>, void (    T&,  void* ) >{  };
+
+using move = move_<false>;
+using move_noexcept = move_<true>;
+
 struct destroy : Invoker< destroy, void ( const T& ) >{  };
 
 struct assign      : Invoker< assign     , void ( T&, forward<T> ) > {  };
@@ -16,11 +22,20 @@ struct type_id : Invoker< type_id, const std::type_info& ( const T& ) >{  };
 struct storage_info;
 struct storage : Invoker< storage, storage_info ( const T& ) >{  };
 
+struct address_of : Invoker< address_of, const void*( const T& )>{  };
+
 template< typename T >
 void invoke( copy, const T& v, void* ptr ){ new (ptr) T( v ); }
 
 template< typename T >
 void invoke( move, T& v, void* ptr ){ new (ptr) T( std::move(v) ); }
+
+template< typename T >
+void invoke( move_noexcept, T& v, void* ptr ) noexcept {
+  static_assert( std::is_nothrow_move_constructible<T>::value,
+  		 "Class provided for Poly is not nothrow move constructible" );
+  new (ptr) T( std::move(v) );
+}
 
 template< typename T >
 void invoke( destroy, const T& v ){ v.~T(); }
@@ -62,5 +77,8 @@ public:
 
 template< typename T >
 storage_info invoke( storage, const T& ){ return storage_info::get<T>(); }
+
+template< typename T >
+const void* invoke( address_of, const T& v ){ return reinterpret_cast<const void*>(&v); }
 
 #endif // __BUILTINS_HPP__
