@@ -37,7 +37,6 @@ int main()
     		   "Poly falsly assumed to be not nothrow copy constructible" );
 
     Poly< RemoteVT<Storable> > t3{ t };
-    t.call< storage >();
   }
   assert( tracker.objects.count() == 0 );
   
