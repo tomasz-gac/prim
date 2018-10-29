@@ -140,6 +140,50 @@ void test_memory_vector_poly( int n = 1000 ){
   assert( tracker.objects.count() == 0 );
 }
 
+struct Storable
+  : decltype( copy() + move() + destroy() + storage() )
+{  };
+
+struct A{
+  A() = default;
+  A( A&& ) { throw std::logic_error("A move constructor throw");  }
+  A( const A& ){  }
+};
+
+
+template< template< typename > class VT_t, typename Alloc >
+void test_memory_invalid()
+{
+  Tracker tracker;
+  using poly_t = Poly< VT_t<Storable>, Alloc >;
+  {
+    std::cout << std::boolalpha;
+    poly_t t{ in_place<Guard<A>>(), tracker };
+    poly_t t2{ in_place<Guard<A>>(), tracker};
+    try{
+      t = std::move(t2);
+    } catch (std::logic_error e){    }
+    assert( t.valueless_by_exception() );
+    bool thrown = false;
+    try{
+      t.template call<storage>();
+    } catch ( const invalid_vtable_call& e ){
+      thrown = true;
+    }
+    assert( thrown );
+    static_assert( !std::is_nothrow_move_constructible<decltype(t)>::value,
+    		   "Poly falsly assumed to be not nothrow copy constructible" );
+    static_assert( !std::is_nothrow_copy_constructible<decltype(t)>::value,
+    		   "Poly falsly assumed to be not nothrow copy constructible" );
+
+    poly_t t3{ t };
+    assert( t3.valueless_by_exception() );
+    poly_t t4{ std::move(t3) };
+    assert( t4.valueless_by_exception() );
+  }
+  assert( tracker.objects.count() == 0 );
+}
+
 template< typename... Args >
 using test_signature = void (*)( Args... );
 
@@ -157,8 +201,15 @@ void test_memory(){
   using stack_alloc2 = StackAllocator< sizeof(tested_t2), alignof(tested_t2) >;
   test_memory_vector_poly< LocalVT, HeapAllocator >();
   test_memory_vector_poly< RemoteVT, HeapAllocator >();
-  test_memory_vector_poly< LocalVT, stack_alloc<tested_t2> >();
-  test_memory_vector_poly< RemoteVT, stack_alloc<tested_t2> >();
+  test_memory_vector_poly< LocalVT, stack_alloc2 >();
+  test_memory_vector_poly< RemoteVT, stack_alloc2 >();
+
+  using tested_t3 = Guard<A>;
+  using stack_alloc3 = StackAllocator< sizeof(tested_t3), alignof(tested_t3) >;
+  test_memory_invalid< LocalVT, HeapAllocator >();
+  test_memory_invalid< RemoteVT, HeapAllocator >();
+  test_memory_invalid< LocalVT, stack_alloc3 >();
+  test_memory_invalid< RemoteVT, stack_alloc3 >();
 }
 
 #endif //__MEMEORY_HPP__

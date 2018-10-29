@@ -162,7 +162,12 @@ public:
   ~poly_construct_impl(){ this->reset(); }
 
   bool valueless_by_exception() const {
-    return this->View_t::is_empty();
+    try{
+      this->template call< storage >();
+      return false;
+    } catch ( const invalid_vtable_call& e ){
+      return true;
+    }
   }
 private:
 
