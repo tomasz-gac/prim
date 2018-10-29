@@ -29,7 +29,10 @@ public:
   using interface = interface_t<implementation>;
 private:
   using base = poly_base< Impl, Alloc >;
-    
+
+  Poly( in_place<Invalid> i )
+    : base( i )
+  {  }  
 public:
   using base::operator[];
   using base::get;
@@ -40,10 +43,28 @@ public:
     : base( p, std::forward<Args>(args)... )
   {  }
 
-  Poly( const Poly&  other ) : base( other ){  }
-  Poly(       Poly&& other )
-    noexcept(std::is_nothrow_move_constructible<base>::value)
-    : base( std::move(other) ){  }
+  Poly( const Poly&  )
+    noexcept(std::is_nothrow_copy_constructible<base>::value) = default;
+  Poly(       Poly&& )
+    noexcept(std::is_nothrow_move_constructible<base>::value) = default;
+  
+  template< typename Alloc_ >
+  Poly( const Poly< Impl, Alloc_ >& other  )
+    noexcept(std::is_nothrow_constructible<base, const Poly< Impl, Alloc_ >&>::value)
+    : base( poly_cast_tag(), other )
+  {  }
+
+  template< typename Alloc_ >
+  Poly(       Poly< Impl, Alloc_ >&& other )
+    noexcept(std::is_nothrow_constructible<base, Poly< Impl, Alloc_ >&&>::value)
+    : base( poly_cast_tag(), std::move(other) )
+  {  }
+
+  Poly& operator=( const Poly& other )
+    noexcept(std::is_nothrow_copy_assignable<base>::value) = default;
+  
+  Poly& operator=( Poly&& other )
+    noexcept(std::is_nothrow_move_assignable<base>::value) = default;
 
   template< typename Alloc_ >
   Poly& operator=( const Poly<Impl, Alloc_>& other )
@@ -61,31 +82,8 @@ public:
     return *this;
   }
 
-  Poly& operator=( const Poly& other )
-    noexcept(std::is_nothrow_copy_assignable<base>::value)
-  {
-    static_cast<base&>(*this) = static_cast<const Poly::base&>(other);
-    return *this;    
-  }
-
-  Poly& operator=( Poly&& other )
-    noexcept(std::is_nothrow_move_assignable<base>::value)
-  {
-    static_cast<base&>(*this) = static_cast<Poly::base&&>(other);
-    return *this;    
-  }
-
-  template< typename Alloc_ >
-  Poly( const Poly< Impl, Alloc_ >& other  ) : base( poly_cast_tag(), other ){ }
-
-  template< typename Alloc_ >
-  Poly(       Poly< Impl, Alloc_ >&& other )
-    : base( poly_cast_tag(), std::move(other) )
-  {  }
-
   template< typename, typename >
   friend class Poly;
-
 };
 
 template< typename Allocator, typename F >
@@ -98,8 +96,8 @@ decltype(auto) allocate( Allocator& alloc, storage_info info, F f )
     throw e;
   } catch(...){
     alloc.deallocate( ptr );
-    std::exception_ptr p = std::current_exception();
-    std::rethrow_exception(p);
+    std::cout << "allocate throw" << std::endl;
+    throw;
   }
 }
 
@@ -110,7 +108,7 @@ class poly_construct_impl
 private:
   using View_t = View< Impl >;
 
-  static constexpr bool move_is_noexcept =
+  static constexpr bool move_is_noexcept = 
     supports< interface_t<Impl>, move_noexcept>();
 
    using move_tag = typename std::conditional< move_is_noexcept, move_noexcept, move >::type;
@@ -119,11 +117,7 @@ public:
   template< typename T, typename... Args >
   poly_construct_impl( in_place<T>, Args&&... args )
     : Alloc()
-    , View_t( allocate( *this, storage_info::get<T>(),
-			[&args...]( void* ptr ){
-			  new (ptr) T(std::forward<Args>(args)...);
-			  return View_t{ *reinterpret_cast<T*>(ptr) };
-			} ))
+    , View_t( this->allocate_construct<T>( std::forward<Args>(args)... ) )
   {  }
 
   poly_construct_impl( poly_construct_impl&& other ) noexcept( move_is_noexcept )
@@ -132,23 +126,35 @@ public:
 
   poly_construct_impl( const poly_construct_impl& other )
     : poly_construct_impl( poly_cast_tag(), other)
-  {  }
+  { std::cout << "CC base end" << std::endl; }
 
   template< typename Alloc_ >
   poly_construct_impl( poly_cast_tag, const poly_construct_impl<Impl, Alloc_>& other  )
     try
       : Alloc(), View_t( this->allocate_for<copy>(other), other.vtable_ )
   {  }
-  catch( ... )
-  { this->data_.data = nullptr; }
+  catch( const invalid_vtable_call& e ){
+    std::cout << "CC invalid" << this << std::endl;
+    invalidate();
+    std::cout << "CC invalid end " << this << std::endl;
+  }
+  catch( ... ){ 
+    invalidate_rethrow();
+  }
   template< typename Alloc_ >
   poly_construct_impl( poly_cast_tag, poly_construct_impl<Impl, Alloc_>&& other  )
     noexcept( move_is_noexcept )
     try
       : Alloc(), View_t( this->allocate_for<move_tag>(other), other.vtable_ )
   {  }
-  catch( ... )
-  { this->data_.data = nullptr; }
+  catch( const invalid_vtable_call& e ){
+    std::cout << "MC invalid " << this << std::endl;
+    invalidate();
+    std::cout << "MC invalid end" << this << std::endl;
+  }
+  catch( ... ){
+    invalidate_rethrow();
+  }
 
   template< typename Alloc_ >
   poly_construct_impl& operator=( const poly_construct_impl<Impl, Alloc_>& other ){
@@ -158,7 +164,7 @@ public:
 
   template< typename Alloc_ >
   poly_construct_impl& operator=(  poly_construct_impl<Impl, Alloc_>&& other )
-  noexcept( move_is_noexcept )
+    noexcept( move_is_noexcept )
   {
     this->assign_impl<move_tag>( other );
     return *this;
@@ -170,7 +176,7 @@ public:
   }
 
   poly_construct_impl& operator=( poly_construct_impl&& other )
-  noexcept( move_is_noexcept )
+    noexcept( move_is_noexcept )
   {
     this->assign_impl<move_tag>( other );
     return *this;
@@ -190,9 +196,7 @@ private:
       this->data_ = { ptr };
       this->vtable_ = other.vtable_;
     } catch (...) {
-      this->data_.data = nullptr;
-      this->vtable_ = other.vtable_;
-      throw;
+      invalidate_rethrow();
     }
   }
 
@@ -200,18 +204,42 @@ private:
   template< typename operation, typename Other >
   void* allocate_for( Other&& other ){
     return allocate( *this, other.template call< storage >(),
-			[&other]( void* ptr ){
-			  other.template call< operation >( ptr );
-			  return ptr;
-			} );
+		     [&other]( void* ptr ){
+		       other.template call< operation >( ptr );
+			 return ptr;
+		     } );
+  }
+  
+  template< typename T, typename... Args >
+  View_t allocate_construct( Args&&... args ){
+    return allocate( *this, storage_info::get<T>(),
+		     [&args..., this]( void* ptr ){
+		       std::cout << "allocate construct " << this << std::endl;
+		       new (ptr) T(std::forward<Args>(args)...);
+		       return View_t{ *reinterpret_cast<T*>(ptr) };
+		     } );
   }
 
   void reset(){
     // Check if constructed properly
-    if( this->data_.data ){
+    try{
       this->View_t::template call<destroy>();
-      this->Alloc::deallocate( this->data_.data );
+    } catch ( const invalid_vtable_call& e ){
+      Invalid& contents = static_cast<View_t&>(*this).template cast<Invalid&>();
+      contents.~Invalid();
     }
+    this->Alloc::deallocate( this->data_.data );
+  }
+
+  void invalidate(){
+    std::cout << "Invalidate " << this << std::endl;
+    static_cast<View_t&>(*this) = allocate_construct<Invalid>();
+    std::cout << "Invalidate " << this << " end" << std::endl;
+  }
+
+  void invalidate_rethrow(){
+    invalidate();
+    throw;
   }
 };
 

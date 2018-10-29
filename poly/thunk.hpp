@@ -2,6 +2,26 @@
 #define __THUNK_HPP__
 
 #include "invoker.hpp"
+#include "../helpers.hpp"
+#include <exception>
+
+struct Invalid{  };
+
+class invalid_vtable_call
+  : public std::exception
+{
+private:
+  std::string tag_;
+  
+public:
+  virtual const char* what() const noexcept override {
+    return (std::string() + "Function call to " + tag_ + " in purposefully invalid vtable ").c_str();
+  }
+
+  invalid_vtable_call( const std::string& tag_name )
+    : tag_( tag_name )
+  {  }
+};
 
 namespace impl__{
   template< typename Invoker, template< typename > class Transform >
@@ -12,10 +32,19 @@ namespace impl__{
   struct thunk_impl_< Invoker< Tag, Return(Args...) >, Transform >{
 
     template< typename T >
-    static Return thunk( typename Transform<Args>::type... args ) {
+    static typename std::enable_if< !std::is_same<T, Invalid>::value,
+				    Return >::type
+    thunk( typename Transform<Args>::type... args ) {
       static_assert( std::is_empty< Tag >::value, "Tags may have no data members" );
       return invoke( Tag(), Transform<Args>::template Reverse<T>::apply
 		     ( static_cast<typename Transform<Args>::type&&>(args) )... );
+    }
+
+    template< typename T >
+    static typename std::enable_if< std::is_same<T, Invalid>::value,
+				    Return >::type
+    thunk( typename Transform<Args>::type... args ) {
+      throw invalid_vtable_call( T2Str( Tag() ) );
     }
   };
   

@@ -88,10 +88,16 @@ public:
   }
 
   template< typename T >
-  explicit operator T() const { return *reinterpret_cast< T* >(data_); }
+  T cast() const {
+    using T_ = typename std::decay<T>::type;
+    return *reinterpret_cast< T_* >(data_.data);
+  }
  
   template< typename T >
-  explicit operator T() { return *reinterpret_cast< T* >(data_); }
+  T cast(){
+    using T_ = typename std::decay<T>::type;
+    return *reinterpret_cast< T_* >(data_.data);
+  }
 
   template< typename T, typename = std::enable_if_t< !is_view<std::decay_t<T>>::value > >
   View( T& v )
