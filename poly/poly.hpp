@@ -37,6 +37,7 @@ public:
   using base::operator[];
   using base::get;
   using base::call;
+  using base::valueless_by_exception;
   
   template< typename T, typename... Args >
   Poly( in_place<T> p, Args&&... args )
@@ -86,21 +87,6 @@ public:
   friend class Poly;
 };
 
-template< typename Allocator, typename F >
-decltype(auto) allocate( Allocator& alloc, storage_info info, F f )
-{
-  auto ptr = alloc.allocate( info );
-  try{
-    return f(ptr);
-  } catch (std::bad_alloc& e){
-    throw e;
-  } catch(...){
-    alloc.deallocate( ptr );
-    std::cout << "allocate throw" << std::endl;
-    throw;
-  }
-}
-
 template< typename Impl, typename Alloc>
 class poly_construct_impl
   : public Alloc, public View< Impl >
@@ -126,34 +112,22 @@ public:
 
   poly_construct_impl( const poly_construct_impl& other )
     : poly_construct_impl( poly_cast_tag(), other)
-  { std::cout << "CC base end" << std::endl; }
+  {  }
 
   template< typename Alloc_ >
   poly_construct_impl( poly_cast_tag, const poly_construct_impl<Impl, Alloc_>& other  )
-    try
-      : Alloc(), View_t( this->allocate_for<copy>(other), other.vtable_ )
-  {  }
-  catch( const invalid_vtable_call& e ){
-    std::cout << "CC invalid" << this << std::endl;
-    invalidate();
-    std::cout << "CC invalid end " << this << std::endl;
+    : Alloc(), View_t( static_cast<const View_t&>(other) )
+  {
+    this->construct_from<copy>( other );
   }
-  catch( ... ){ 
-    invalidate_rethrow();
-  }
+
+  
   template< typename Alloc_ >
   poly_construct_impl( poly_cast_tag, poly_construct_impl<Impl, Alloc_>&& other  )
     noexcept( move_is_noexcept )
-    try
-      : Alloc(), View_t( this->allocate_for<move_tag>(other), other.vtable_ )
-  {  }
-  catch( const invalid_vtable_call& e ){
-    std::cout << "MC invalid " << this << std::endl;
-    invalidate();
-    std::cout << "MC invalid end" << this << std::endl;
-  }
-  catch( ... ){
-    invalidate_rethrow();
+  : Alloc(), View_t( static_cast<View_t&&>(other) )
+  {
+    this->construct_from<move_tag>( std::move(other) );
   }
 
   template< typename Alloc_ >
@@ -186,42 +160,52 @@ public:
   friend class poly_construct_impl;
 
   ~poly_construct_impl(){ this->reset(); }
+
+  bool valueless_by_exception() const {
+    return this->View_t::is_empty();
+  }
 private:
 
   template< typename operation, typename Other >
   void assign_impl( Other&& other ){
     this->reset();
-    try{
-      auto ptr = this->allocate_for<operation>(std::forward<Other>(other));
-      this->data_ = { ptr };
-      this->vtable_ = other.vtable_;
-    } catch (...) {
-      invalidate_rethrow();
-    }
+    static_cast<View_t&>(*this) = std::forward<Other>(other);
+    this->construct_from<operation>(std::forward<Other>(other)); 
   }
 
-  // Has to be called after initialization of Alloc
   template< typename operation, typename Other >
-  void* allocate_for( Other&& other ){
-    return allocate( *this, other.template call< storage >(),
-		     [&other]( void* ptr ){
-		       other.template call< operation >( ptr );
-			 return ptr;
-		     } );
+  void construct_from( Other&& other ){
+    void* ptr = nullptr;
+    try{ 
+      auto info = other.template call<storage>();      
+      ptr = this->allocate( info );
+      other.template call<operation>( ptr );
+      this->data_ = { ptr };
+    } catch ( const invalid_vtable_call& e ) {
+      invalidate();
+    }
+    catch(...){
+      if( ptr != nullptr )
+	this->deallocate( ptr );
+      invalidate();
+      throw;
+    }
   }
   
   template< typename T, typename... Args >
   View_t allocate_construct( Args&&... args ){
-    return allocate( *this, storage_info::get<T>(),
-		     [&args..., this]( void* ptr ){
-		       std::cout << "allocate construct " << this << std::endl;
-		       new (ptr) T(std::forward<Args>(args)...);
-		       return View_t{ *reinterpret_cast<T*>(ptr) };
-		     } );
+    auto ptr = this->allocate( storage_info::template get<T>() );
+    try{
+      new (ptr) T(std::forward<Args>(args)...);
+      return View_t( *reinterpret_cast<T*>(ptr) );
+    } catch(...){
+      this->deallocate( ptr );
+      invalidate();
+      throw;
+    }
   }
 
   void reset(){
-    // Check if constructed properly
     try{
       this->View_t::template call<destroy>();
     } catch ( const invalid_vtable_call& e ){
@@ -232,14 +216,7 @@ private:
   }
 
   void invalidate(){
-    std::cout << "Invalidate " << this << std::endl;
     static_cast<View_t&>(*this) = allocate_construct<Invalid>();
-    std::cout << "Invalidate " << this << " end" << std::endl;
-  }
-
-  void invalidate_rethrow(){
-    invalidate();
-    throw;
   }
 };
 
