@@ -420,4 +420,23 @@ struct count< typelist< Ts... >, Pred >
   : sum< std::size_t, (Pred<Ts>::value ? 1 : 0 )... >
 {  };
 
+template <class T, class typelist>
+struct index_of;
+
+template <class T, template< typename... > class typelist, class... Types>
+struct index_of<T, typelist<T, Types...>> {
+    static const std::size_t value = 0;
+};
+
+template <class T, template< typename... > class typelist, class U, class... Types>
+struct index_of<T, typelist<U, Types...>> {
+    static const std::size_t value = 1 + index_of<T, typelist<Types...>>::value;
+};
+
+template <class T, template< typename... > class typelist >
+struct index_of<T, typelist<>> {
+  // No type in typelist
+};
+
+
 #endif //__TYPELIST_HPP__

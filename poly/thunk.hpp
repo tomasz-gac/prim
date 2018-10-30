@@ -68,7 +68,7 @@ using thunk_type = typename impl__::thunk_type<S, Transform>::type;
 
 // returns a Thunk given Invoker, Transform and a seed type T
 template< typename Invoker, template< typename > class Transform, typename T >
-thunk_type<Invoker, Transform > get_thunk(){
+thunk_type<Invoker, Transform > get_thunk() {
   return impl__::thunk_type<Invoker, Transform >::template get_thunk<T>();
 }
 
