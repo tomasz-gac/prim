@@ -18,13 +18,21 @@ struct cend : Invoker< cend<T>, const T* (const ::T&) >{  };
 
 template< typename T >
 T* invoke( begin<T>, std::vector<T>& vec ){ return &*vec.begin(); }
+template< typename T, typename U >
+T* invoke( begin<T>, std::vector<U>& vec ){ throw std::runtime_error("ERROR"); }
 template< typename T >
 const T* invoke( cbegin<T>, const std::vector<T>& vec ){ return &*vec.cbegin(); }
+template< typename T, typename U >
+const T* invoke( cbegin<T>, const std::vector<U>& vec ){ throw std::runtime_error("ERROR");}
 
 template< typename T >
 T* invoke( end<T>, std::vector<T>& vec ){ return &*vec.end(); }
+template< typename T, typename U >
+T* invoke( end<T>, std::vector<U>& vec ){ throw std::runtime_error("ERROR"); }
 template< typename T >
 const T* invoke( cend<T>, const std::vector<T>& vec ){ return &*vec.cend(); }
+template< typename T, typename U >
+const T* invoke( cend<T>, const std::vector<U>& vec ){ throw std::runtime_error("ERROR"); }
 
 template< typename T >
 struct Iterable
@@ -33,8 +41,8 @@ struct Iterable
 
 
 
-template< typename T, template< typename > typename VTbl, typename Alloc >
-void test_values( const std::vector<T>& numbers, const Poly< VTbl<Iterable<T>>, Alloc >& poly )
+template< typename T, typename poly_t >
+void test_values( const std::vector<T>& numbers, const poly_t& poly )
 {
   auto b = poly.template call<cbegin<T>>();
   auto e = poly.template call<cend<T>>();
@@ -44,7 +52,7 @@ void test_values( const std::vector<T>& numbers, const Poly< VTbl<Iterable<T>>, 
 }
 
 
-template< template< typename > class VT_t, typename Alloc >
+template< template< typename... > class VT_t, typename Alloc >
 void test_memory_vector( int n = 10000  ){
 
   using poly_t = Poly< VT_t<Iterable<Guard<int>>>, Alloc >;
@@ -190,19 +198,33 @@ using test_signature = void (*)( Args... );
 template< typename T >
 using stack_alloc = StackAllocator< sizeof(T), alignof(T) >;
 
-void test_memory(){
+template< typename I >
+using test1_JVT = JumpVT< I, std::vector<Guard<float>>, std::vector<Guard<int>> >;
+
+template< typename I >
+using test2_JVT = JumpVT< I, Guard<float>, Guard<int>, Guard<bool> >;
+
+template< typename I >
+using test3_JVT = JumpVT< I, Guard<int>, Guard<float>, Guard<A> >;
+
+void test_memory()
+{
+  using tested_t = std::vector<Guard<int>>;
   test_memory_vector< LocalVT, HeapAllocator >();
   test_memory_vector< RemoteVT, HeapAllocator >();
-  using tested_t = std::vector<Guard<int>>;
+  test_memory_vector< test1_JVT, HeapAllocator >();
   test_memory_vector< LocalVT, stack_alloc<tested_t> > ();
   test_memory_vector< RemoteVT, stack_alloc<tested_t> >();
-
+  test_memory_vector< test1_JVT, stack_alloc<tested_t> >();
+  
   using tested_t2 = Guard<int>;
   using stack_alloc2 = StackAllocator< sizeof(tested_t2), alignof(tested_t2) >;
   test_memory_vector_poly< LocalVT, HeapAllocator >();
   test_memory_vector_poly< RemoteVT, HeapAllocator >();
+  test_memory_vector_poly< test2_JVT, HeapAllocator >();
   test_memory_vector_poly< LocalVT, stack_alloc2 >();
   test_memory_vector_poly< RemoteVT, stack_alloc2 >();
+  test_memory_vector_poly< test2_JVT, stack_alloc2 >();
 
   using tested_t3 = Guard<A>;
   using stack_alloc3 = StackAllocator< sizeof(tested_t3), alignof(tested_t3) >;

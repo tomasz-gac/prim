@@ -6,6 +6,7 @@
 #include "LocalVTable.hpp"
 #include "RemoteVTable.hpp"
 #include "JoinedVTable.hpp"
+#include "JumpVTable.hpp"
 
 template< typename Tag >
 struct LocalVT
@@ -23,6 +24,12 @@ struct JoinedVT
   , join_t< interface_t<Tags>... >
 {  };
 
+template< typename Tag, typename... Ts >
+struct JumpVT
+  : Implementation< JumpVTable< Tag, EraseVoidPtr, Ts... > >
+  , Tag
+{  };
+
 template< typename Interface >
 LocalVT< Interface > localVT( Interface ){ return {}; };
 
@@ -31,6 +38,9 @@ RemoteVT< Interface > remoteVT( Interface ){ return {}; };
 
 template< typename... Tags >
 JoinedVT< Tags... > joinVT( Tags... ){ return {}; };
+
+template< typename Interface, typename... Ts >
+JumpVT< Ts... > joinVT( Interface ){ return {}; };
 
 #endif // __VTABLE_HPP__
 

@@ -231,11 +231,17 @@ struct split_front< typelist< T, Ts... > >
 
 template< template< typename... > class typelist, typename U, typename... Us, typename T >
 struct head_or_type< typelist<U, Us...>, T >
-{ using type = U; };
+{
+  using type = U;
+  using tail = typelist<Us...>;
+};
 
 template< template< typename... > class typelist, typename T >
 struct head_or_type< typelist<>, T >
-{ using type = T; };
+{
+  using type = T;
+  using tail = typelist<>;
+};
 
 template<
   template< typename... > class typelist
@@ -433,10 +439,10 @@ struct index_of<T, typelist<U, Types...>> {
     static const std::size_t value = 1 + index_of<T, typelist<Types...>>::value;
 };
 
-template <class T, template< typename... > class typelist >
-struct index_of<T, typelist<>> {
-  // No type in typelist
-};
+// template <class T, template< typename... > class typelist >
+// struct index_of<T, typelist<>> {
+//   // No type in typelist
+// };
 
 
 #endif //__TYPELIST_HPP__

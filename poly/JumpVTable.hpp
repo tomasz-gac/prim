@@ -2,108 +2,129 @@
 #define __JUMP_VTABLE_HPP__
 
 #include "typelist.hpp"
+#include "thunk.hpp"
 
 namespace impl_{
   template< typename T >
-  struct type_wrapper{
+  struct type_{
     using type = T;
   };
 }
 
-struct Invalid;
-
-template< template< int > class Invoke, int N = 0, typename... Args >
-decltype(auto) call_version( int index, Args&&... args ){
-  switch (index)
-  {
-    case -1+N : return Invoke<-1+N>::apply( std::forward<Args>(args)... );
-    case   +N : return Invoke<  +N>::apply( std::forward<Args>(args)... );
-    case  1+N : return Invoke< 1+N>::apply( std::forward<Args>(args)... );
-    case  2+N : return Invoke< 2+N>::apply( std::forward<Args>(args)... );
-    case  3+N : return Invoke< 3+N>::apply( std::forward<Args>(args)... );
-    case  4+N : return Invoke< 4+N>::apply( std::forward<Args>(args)... );
-    case  5+N : return Invoke< 5+N>::apply( std::forward<Args>(args)... );
-    case  6+N : return Invoke< 6+N>::apply( std::forward<Args>(args)... );
-    case  7+N : return Invoke< 7+N>::apply( std::forward<Args>(args)... );
-    case  8+N : return Invoke< 8+N>::apply( std::forward<Args>(args)... );
-    case  9+N : return Invoke< 9+N>::apply( std::forward<Args>(args)... );
-    default   : return call_version<Invoke, 10+N>( std::forward<Args>(args)... );
-  }
-}
-
-template< int index, typename JumpVT, typename Invoker >
-struct Jump_invoke;
-
 // VTable that holds thunks locally
 template< typename Interface, template< typename > class Transform, typename... Ts >
 class JumpVTable
-  : unique_typelist< Ts... >
 {
 public:
   using interface = interface_t<Interface>;
 
   template< typename T >
-  using get_index = index_of<T, _<Ts...> >;
-  
+  static constexpr int get_index = static_cast<int>(index_of<T, _<Invalid, Ts...> >::value)-1;
 
 private:
- 
-  JumpVTable( int index )
-    : index_(index)
+  unique_typelist< Ts... > assert_unique_typelist__;
+  
+  template< typename T >
+  JumpVTable( impl_::type_<T> )
+    : index_( get_index<T> )
   {  }
 
 public:
   template< typename T >
   static JumpVTable make(){
-    if( std::is_same<T,Invalid>::value ) return { -1 };
-    return { get_index<T>::value };
+    static_assert( unique_typelist< Ts... >::template contains<T>::value || std::is_same<T, Invalid>::value,
+		   "Requested type is not supported by this JumpVTable.");
+    
+    return { impl_::type_<T>() };
   }
 
   // Get a thunk based on tag and signature
   template< typename Invoker >
   auto get() const {
-    template< int index >
-    using invoke_ = Jump_invoke< index, JumpVTable, Invoker>;
-
-    return []( auto Args&&... args ){
-      return call_version< index >( index_ );
-    }
+    return [this]( auto&&... args ){
+      return this->jumptable<
+	Invoker, _<Invalid, Ts...>
+	>( std::true_type(), std::forward<decltype(args)>(args)... );
+    };
   }
 
   template< typename Invoker >
   auto operator[]( const Invoker& ) const {
-    return get< Tag >();
+    return get< Invoker >();
   }
 
-public:
-  const int index_;
-};
+  JumpVTable( const JumpVTable& )           = default;
+  JumpVTable(       JumpVTable&& ) noexcept = default;
 
-template< int index, template< typename > class Transform, typename Interface, typename... Ts, typename Invoker >
-struct Jump_invoke< index, JumpVTable<Interface, Transform, Ts... >, Invoker >{
+  JumpVTable& operator=( const JumpVTable& ) = default;
+  JumpVTable& operator=(       JumpVTable&& ) noexcept = default;
+
+  int index() const { return index_; }
+
 private:
-  using type = typename std::tuple_element< index, std::tuple< impl_::type_wrapper<Ts>... > >::type::type;
+  int index_;
 
-public:
-  template< typename... Args >
-  static decltype(auto) apply( Args&&... args ) const {
+  template< typename Invoker, typename typelist, int N = 0, typename... Args >
+  decltype(auto) jumptable( std::true_type, Args&&... args ) const {
+    //Matches a dynamic value of index_ to compile-time indices of Ts...
+    //When indices match - calls Invoker with a specific type
+    switch (index_)
+      {
+	using T__1 =     typename head_or_type<typelist, Invalid>::type;
+	using list__1 =  typename head_or_type<typelist, Invalid>::tail;
+      case -1+N : return call<Invoker, T__1>( std::forward<Args>(args)... );
+	using T_0 =     typename head_or_type<list__1, Invalid>::type;
+	using list_0 =  typename head_or_type<list__1, Invalid>::tail;
+      case  0+N : return call<Invoker, T_0>( std::forward<Args>(args)... );
+	using T_1 =     typename head_or_type<list_0, Invalid>::type;
+	using list_1 =  typename head_or_type<list_0, Invalid>::tail;
+      case  1+N : return call<Invoker, T_1>( std::forward<Args>(args)... );
+	using T_2 =     typename head_or_type<list_1, Invalid>::type;
+	using list_2 =  typename head_or_type<list_1, Invalid>::tail;
+      case  2+N : return call<Invoker, T_2>( std::forward<Args>(args)... );
+	using T_3 =     typename head_or_type<list_2, Invalid>::type;
+	using list_3 =  typename head_or_type<list_2, Invalid>::tail;
+      case  3+N : return call<Invoker, T_3>( std::forward<Args>(args)... );
+	using T_4 =     typename head_or_type<list_3, Invalid>::type;
+	using list_4 =  typename head_or_type<list_3, Invalid>::tail;
+      case  4+N : return call<Invoker, T_4>( std::forward<Args>(args)... );
+	using T_5 =     typename head_or_type<list_4, Invalid>::type;
+	using list_5 =  typename head_or_type<list_4, Invalid>::tail;
+      case  5+N : return call<Invoker, T_5>( std::forward<Args>(args)... );
+	using T_6 =     typename head_or_type<list_5, Invalid>::type;
+	using list_6 =  typename head_or_type<list_5, Invalid>::tail;
+      case  6+N : return call<Invoker, T_6>( std::forward<Args>(args)... );
+	using T_7 =     typename head_or_type<list_6, Invalid>::type;
+	using list_7 =  typename head_or_type<list_6, Invalid>::tail;
+      case  7+N : return call<Invoker, T_7>( std::forward<Args>(args)... );
+	using T_8 =     typename head_or_type<list_7, Invalid>::type;
+	using list_8 =  typename head_or_type<list_7, Invalid>::tail;
+      case  8+N : return call<Invoker, T_8>( std::forward<Args>(args)... );
+	using T_9 =     typename head_or_type<list_8, Invalid>::type;
+	using list_9 =  typename head_or_type<list_8, Invalid>::tail;
+      case  9+N : return call<Invoker, T_9>( std::forward<Args>(args)... );
+      default :
+	return dispatch<Invoker, list_9, 10+N>( std::integral_constant< bool, (sizeof...(Ts) > 9+N)>(),
+						std::forward<Args>(args)... );
+      }
+  }
+
+  template< typename Invoker, typename typelist, int N = 0, typename... Args >
+  decltype(auto) dispatch ( std::false_type, Args&&... args ) const {
+    assert(false);
+    return call<Invoker, Invalid>( std::forward<Args>(args)... );
+  }
+  
+  template< typename Invoker, typename T, typename... Args >
+  static decltype(auto) call( Args&&... args )
+  {
     using Signature = unerase_signature< Invoker, Transform, Args&&... >;
     static_assert( !std::is_same< Signature, invalid_arguments >::value,
 		   "Invoker cannot be called with supplied arguments" );
     return (*get_thunk<Signature, Transform, T>())( std::forward<Args>(args)... );
   }
+
 };
 
-template< int index, typename Interface, typename... Ts, typename Invoker >
-struct Jump_invoke< -1, JumpVTable<Interface, Ts... >, Invoker >{
-  
-  template< typename... Args >
-  static decltype(auto) apply( Args&&... args ) const {
-    using Signature = unerase_signature< Invoker, Transform, Args&&... >;
-    static_assert( !std::is_same< Signature, invalid_arguments >::value,
-		   "Invoker cannot be called with supplied arguments" );
-    return (*get_thunk<Signature, Transform, Invalid>())( std::forward<Args>(args)... );
-  }
-};
 
 #endif // __JUMP_VTABLE_HPP__
