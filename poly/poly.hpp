@@ -100,6 +100,16 @@ private:
    using move_tag = typename std::conditional< move_is_noexcept, move_noexcept, move >::type;
 
 public:
+  // Check if object is in an invalid state
+  bool valueless_by_exception() const {
+    try{
+      this->template call< storage >();
+      return false;
+    } catch ( const invalid_vtable_call& e ){
+      return true;
+    }
+  }
+  
   template< typename T, typename... Args >
   poly_construct_impl( in_place<T>, Args&&... args )
     : Alloc()
@@ -116,7 +126,7 @@ public:
 
   template< typename Alloc_ >
   poly_construct_impl( poly_cast_tag, const poly_construct_impl<Impl, Alloc_>& other  )
-    : Alloc(), View_t( static_cast<const View_t&>(other) )
+    : Alloc(), View_t()
   {
     this->construct_from<copy>( other );
   }
@@ -125,101 +135,111 @@ public:
   template< typename Alloc_ >
   poly_construct_impl( poly_cast_tag, poly_construct_impl<Impl, Alloc_>&& other  )
     noexcept( move_is_noexcept )
-  : Alloc(), View_t( static_cast<View_t&&>(other) )
+    : Alloc(), View_t()
   {
     this->construct_from<move_tag>( std::move(other) );
   }
 
+  ~poly_construct_impl(){ this->reset(); }
+
   template< typename Alloc_ >
   poly_construct_impl& operator=( const poly_construct_impl<Impl, Alloc_>& other ){
-    this->assign_impl<copy>( other );
-    return *this;
+    return this->assign_impl<copy>( other );
   }
 
   template< typename Alloc_ >
   poly_construct_impl& operator=(  poly_construct_impl<Impl, Alloc_>&& other )
-    noexcept( move_is_noexcept )
-  {
-    this->assign_impl<move_tag>( other );
-    return *this;
+    noexcept( move_is_noexcept ) {
+    return this->assign_impl<move_tag>( std::move(other) );
   }
 
   poly_construct_impl& operator=( const poly_construct_impl& other ){
-    this->assign_impl<copy>( other );
-    return *this;
+    return this->assign_impl<copy>( other );
   }
 
   poly_construct_impl& operator=( poly_construct_impl&& other )
-    noexcept( move_is_noexcept )
-  {
-    this->assign_impl<move_tag>( other );
-    return *this;
+    noexcept( move_is_noexcept ) {
+    return this->assign_impl<move_tag>( std::move(other) );
   }
 
   template< typename I, typename A >
   friend class poly_construct_impl;
 
-  ~poly_construct_impl(){ this->reset(); }
-
-  bool valueless_by_exception() const {
-    try{
-      this->template call< storage >();
-      return false;
-    } catch ( const invalid_vtable_call& e ){
-      return true;
-    }
-  }
 private:
-
+  //Assigns from other
   template< typename operation, typename Other >
-  void assign_impl( Other&& other ){
+  poly_construct_impl& assign_impl( Other&& other ){
     this->reset();
-    static_cast<View_t&>(*this) = std::forward<Other>(other);
-    this->construct_from<operation>(std::forward<Other>(other)); 
+    this->construct_from<operation>(std::forward<Other>(other));
+    return *this;
   }
 
-  template< typename operation, typename Other >
+  //Allocates memory for object contained in other
+  //Calls operation (copy or move) into allocated memory
+  //In case of exception - sets the object into invalid state
+  // WARNING : assumes the object to be empty
+  template< typename Operation, typename Other >
   void construct_from( Other&& other ){
     void* ptr = nullptr;
+    static_cast<View_t&>(*this) = std::forward<Other>(other); // copy or move the vtable
     try{ 
       auto info = other.template call<storage>();      
       ptr = this->allocate( info );
-      other.template call<operation>( ptr );
+      other.template call<Operation>( ptr );
       this->data_ = { ptr };
     } catch ( const invalid_vtable_call& e ) {
-      invalidate();
-    }
-    catch(...){
-      if( ptr != nullptr )
+      // other is valueless by exception
+      if( ptr != nullptr ){
 	this->deallocate( ptr );
+      }
+      invalidate(); // set as invalid
+    } catch(...) {
+      // Constructor or Alloc throws
+      if( ptr != nullptr ){
+	this->deallocate( ptr );
+      }
       invalidate();
-      throw;
-    }
-  }
-  
-  template< typename T, typename... Args >
-  View_t allocate_construct( Args&&... args ){
-    auto ptr = this->allocate( storage_info::template get<T>() );
-    try{
-      new (ptr) T(std::forward<Args>(args)...);
-      return View_t( *reinterpret_cast<T*>(ptr) );
-    } catch(...){
-      this->deallocate( ptr );
-      invalidate();
-      throw;
+      throw; // propagate the exception
     }
   }
 
+  //Allocates memory for type T and constructs it using Args
+  //In case the T's constructor, or Alloc throws
+  //sets the object as invalid and propagates the exception
+  // WARNING : assumes the object to be empty
+  template< typename T, typename... Args >
+  View_t allocate_construct( Args&&... args ){
+    void* ptr = nullptr;
+    try{
+      ptr = this->allocate( storage_info::template get<T>() );
+      new (ptr) T(std::forward<Args>(args)...);
+      return View_t( *reinterpret_cast<T*>(ptr) );
+    } catch(...) {
+      if( ptr != nullptr ){
+	this->deallocate( ptr );
+      }
+      invalidate();
+      throw; // propagate the exception
+    }
+  }
+
+  //Destroys the contained object and deallocates memory
+  //The class invariant is not maintained after reset!
+  //If the contained object's destructor throws - propagate the exception
   void reset(){
     try{
       this->View_t::template call<destroy>();
     } catch ( const invalid_vtable_call& e ){
+      //Object is valueless by exception
+      //In that case it contains object of type Invalid
       Invalid& contents = static_cast<View_t&>(*this).template cast<Invalid&>();
       contents.~Invalid();
     }
     this->Alloc::deallocate( this->data_.data );
   }
-
+  
+  //Function sets the object in an invalid state
+  // WARNING : assumes the object to be empty
   void invalidate(){
     static_cast<View_t&>(*this) = allocate_construct<Invalid>();
   }

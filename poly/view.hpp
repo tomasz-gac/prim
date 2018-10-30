@@ -31,13 +31,10 @@ protected:
   implementation vtable_;
   Erased data_;
 
-  View( void* data, implementation vtable )
-    : vtable_(vtable)
-    , data_{ data }
+  View()
+    : vtable_( implementation::template make< Invalid >() )
+    , data_{ nullptr }
   {  }
-
-  void reset(){ data_ = { nullptr }; }
-  bool is_empty() const { return !data_.data; }
 
 public:
   template< typename T, typename std::enable_if_t< !is_view<T>::value> >
