@@ -3,6 +3,8 @@
 
 #include "LocalVTable.hpp"
 
+namespace poly{
+  
 // VTable that holds thunks remotely
 template< typename Interface, template< typename > class Transform >
 class RemoteVTable{
@@ -43,5 +45,7 @@ public:
     return vtable_->template get< Tag >();
   }
 };
+
+}
 
 #endif // __REMOTE_VTABLE_HPP__

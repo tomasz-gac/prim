@@ -3,6 +3,8 @@
 
 #include "bind.hpp"
 
+namespace typelist{
+
 template< typename T >
 struct id;
 
@@ -283,7 +285,7 @@ template< template< typename... > class UnaryOp >
 struct erase_if
 {
   template< typename T >
-  using type = std::conditional< UnaryOp<T>::value, ::_<T>, ::_<> >;
+  using type = std::conditional< UnaryOp<T>::value, _<T>, _<> >;
 };
 
 template< template< typename... > class typelist, typename... Ts >
@@ -444,5 +446,6 @@ struct index_of<T, typelist<U, Types...>> {
 //   // No type in typelist
 // };
 
+}
 
 #endif //__TYPELIST_HPP__

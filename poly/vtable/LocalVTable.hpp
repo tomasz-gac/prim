@@ -3,6 +3,8 @@
 
 #include "thunk.hpp"
 
+namespace poly{
+
 // VTable that holds thunks locally
 template< typename Interface, template< typename > class Transform >
 class LocalVTable{
@@ -13,7 +15,7 @@ private:
   using TThunk = Thunk< Invoker, Transform >;
   
   using thunk_tuple =
-    repack_t< map_t< interface_t<Interface>, TThunk >, std::tuple<> >;
+    tl::repack_t< tl::map_t< interface_t<Interface>, TThunk >, std::tuple<> >;
   
   thunk_tuple thunks_;
 
@@ -22,12 +24,12 @@ private:
   {  }
 
   template< typename T, typename... Tags >
-  static LocalVTable make_impl( ::Interface<Tags...>*  ){
+  static LocalVTable make_impl( poly::Interface<Tags...>*  ){
     return { std::make_tuple( TThunk<Tags>::template make<T>() ... ) };
   }
 
   template< typename To, typename... Tags >
-  LocalVTable<To, Transform> cast_impl( ::Interface<Tags...>* ) const {
+  LocalVTable<To, Transform> cast_impl( poly::Interface<Tags...>* ) const {
     return LocalVTable<To, Transform>(std::make_tuple( std::get< TThunk<Tags> >(thunks_)... ) );
   }
 
@@ -60,6 +62,6 @@ public:
   }
 };
 
-
+}
 
 #endif // __LOCAL_VTABLE_HPP__

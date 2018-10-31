@@ -1,27 +1,11 @@
 #ifndef __THUNK_HPP__
 #define __THUNK_HPP__
 
-#include "invoker.hpp"
-#include "../helpers.hpp"
-#include <exception>
+#include <tuple>
+#include "../invoker.hpp"
+#include "invalid.hpp"
 
-struct Invalid{  };
-
-class invalid_vtable_call
-  : public std::exception
-{
-private:
-  std::string tag_;
-  
-public:
-  virtual const char* what() const noexcept override {
-    return (std::string() + "Function call to " + tag_ + " in purposefully invalid vtable ").c_str();
-  }
-
-  invalid_vtable_call( const std::string& tag_name )
-    : tag_( tag_name )
-  {  }
-};
+namespace poly{
 
 namespace impl__{
   template< typename Invoker, template< typename > class Transform >
@@ -44,7 +28,7 @@ namespace impl__{
     static typename std::enable_if< std::is_same<T, Invalid>::value,
 				    Return >::type
     thunk( typename Transform<Args>::type... args ) {
-      throw invalid_vtable_call( T2Str( Tag() ) );
+      throw invalid_vtable_call();
     }
   };
   
@@ -110,7 +94,7 @@ private:
   template< typename Invoker >
   using Tthunk_type = thunk_type< Invoker, Transform >;
 
-  using thunk_tuple = repack_t< map_t< overloads_t<Tag>, Tthunk_type >, std::tuple<> >;
+  using thunk_tuple = tl::repack_t< tl::map_t< overloads_t<Tag>, Tthunk_type >, std::tuple<> >;
 
   Thunk( thunk_tuple thunks )
     : thunks_( std::move( thunks ) )
@@ -139,6 +123,7 @@ public:
     return (*std::get< thunk_type< Signature, Transform > >(thunks_))( std::forward<Args>(args)... );
   }
 };
-
+  
+}
 
 #endif // __THUNK_HPP__

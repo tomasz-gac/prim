@@ -1,7 +1,9 @@
 #ifndef __ERASE_VOID_PTR_HPP__
 #define __ERASE_VOID_PTR_HPP__
 
-#include "placeholder.hpp"
+#include "../placeholder.hpp"
+
+namespace poly{
 
 struct Erased{ void* data; };
 
@@ -37,4 +39,5 @@ struct EraseVoidPtr{
   };
 };
 
+}
 #endif // __ERASE_VOID_PTR_HPP__

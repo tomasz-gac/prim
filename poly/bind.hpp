@@ -1,6 +1,8 @@
 #ifndef __BIND_HPP__
 #define __BIND_HPP__
 
+namespace typelist{
+
 template< template< typename > class Op >
 static constexpr std::size_t size(){ return 1; }
 
@@ -95,6 +97,6 @@ struct bind< 4, Op, Ts... >{
 };
 
 
-
+}
 
 #endif // __BIND_HPP__

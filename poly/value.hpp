@@ -1,36 +1,38 @@
-#ifndef __POLY_HPP__
-#define __POLY_HPP__
+#ifndef __VALUE_HPP__
+#define __VALUE_HPP__
 
 #include "allocator.hpp"
 #include "view.hpp"
 #include "builtins.hpp"
 
-template< typename Implementation, typename Allocator, bool enable_copy, bool enable_move >
-struct poly_construct;
-
 template< typename T >
 struct in_place{  };
 
-struct poly_cast_tag {};
+namespace poly{
+
+template< typename Implementation, typename Allocator, bool enable_copy, bool enable_move >
+struct value_construct;
+
+struct value_cast_tag {};
 
 template< typename Impl, typename Alloc >
-using poly_base = poly_construct< Impl, Alloc,
+using value_base = value_construct< Impl, Alloc,
 				  supports< interface_t<Impl>, copy>(),
 				  supports< interface_t<Impl>, move>() ||
 				  supports< interface_t<Impl>, move_noexcept>()>;
 
 
 template< typename Impl, typename Alloc = HeapAllocator >
-class Poly
-  : private poly_base< Impl, Alloc >
+class Value
+  : private value_base< Impl, Alloc >
 {
 public:
   using implementation = impl_t<Impl>;
   using interface = interface_t<implementation>;
 private:
-  using base = poly_base< Impl, Alloc >;
+  using base = value_base< Impl, Alloc >;
 
-  Poly( in_place<Invalid> i )
+  Value( in_place<Invalid> i )
     : base( i )
   {  }  
 public:
@@ -40,55 +42,55 @@ public:
   using base::valueless_by_exception;
   
   template< typename T, typename... Args >
-  Poly( in_place<T> p, Args&&... args )
+  Value( in_place<T> p, Args&&... args )
     : base( p, std::forward<Args>(args)... )
   {  }
 
-  Poly( const Poly&  )
+  Value( const Value&  )
     noexcept(std::is_nothrow_copy_constructible<base>::value) = default;
-  Poly(       Poly&& )
+  Value(       Value&& )
     noexcept(std::is_nothrow_move_constructible<base>::value) = default;
   
   template< typename Alloc_ >
-  Poly( const Poly< Impl, Alloc_ >& other  )
-    noexcept(std::is_nothrow_constructible<base, const Poly< Impl, Alloc_ >&>::value)
-    : base( poly_cast_tag(), other )
+  Value( const Value< Impl, Alloc_ >& other  )
+    noexcept(std::is_nothrow_constructible<base, const Value< Impl, Alloc_ >&>::value)
+    : base( value_cast_tag(), other )
   {  }
 
   template< typename Alloc_ >
-  Poly(       Poly< Impl, Alloc_ >&& other )
-    noexcept(std::is_nothrow_constructible<base, Poly< Impl, Alloc_ >&&>::value)
-    : base( poly_cast_tag(), std::move(other) )
+  Value(       Value< Impl, Alloc_ >&& other )
+    noexcept(std::is_nothrow_constructible<base, Value< Impl, Alloc_ >&&>::value)
+    : base( value_cast_tag(), std::move(other) )
   {  }
 
-  Poly& operator=( const Poly& other )
+  Value& operator=( const Value& other )
     noexcept(std::is_nothrow_copy_assignable<base>::value) = default;
   
-  Poly& operator=( Poly&& other )
+  Value& operator=( Value&& other )
     noexcept(std::is_nothrow_move_assignable<base>::value) = default;
 
   template< typename Alloc_ >
-  Poly& operator=( const Poly<Impl, Alloc_>& other )
-    noexcept(std::is_nothrow_assignable<base, const Poly<Impl,Alloc_>&>::value)
+  Value& operator=( const Value<Impl, Alloc_>& other )
+    noexcept(std::is_nothrow_assignable<base, const Value<Impl,Alloc_>&>::value)
   {
-    static_cast<base&>(*this) = static_cast<const typename Poly<Impl,Alloc>::base&>(other);
+    static_cast<base&>(*this) = static_cast<const typename Value<Impl,Alloc>::base&>(other);
     return *this;
   }
 
   template< typename Alloc_ >
-  Poly& operator=(        Poly<Impl, Alloc_>&& other )
-    noexcept(std::is_nothrow_assignable<base, Poly<Impl,Alloc_>&&>::value)
+  Value& operator=(        Value<Impl, Alloc_>&& other )
+    noexcept(std::is_nothrow_assignable<base, Value<Impl,Alloc_>&&>::value)
   {
-    static_cast<base&>(*this) = static_cast<typename Poly<Impl,Alloc>::base&&>(other);
+    static_cast<base&>(*this) = static_cast<typename Value<Impl,Alloc>::base&&>(other);
     return *this;
   }
 
   template< typename, typename >
-  friend class Poly;
+  friend class Value;
 };
 
 template< typename Impl, typename Alloc>
-class poly_construct_impl
+class value_construct_impl
   : public Alloc, public View< Impl >
 {
 private:
@@ -111,21 +113,21 @@ public:
   }
   
   template< typename T, typename... Args >
-  poly_construct_impl( in_place<T>, Args&&... args )
+  value_construct_impl( in_place<T>, Args&&... args )
     : Alloc()
     , View_t( this->allocate_construct<T>( std::forward<Args>(args)... ) )
   {  }
 
-  poly_construct_impl( poly_construct_impl&& other ) noexcept( move_is_noexcept )
-    : poly_construct_impl( poly_cast_tag(), std::move(other) )
+  value_construct_impl( value_construct_impl&& other ) noexcept( move_is_noexcept )
+    : value_construct_impl( value_cast_tag(), std::move(other) )
   {  } 
 
-  poly_construct_impl( const poly_construct_impl& other )
-    : poly_construct_impl( poly_cast_tag(), other)
+  value_construct_impl( const value_construct_impl& other )
+    : value_construct_impl( value_cast_tag(), other)
   {  }
 
   template< typename Alloc_ >
-  poly_construct_impl( poly_cast_tag, const poly_construct_impl<Impl, Alloc_>& other  )
+  value_construct_impl( value_cast_tag, const value_construct_impl<Impl, Alloc_>& other  )
     : Alloc(), View_t()
   {
     this->construct_from<copy>( other );
@@ -133,42 +135,42 @@ public:
 
   
   template< typename Alloc_ >
-  poly_construct_impl( poly_cast_tag, poly_construct_impl<Impl, Alloc_>&& other  )
+  value_construct_impl( value_cast_tag, value_construct_impl<Impl, Alloc_>&& other  )
     noexcept( move_is_noexcept )
     : Alloc(), View_t()
   {
     this->construct_from<move_tag>( std::move(other) );
   }
 
-  ~poly_construct_impl(){ this->reset(); }
+  ~value_construct_impl(){ this->reset(); }
 
   template< typename Alloc_ >
-  poly_construct_impl& operator=( const poly_construct_impl<Impl, Alloc_>& other ){
+  value_construct_impl& operator=( const value_construct_impl<Impl, Alloc_>& other ){
     return this->assign_impl<copy>( other );
   }
 
   template< typename Alloc_ >
-  poly_construct_impl& operator=(  poly_construct_impl<Impl, Alloc_>&& other )
+  value_construct_impl& operator=(  value_construct_impl<Impl, Alloc_>&& other )
     noexcept( move_is_noexcept ) {
     return this->assign_impl<move_tag>( std::move(other) );
   }
 
-  poly_construct_impl& operator=( const poly_construct_impl& other ){
+  value_construct_impl& operator=( const value_construct_impl& other ){
     return this->assign_impl<copy>( other );
   }
 
-  poly_construct_impl& operator=( poly_construct_impl&& other )
+  value_construct_impl& operator=( value_construct_impl&& other )
     noexcept( move_is_noexcept ) {
     return this->assign_impl<move_tag>( std::move(other) );
   }
 
   template< typename I, typename A >
-  friend class poly_construct_impl;
+  friend class value_construct_impl;
 
 private:
   //Assigns from other
   template< typename operation, typename Other >
-  poly_construct_impl& assign_impl( Other&& other ){
+  value_construct_impl& assign_impl( Other&& other ){
     this->reset();
     this->construct_from<operation>(std::forward<Other>(other));
     return *this;
@@ -246,130 +248,129 @@ private:
 };
 
 template< typename Impl, typename Alloc>
-struct poly_construct< Impl, Alloc, true, true >
-  : poly_construct_impl< Impl, Alloc >
+struct value_construct< Impl, Alloc, true, true >
+  : value_construct_impl< Impl, Alloc >
 {
 private:
-  using base = poly_construct_impl< Impl, Alloc >;
+  using base = value_construct_impl< Impl, Alloc >;
   
   template< typename Alloc_ >
-  using other_base = poly_construct_impl< Impl, Alloc_ >;
+  using other_base = value_construct_impl< Impl, Alloc_ >;
 public:
   template< typename T, typename... Args >
-  poly_construct( in_place<T> p, Args&&... args )
+  value_construct( in_place<T> p, Args&&... args )
     : base( p, std::forward<Args>(args)... )
   {  }
  
-  poly_construct( const poly_construct& other )
+  value_construct( const value_construct& other )
     noexcept(std::is_nothrow_copy_constructible<base>::value) = default;
-  poly_construct( poly_construct&& other )
+  value_construct( value_construct&& other )
     noexcept(std::is_nothrow_move_constructible<base>::value) = default;
   
-  poly_construct& operator=( const poly_construct&  )
+  value_construct& operator=( const value_construct&  )
     noexcept(std::is_nothrow_copy_assignable<base>::value) = default;
-  poly_construct& operator=(       poly_construct&& )
+  value_construct& operator=(       value_construct&& )
     noexcept(std::is_nothrow_move_assignable<base>::value) = default;
   
   template< typename Alloc_ >
-  poly_construct( poly_cast_tag, const poly_construct< Impl, Alloc_, true, true >& other )
+  value_construct( value_cast_tag, const value_construct< Impl, Alloc_, true, true >& other )
     noexcept(std::is_nothrow_constructible<base, const other_base<Alloc_>& >::value)
-    : base( poly_cast_tag(), other )
+    : base( value_cast_tag(), other )
   {  }
   template< typename Alloc_ >
-  poly_construct( poly_cast_tag, poly_construct< Impl, Alloc_, true, true >&& other )
+  value_construct( value_cast_tag, value_construct< Impl, Alloc_, true, true >&& other )
     noexcept(std::is_nothrow_constructible<base, other_base<Alloc_>&& >::value)
-  : base( poly_cast_tag(), std::move(other) )
+  : base( value_cast_tag(), std::move(other) )
   {  }
 };
 
 template< typename Impl, typename Alloc>
-struct poly_construct< Impl, Alloc, false, true >
-  : poly_construct_impl< Impl, Alloc >
+struct value_construct< Impl, Alloc, false, true >
+  : value_construct_impl< Impl, Alloc >
 {
 private:
-  using base = poly_construct_impl< Impl, Alloc >;
+  using base = value_construct_impl< Impl, Alloc >;
 
   template< typename Alloc_ >
-  using other_base = poly_construct_impl< Impl, Alloc_ >;
+  using other_base = value_construct_impl< Impl, Alloc_ >;
 public:
   template< typename T, typename... Args >
-  poly_construct( in_place<T> p, Args&&... args )
+  value_construct( in_place<T> p, Args&&... args )
     : base( p, std::forward<Args>(args)... )
   {  }
  
-  poly_construct( const poly_construct& other )
+  value_construct( const value_construct& other )
     noexcept(std::is_nothrow_copy_constructible<base>::value) = delete;
-  poly_construct( poly_construct&& other )
+  value_construct( value_construct&& other )
     noexcept(std::is_nothrow_move_constructible<base>::value) = default;
 
-  poly_construct& operator=( const poly_construct&  )
+  value_construct& operator=( const value_construct&  )
     noexcept(std::is_nothrow_copy_assignable<base>::value) = delete;
-  poly_construct& operator=(       poly_construct&& )
+  value_construct& operator=(       value_construct&& )
     noexcept(std::is_nothrow_move_assignable<base>::value) = default;
   
   template< typename Alloc_ >
-  poly_construct( poly_cast_tag, poly_construct< Impl, Alloc_, false, true >&& other )
+  value_construct( value_cast_tag, value_construct< Impl, Alloc_, false, true >&& other )
     noexcept(std::is_nothrow_constructible<base, other_base<Alloc_>&& >::value)
-    : base( poly_cast_tag(), std::move(other) )
+    : base( value_cast_tag(), std::move(other) )
   {  }
 };
 
 template< typename Impl, typename Alloc>
-struct poly_construct< Impl, Alloc, true, false >
-  : poly_construct_impl< Impl, Alloc >
+struct value_construct< Impl, Alloc, true, false >
+  : value_construct_impl< Impl, Alloc >
 {
 private:
-  using base = poly_construct_impl< Impl, Alloc >;
+  using base = value_construct_impl< Impl, Alloc >;
 
   template< typename Alloc_ >
-  using other_base = poly_construct_impl< Impl, Alloc_ >;
+  using other_base = value_construct_impl< Impl, Alloc_ >;
 public:
   template< typename T, typename... Args >
-  poly_construct( in_place<T> p, Args&&... args )
+  value_construct( in_place<T> p, Args&&... args )
     : base( p, std::forward<Args>(args)... )
   {  }
  
-  poly_construct( const poly_construct& other )
+  value_construct( const value_construct& other )
     noexcept(std::is_nothrow_copy_constructible<base>::value) = default;
-  poly_construct( poly_construct&& other )
+  value_construct( value_construct&& other )
     noexcept(std::is_nothrow_move_constructible<base>::value) = delete;
   
-  poly_construct& operator=( const poly_construct&  )
+  value_construct& operator=( const value_construct&  )
     noexcept(std::is_nothrow_copy_assignable<base>::value) = default;
-  poly_construct& operator=(       poly_construct&& )
+  value_construct& operator=(       value_construct&& )
     noexcept(std::is_nothrow_move_assignable<base>::value) = delete;
   
   template< typename Alloc_ >
-  poly_construct( poly_cast_tag, const poly_construct< Impl, Alloc_, true, false >& other )
+  value_construct( value_cast_tag, const value_construct< Impl, Alloc_, true, false >& other )
     noexcept(std::is_nothrow_constructible<base, const other_base<Alloc_>& >::value)    
-    : base( poly_cast_tag(), other )
+    : base( value_cast_tag(), other )
   {  }
 };
 
 template< typename Impl, typename Alloc>
-struct poly_construct< Impl, Alloc, false, false >
-  : poly_construct_impl< Impl, Alloc >
+struct value_construct< Impl, Alloc, false, false >
+  : value_construct_impl< Impl, Alloc >
 {
 private:
-  using base = poly_construct_impl< Impl, Alloc >;
+  using base = value_construct_impl< Impl, Alloc >;
 public:
   template< typename T, typename... Args >
-  poly_construct( in_place<T> p, Args&&... args )
+  value_construct( in_place<T> p, Args&&... args )
     : base( p, std::forward<Args>(args)... )
   {  }
  
-  poly_construct( const poly_construct& other )
+  value_construct( const value_construct& other )
     noexcept(std::is_nothrow_copy_constructible<base>::value) = delete;
-  poly_construct( poly_construct&& other )
+  value_construct( value_construct&& other )
     noexcept(std::is_nothrow_move_constructible<base>::value) = delete;
 
-  poly_construct& operator=( const poly_construct&  )
+  value_construct& operator=( const value_construct&  )
     noexcept(std::is_nothrow_copy_assignable<base>::value) = delete;
-  poly_construct& operator=(       poly_construct&& )
+  value_construct& operator=(       value_construct&& )
     noexcept(std::is_nothrow_move_assignable<base>::value) = delete;
-;
-  
-
 };
-#endif // __POLY_HPP__
+
+}
+#endif // __VALUE_HPP__
 

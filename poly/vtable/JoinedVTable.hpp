@@ -3,6 +3,8 @@
 
 #include "implementation.hpp"
 
+namespace poly{
+
 template< typename... Tags >
 class JoinedVTable
 {
@@ -66,4 +68,5 @@ private:
   }
 };
 
+}  
 #endif // __JOINED_VTABLE_HPP__

@@ -3,8 +3,12 @@
 
 #include <memory>
 #include <tuple>
-#include "vtable.hpp"
-#include "implementation.hpp"
+#include "invoker.hpp"
+#include "./vtable/implementation.hpp"
+#include "./vtable/invalid.hpp"
+#include "./vtable/EraseVoidPtr.hpp"
+
+namespace poly{
 
 template<
   typename VTable
@@ -135,4 +139,6 @@ private:
   
 };
 
+}
+  
 #endif // __POLY_HPP__

@@ -1,20 +1,25 @@
 #ifndef __MEMORY_HPP__
 #define __MEMORY_HPP__
 
-#include "../poly/poly.hpp"
-#include "tracker.hpp"
 #include <vector>
+#include <cassert>
+
+#include "../poly/value.hpp"
+#include "../poly/vtable/vtable.hpp"
 #include "../helpers.hpp"
+#include "tracker.hpp"
+
+namespace memory_test {
 
 template< typename T >
-struct begin : Invoker< begin<T>, T* (::T&) >{  };
+struct begin : poly::Invoker< begin<T>, T* (poly::T&) >{  };
 template< typename T >
-struct cbegin : Invoker<cbegin<T>, const T* (const ::T&) >{  };
+struct cbegin : poly::Invoker<cbegin<T>, const T* (const poly::T&) >{  };
 
 template< typename T >
-struct end  : Invoker< end<T>, T* (::T&) >{  };
+struct end  : poly::Invoker< end<T>, T* (poly::T&) >{  };
 template< typename T >
-struct cend : Invoker< cend<T>, const T* (const ::T&) >{  };
+struct cend : poly::Invoker< cend<T>, const T* (const poly::T&) >{  };
 
 template< typename T >
 T* invoke( begin<T>, std::vector<T>& vec ){ return &*vec.begin(); }
@@ -36,14 +41,16 @@ const T* invoke( cend<T>, const std::vector<U>& vec ){ throw std::runtime_error(
 
 template< typename T >
 struct Iterable
-  : decltype( address_of() + begin<T>() + cbegin<T>() + end<T>() + cend<T>() + copy() + move_noexcept() + destroy() + storage() )
+  : decltype( poly::address_of() + begin<T>() + cbegin<T>() + end<T>() + cend<T>() + poly::copy() + poly::move_noexcept() + poly::destroy() + poly::storage() )
 {  };
 
+}
 
-
-template< typename T, typename poly_t >
-void test_values( const std::vector<T>& numbers, const poly_t& poly )
+template< typename T, typename Value_t >
+void test_values( const std::vector<T>& numbers, const Value_t& poly )
 {
+  using namespace memory_test;
+  
   auto b = poly.template call<cbegin<T>>();
   auto e = poly.template call<cend<T>>();
   assert( numbers.size() == ( e - b ) );
@@ -54,9 +61,10 @@ void test_values( const std::vector<T>& numbers, const poly_t& poly )
 
 template< template< typename... > class VT_t, typename Alloc >
 void test_memory_vector( int n = 10000  ){
-
-  using poly_t = Poly< VT_t<Iterable<Guard<int>>>, Alloc >;
-  static_assert( std::is_nothrow_move_constructible<poly_t>::value,
+  using namespace memory_test;
+  
+  using Value_t = poly::Value< VT_t<Iterable<Guard<int>>>, Alloc >;
+  static_assert( std::is_nothrow_move_constructible<Value_t>::value,
 		 "Poly falsly assumed to be nothrow constructible" );
 
   Tracker tracker;
@@ -67,22 +75,22 @@ void test_memory_vector( int n = 10000  ){
       numbers.emplace_back( tracker, i );
     assert( tracker.objects.count() == n );
     
-    auto p = poly_t{ in_place<decltype(numbers)>(), numbers };
+    auto p = Value_t{ in_place<decltype(numbers)>(), numbers };
     assert( tracker.objects.count() == 2*n );
     assert( tracker.copies.count() == n );
     assert( tracker.moves.count() == 0 );
 
-    auto ap = p.template call<address_of>();
+    auto ap = p.template call<poly::address_of>();
     auto b = p.template call<cbegin<Guard<int>>>();
     auto e = p.template call<cend<Guard<int>>>();
 
     test_values( numbers, p );
   
-    poly_t p2 = std::move(p);
+    Value_t p2 = std::move(p);
     assert( tracker.objects.count() == 2*n );
     assert( tracker.copies.count() == n );
     assert( tracker.moves.count() == 0 );
-    auto ap2 = p2.template call<address_of>();
+    auto ap2 = p2.template call<poly::address_of>();
     auto b2 = p2.template call<cbegin<Guard<int>>>();
     auto e2 = p2.template call<cend<Guard<int>>>();
     assert( b == b2 && e == e2 );
@@ -102,20 +110,26 @@ void test_memory_vector( int n = 10000  ){
   assert( tracker.moves.count() == n );
 }
 
+namespace memory_test {
+
 template< typename... Ts >
 struct convertible_to
-  : Interface< copy, move_noexcept, destroy, storage, as<Ts> ... >
+  : poly::Interface< poly::copy, poly::move_noexcept, poly::destroy, poly::storage, as<Ts> ... >
 {  };
+
+}
 
 template< template< typename > class VT_t, typename Alloc >
 void test_memory_vector_poly( int n = 1000 ){
+  using namespace memory_test;
+
   Tracker tracker;
   using convertible = convertible_to< int, float, double, bool >;
-  using poly_t = Poly< VT_t< convertible>, Alloc >;
-  static_assert( std::is_nothrow_move_constructible<poly_t>::value,
+  using Value_t = poly::Value< VT_t< convertible>, Alloc >;
+  static_assert( std::is_nothrow_move_constructible<Value_t>::value,
 		 "Poly falsly assumed to be nothrow constructible" );
   {
-    std::vector< poly_t > p, p_move;
+    std::vector< Value_t > p, p_move;
     p.reserve(n);
     for( int i = 0; i < n; ++i )
       p.emplace_back( in_place<Guard<int>>(), tracker, 1 );
@@ -123,7 +137,7 @@ void test_memory_vector_poly( int n = 1000 ){
     assert( tracker.copies.count() == 0 );
     assert( tracker.moves.count() == 0 );
 
-    p_move.resize( p.size(), poly_t( in_place<Guard<int>>(), tracker, 0 ) );
+    p_move.resize( p.size(), Value_t( in_place<Guard<int>>(), tracker, 0 ) );
     assert( tracker.objects.count() == (p_move.size()+p.size()) );
     assert( tracker.copies.count() == n );
     assert( tracker.moves.count() == 0 );
@@ -148,8 +162,10 @@ void test_memory_vector_poly( int n = 1000 ){
   assert( tracker.objects.count() == 0 );
 }
 
+namespace memory_test{
+
 struct Storable
-  : decltype( copy() + move() + destroy() + storage() )
+  : decltype( poly::copy() + poly::move() + poly::destroy() + poly::storage() )
 {  };
 
 struct A{
@@ -158,24 +174,28 @@ struct A{
   A( const A& ){  }
 };
 
+}
+
 
 template< template< typename > class VT_t, typename Alloc >
 void test_memory_invalid()
 {
+  using namespace memory_test;
+
   Tracker tracker;
-  using poly_t = Poly< VT_t<Storable>, Alloc >;
+  using Value_t = poly::Value< VT_t<Storable>, Alloc >;
   {
     std::cout << std::boolalpha;
-    poly_t t{ in_place<Guard<A>>(), tracker };
-    poly_t t2{ in_place<Guard<A>>(), tracker};
+    Value_t t{ in_place<Guard<A>>(), tracker };
+    Value_t t2{ in_place<Guard<A>>(), tracker};
     try{
       t = std::move(t2);
     } catch (std::logic_error e){    }
     assert( t.valueless_by_exception() );
     bool thrown = false;
     try{
-      t.template call<storage>();
-    } catch ( const invalid_vtable_call& e ){
+      t.template call<poly::storage>();
+    } catch ( const poly::invalid_vtable_call& e ){
       thrown = true;
     }
     assert( thrown );
@@ -184,9 +204,9 @@ void test_memory_invalid()
     static_assert( !std::is_nothrow_copy_constructible<decltype(t)>::value,
     		   "Poly falsly assumed to be not nothrow copy constructible" );
 
-    poly_t t3{ t };
+    Value_t t3{ t };
     assert( t3.valueless_by_exception() );
-    poly_t t4{ std::move(t3) };
+    Value_t t4{ std::move(t3) };
     assert( t4.valueless_by_exception() );
   }
   assert( tracker.objects.count() == 0 );
@@ -196,19 +216,21 @@ template< typename... Args >
 using test_signature = void (*)( Args... );
 
 template< typename T >
-using stack_alloc = StackAllocator< sizeof(T), alignof(T) >;
+using stack_alloc = poly::StackAllocator< sizeof(T), alignof(T) >;
 
 template< typename I >
-using test1_JVT = JumpVT< I, std::vector<Guard<float>>, std::vector<Guard<int>> >;
+using test1_JVT = poly::JumpVT< I, std::vector<Guard<float>>, std::vector<Guard<int>> >;
 
 template< typename I >
-using test2_JVT = JumpVT< I, Guard<float>, Guard<int>, Guard<bool> >;
+using test2_JVT = poly::JumpVT< I, Guard<float>, Guard<int>, Guard<bool> >;
 
 template< typename I >
-using test3_JVT = JumpVT< I, Guard<int>, Guard<float>, Guard<A> >;
+using test3_JVT = poly::JumpVT< I, Guard<int>, Guard<float>, Guard<memory_test::A> >;
 
 void test_memory()
 {
+  using namespace poly;
+  
   using tested_t = std::vector<Guard<int>>;
   test_memory_vector< LocalVT, HeapAllocator >();
   test_memory_vector< RemoteVT, HeapAllocator >();
@@ -226,7 +248,7 @@ void test_memory()
   test_memory_vector_poly< RemoteVT, stack_alloc2 >();
   test_memory_vector_poly< test2_JVT, stack_alloc2 >();
 
-  using tested_t3 = Guard<A>;
+  using tested_t3 = Guard<memory_test::A>;
   using stack_alloc3 = StackAllocator< sizeof(tested_t3), alignof(tested_t3) >;
   test_memory_invalid< LocalVT, HeapAllocator >();
   test_memory_invalid< RemoteVT, HeapAllocator >();

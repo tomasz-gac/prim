@@ -3,6 +3,8 @@
 
 #include "invoker.hpp"
 
+namespace poly{
+
 struct copy : Invoker< copy, void (const T&,  void*) >{  };
 
 template< bool is_noexcept >
@@ -81,4 +83,5 @@ storage_info invoke( storage, const T& ){ return storage_info::get<T>(); }
 template< typename T >
 const void* invoke( address_of, const T& v ){ return reinterpret_cast<const void*>(&v); }
 
+}
 #endif // __BUILTINS_HPP__

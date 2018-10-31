@@ -16,12 +16,10 @@ void print_type( T&& value ){
   std::cout << T2Str( std::forward<T>(value) ) <<" == " << value << std::endl;
 }
 
-struct print  : Invoker< print, void (const T&) >{  };
-struct test   : Invoker< test, void (const int&)
-			     , void (const double&) >{  };
+struct print  : poly::Invoker< print, void (const poly::T&) >{  };
 
 template< typename T >
-struct as : Invoker< as<T>, T( ::T& ) >{  };
+struct as : poly::Invoker< as<T>, T( poly::T& ) >{  };
 
 template< typename T >
 void invoke( print, const T& value ){
@@ -37,8 +35,5 @@ T& invoke( as<T&>, U& ){ throw std::bad_cast(); }
 
 template< typename T, typename U >
 T invoke( as<T>, const U& value ){ return value; }
-
-template< typename T >
-void invoke( test, const T& val ){ std::cout << typeid(T).name() << " " << val << std::endl; }
 
 #endif // __HELPERS_HPP__

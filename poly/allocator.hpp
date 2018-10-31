@@ -5,9 +5,11 @@
 #include <cassert>
 #include "builtins.hpp"
 
+namespace poly{
+
 struct HeapAllocator
 {
-  void* allocate( storage_info storage ){
+  void* allocate( poly::storage_info storage ){
     auto buffer = std::malloc( storage.size );
     if( buffer == nullptr ) throw std::bad_alloc{};
     return buffer;
@@ -27,7 +29,7 @@ public:
 private:
   std::aligned_storage_t< size, alignment > buffer_;
 public:
-  void* allocate( storage_info storage ){
+  void* allocate( poly::storage_info storage ){
     assert( storage.size <= size && storage.alignment <= alignment );
     return reinterpret_cast<void*>(&buffer_);
   }
@@ -38,6 +40,7 @@ public:
   };
 };
 
+}
 
 #endif // __POLY_ALLOCATOR_HPP__
 

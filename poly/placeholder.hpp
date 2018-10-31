@@ -1,6 +1,8 @@
 #ifndef __PLACEHOLDER_HPP__
 #define __PLACEHOLDER_HPP__
 
+namespace poly{
+
 template< size_t N >
 struct T_{};
 
@@ -52,5 +54,7 @@ using copy_cv_ref_t = copy_ref_t< From, copy_cv_t< std::remove_reference_t<From>
 
 template< typename T >
 using is_placeholder = is_T<std::remove_cv_t<std::decay_t<T>>>;
+
+}
 
 #endif // __PLACEHOLDER_HPP__

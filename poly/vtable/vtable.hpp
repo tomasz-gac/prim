@@ -1,12 +1,14 @@
 #ifndef __VTABLE_HPP__
 #define __VTABLE_HPP__
 
-#include "invoker.hpp"
+#include "../invoker.hpp"
 #include "EraseVoidPtr.hpp"
 #include "LocalVTable.hpp"
 #include "RemoteVTable.hpp"
 #include "JoinedVTable.hpp"
 #include "JumpVTable.hpp"
+
+namespace poly{
 
 template< typename Tag >
 struct LocalVT
@@ -42,5 +44,7 @@ JoinedVT< Tags... > joinVT( Tags... ){ return {}; };
 template< typename Interface, typename... Ts >
 JumpVT< Ts... > joinVT( Interface ){ return {}; };
 
+}
+  
 #endif // __VTABLE_HPP__
 

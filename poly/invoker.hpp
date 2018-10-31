@@ -5,8 +5,14 @@
 #include "typelist.hpp"
 #include "placeholder.hpp"
 
+namespace poly{
+
+struct Invalid;
+
+namespace tl = typelist;
+  
 template< typename... Tags >
-struct Interface : unique_typelist<Tags...>{
+struct Interface : tl::unique_typelist<Tags...>{
 public:
   using interface = Interface;
 
@@ -23,7 +29,7 @@ using overloads_t = typename T::overloads;
 
 template< typename... Ts >
 using join_t =
-  remove_duplicates_t< concat_t< Interface<>, interface_t< Ts >... > >;
+  tl::remove_duplicates_t< tl::concat_t< Interface<>, interface_t< Ts >... > >;
 
 
 template< typename Interface, typename... Interfaces >
@@ -31,7 +37,7 @@ join_t< Interface, Interfaces... > interface( Interface, Interfaces... ){ return
 
 template< typename Interface, typename Invoker, typename... Invokers >
 constexpr bool supports(){
-  return disjunction<
+  return tl::disjunction<
     typename Interface::template contains< Invoker >,
     typename Interface::template contains< Invokers >...
     >();
@@ -44,7 +50,7 @@ class Invoker;
 template< typename Tag, typename Return, typename... Args >
 struct Invoker< Tag, Return(Args...)>
   : Interface< Tag >
-  , unique_typelist< Return(Args...)>
+  , tl::unique_typelist< Return(Args...)>
 {
 private:
   struct generate_overloads;
@@ -62,10 +68,10 @@ public:
 template< typename Tag, typename Sig, typename... Sigs >
 struct Invoker< Tag, Sig, Sigs... >
   : Interface< Tag >
-  , unique_typelist< Sig, Sigs... >
+  , tl::unique_typelist< Sig, Sigs... >
 {
 public:
-  using overloads = concat_t<
+  using overloads = tl::concat_t<
     overloads_t< Invoker< Tag, Sig> >, overloads_t<Invoker< Tag, Sigs>>... >;
   
 private:
@@ -111,10 +117,10 @@ private:
     , template< typename > class UnaryOp
     >
   using apply_first_not_t =
-    concat_t<
-      takeWhile_t< typelist, Predicate >
-    , id_t< typelist, typename UnaryOp< head_t<dropWhile_t<typelist, Predicate>> >::type >
-    , tail_t< dropWhile_t< typelist, Predicate > >
+    tl::concat_t<
+      tl::takeWhile_t< typelist, Predicate >
+    , tl::id_t< typelist, typename UnaryOp< tl::head_t<tl::dropWhile_t<typelist, Predicate>> >::type >
+    , tl::tail_t< tl::dropWhile_t< typelist, Predicate > >
     >;
 
   template< typename T >
@@ -158,12 +164,12 @@ private:
     apply_first_not_t< T, dont_overload, add_rvalue_reference >;
   //first value that fails dont_overload -> [ &&, const& ]
   template< typename T >
-  using fork_value = id_t< T , first_value_to_rvalue_t<T>, first_value_to_clvalue_t<T> >;
+  using fork_value = tl::id_t< T , first_value_to_rvalue_t<T>, first_value_to_clvalue_t<T> >;
   // for each type in T, apply fork_value and flatten resulting list of lists
   template< typename T >
-  using fork_values = foldr_t< map_t< T, fork_value >, bind<2, concat_t>::template type, id_t<T> >;
+  using fork_values = tl::foldr_t< tl::map_t< T, fork_value >, tl::bind<2, tl::concat_t>::template type, tl::id_t<T> >;
   // number of types that need to be forked
-  static constexpr auto N = count< args, Not<dont_overload>::template type >::value;
+  static constexpr auto N = tl::count< args, tl::Not<dont_overload>::template type >::value;
 
   #ifndef POLY_MAX_FORWARDED_ARGS
   #define POLY_MAX_FORWARDED_ARGS 3
@@ -180,24 +186,26 @@ private:
   
 public:
   using type =
-    repack_t< //repack resulting list to "overloads" template
-      map_t< //list of signature_args -> list of signatures
+    tl::repack_t< //repack resulting list to "overloads" template
+      tl::map_t< //list of signature_args -> list of signatures
         //apply fork_values N times to args repacked as signature_args< args >
-          foldr_t< repeat_t< N, bind<1,  fork_values > >, apply, id_t<args, args> >
-	, decltype(curry< make_signature_t, Tag, Return >())::template type
+	tl::foldr_t< tl::repeat_t< N, tl::bind<1,  fork_values > >, apply, tl::id_t<args, args> >
+	, decltype(tl::curry< make_signature_t, Tag, Return >())::template type
       >
-  , ::overloads<>>;
+  , poly::overloads<>>;
 };
 
 template< typename... Tags1, typename... Tags2 >
-sum_unique_t< Interface< Tags1...>, Interface<Tags2...> >
+tl::sum_unique_t< Interface< Tags1...>, Interface<Tags2...> >
 operator+( const Interface< Tags1... >&, const Interface< Tags2... >& )
 { return {}; }
 
 template< typename... Tags1, typename... Tags2 >
-diff_unique_t< Interface< Tags1...>, Interface< Tags2... > >
+tl::diff_unique_t< Interface< Tags1...>, Interface< Tags2... > >
 operator-( const Interface< Tags1... >&, const Interface< Tags2... >& )
 { return {}; }
+
+}
 
 
 #endif // __SIGNATURE_HPP__
