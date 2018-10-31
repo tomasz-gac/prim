@@ -1,7 +1,7 @@
 #ifndef __VALUE_HPP__
 #define __VALUE_HPP__
 
-#include "allocator.hpp"
+#include "allocator.hpp" //TODO : usunac
 #include "view.hpp"
 #include "builtins.hpp"
 
@@ -32,15 +32,15 @@ public:
 private:
   using base = value_base< Impl, Alloc >;
 
-  Value( in_place<Invalid> i )
-    : base( i )
-  {  }  
 public:
   using base::operator[];
   using base::get;
   using base::call;
   using base::valueless_by_exception;
-  
+  using base::vtable;
+ 
+  Value( in_place<Invalid> ) = delete;
+
   template< typename T, typename... Args >
   Value( in_place<T> p, Args&&... args )
     : base( p, std::forward<Args>(args)... )

@@ -100,6 +100,8 @@ public:
     return *reinterpret_cast< T_* >(data_.data);
   }
 
+  const implementation& vtable() const { return vtable_;  }
+
   template< typename T, typename = std::enable_if_t< !is_view<std::decay_t<T>>::value > >
   View( T& v )
     : vtable_( implementation::template make< T >() )
