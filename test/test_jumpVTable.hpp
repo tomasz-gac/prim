@@ -38,7 +38,7 @@ int test_JumpVTable()
   double b = 2;
   int j = 3;
   int& i_r = j;
-  poly::Invalid inv;
+  poly::Invalid& inv = poly::Invalid::get();
 
   poly::View< JT > v = i;
   check_call( v, i );

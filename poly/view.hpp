@@ -8,24 +8,33 @@
 #include "./vtable/invalid.hpp"
 #include "./vtable/EraseVoidPtr.hpp"
 
+
+ 
 namespace poly{
 
-template<
-  typename VTable
->
+template< typename T >
+struct unwrap_{
+  T value;
+};
+
+template< typename T >
+struct is_unwrap : std::false_type{};
+
+template< typename T >
+struct is_unwrap< unwrap_< T > > : std::true_type{};
+
+template< typename VTable >
 class View;
 
 template< typename T > struct is_view : std::false_type{};
-template<
-  typename Interface
-> struct is_view< View<Interface> > : std::true_type{};
+template< typename Interface>
+struct is_view< View<Interface> > : std::true_type{};
 
-template<
-  typename Impl_tag
-> class View
+template< typename VTable >
+class View
 {
 public:
-  using implementation = impl_t<Impl_tag>;
+  using implementation = impl_t<VTable>;
   using interface = interface_t<implementation>;
 private:
   template< typename Invoker >
@@ -123,7 +132,7 @@ private:
 
   template< typename U >
   static decltype(auto) unpack( U&& value ){
-    return unpack_impl( is_view< std::decay_t<U> >(), std::forward<U>(value) );
+    return unpack_impl( is_unwrap< std::decay_t<U> >(), std::forward<U>(value) );
   }
   
   template< typename U >
@@ -136,10 +145,15 @@ private:
   static copy_cv_ref_t<U&&, Erased >
   unpack_impl( std::true_type, U&& v )
   {
-    return static_cast< copy_cv_ref_t<U&&, Erased > >(v.data_);
+    return static_cast< copy_cv_ref_t<U&&, Erased > >(v.value.data_);
   }
   
 };
+
+  template< typename View__ >
+  std::enable_if_t< is_view< std::decay_t<View__> >::value,
+		    unwrap_<View__&&> >
+  unwrap( View__&& v ){ return {std::forward<View__>(v)}; }
 
 }
   

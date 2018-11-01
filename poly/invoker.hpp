@@ -1,5 +1,5 @@
-#ifndef __SIGNATURE_HPP__
-#define __SIGNATURE_HPP__
+#ifndef __INVOKER_HPP__
+#define __INVOKER_HPP__
 
 #include <type_traits>
 #include "typelist.hpp"
@@ -58,6 +58,16 @@ private:
 public:
   using overloads = typename generate_overloads::type;
 
+  template< typename Object, typename... Ts >
+  static decltype(auto) call( Object&& obj, Ts&&... vs ){
+    return std::forward<Object>(obj).template call<Tag>( std::forward<Ts>(vs)... );
+  }
+
+  template< typename Object >
+  static decltype(auto) get( Object&& obj ){
+    return std::forward<Object>(obj).template get<Tag>();
+  }
+
   // template< typename... Ts >
   // static Return invoke( Ts&&... args ){
   //   return ::invoke( Tag(), std::forward<Ts>(args)... );
@@ -73,6 +83,16 @@ struct Invoker< Tag, Sig, Sigs... >
 public:
   using overloads = tl::concat_t<
     overloads_t< Invoker< Tag, Sig> >, overloads_t<Invoker< Tag, Sigs>>... >;
+
+  template< typename Object, typename... Ts >
+  static decltype(auto) call( Object&& obj, Ts&&... vs ){
+    return std::forward<Object>(obj).template call<Tag>( std::forward<Ts>(vs)... );
+  }
+
+  template< typename Object >
+  static decltype(auto) get( Object&& obj ){
+    return std::forward<Object>(obj).template get<Tag>();
+  }
   
 private:
   // static assert_unique_elements< overloads >
@@ -208,4 +228,4 @@ operator-( const Interface< Tags1... >&, const Interface< Tags2... >& )
 }
 
 
-#endif // __SIGNATURE_HPP__
+#endif // __INVOKER_HPP__

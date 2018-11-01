@@ -50,6 +50,7 @@ public:
   {
     tracker->objects.inc();
     tracker->copies.inc();
+    // std::cout << "copy" << std::endl;     
   }
 
   Guard( Guard&& other )
@@ -59,6 +60,7 @@ public:
   {
     tracker->objects.inc();
     tracker->moves.inc();
+    // std::cout << "move" << std::endl;     
   }
 
   Guard& operator=( const Guard& other ){
@@ -77,7 +79,10 @@ public:
     return *this;
   }
 
-  ~Guard(){ tracker->objects.dec(); }
+  ~Guard(){
+    tracker->objects.dec();
+    // std::cout << "destroy" << std::endl;
+  }
 };
 
 std::ostream& operator<<( std::ostream& str, const Tracker& t ){

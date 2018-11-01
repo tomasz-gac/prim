@@ -4,11 +4,13 @@
 #include <cstddef>
 #include <cassert>
 #include "builtins.hpp"
+#include "allocator_traits.hpp"
 
 namespace poly{
 
 struct HeapAllocator
 {
+protected:
   void* allocate( poly::storage_info storage ){
     auto buffer = std::malloc( storage.size );
     if( buffer == nullptr ) throw std::bad_alloc{};
@@ -20,7 +22,14 @@ struct HeapAllocator
   }
 };
 
+constexpr bool alloc_move_view( HeapAllocator& from, HeapAllocator& to ){ return true; }
 
+template<>
+struct alloc_optimize_move<HeapAllocator,HeapAllocator>
+  : std::true_type
+{  };
+
+  
 template< size_t Size, size_t Alignment = alignof(std::max_align_t) >
 class StackAllocator{
 public:
@@ -28,7 +37,8 @@ public:
   static constexpr size_t alignment = Alignment;
 private:
   std::aligned_storage_t< size, alignment > buffer_;
-public:
+
+protected:
   void* allocate( poly::storage_info storage ){
     assert( storage.size <= size && storage.alignment <= alignment );
     return reinterpret_cast<void*>(&buffer_);

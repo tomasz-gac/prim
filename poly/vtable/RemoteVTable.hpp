@@ -44,6 +44,14 @@ public:
   const TThunk< Tag >& get() const {
     return vtable_->template get< Tag >();
   }
+
+  bool operator==( const RemoteVTable& other ) const {
+    return *vtable_ == *other.vtable_;
+  }
+
+  bool operator!=( const RemoteVTable& other ) const {
+    return *vtable_ != *other.vtable_;
+  }
 };
 
 }

@@ -5,7 +5,18 @@
 
 namespace poly{
 
-struct Invalid{  };
+class Invalid{
+private:
+  Invalid() = default;
+public:
+  static Invalid& get(){
+    static Invalid instance{};
+    return instance;
+  }
+
+  Invalid( const Invalid&  ) = delete;  
+  Invalid(       Invalid&& ) = delete;
+};
 
 class invalid_vtable_call
   : public std::exception

@@ -2,6 +2,7 @@
 #define __BUILTINS_HPP__
 
 #include "invoker.hpp"
+#include "vtable/Invalid.hpp"
 
 namespace poly{
 
@@ -41,6 +42,11 @@ void invoke( move_noexcept, T& v, void* ptr ) noexcept {
 
 template< typename T >
 void invoke( destroy, const T& v ){ v.~T(); }
+
+template< bool AlwaysFalse = false  >
+void invoke( destroy, Invalid& ){
+  static_assert( AlwaysFalse, "Cannot destroy object of type Invalid" );
+}
 
 template< typename T >
 const std::type_info& invoke( type_id, const T& ){ return typeid(T); }

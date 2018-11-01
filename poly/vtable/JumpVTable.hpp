@@ -44,7 +44,7 @@ public:
   // Get a thunk based on tag and signature
   template< typename Invoker >
   auto get() const {
-    return [this]( auto&&... args ){
+    return [this]( auto&&... args ) -> decltype(auto){
       return this->jumptable<
 	Invoker, tl::_<Invalid, Ts...>
 	>( std::true_type(), std::forward<decltype(args)>(args)... );
@@ -64,6 +64,13 @@ public:
 
   int index() const { return index_; }
 
+  bool operator==( const JumpVTable& other ) const {
+    return index() == other.index();
+  }
+
+  bool operator!=( const JumpVTable& other ) const {
+    return index() != other.index();
+  }
 private:
   int index_;
 

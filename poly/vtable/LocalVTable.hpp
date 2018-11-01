@@ -60,6 +60,14 @@ public:
   const TThunk< Tag >& operator[]( const Tag& ) const {
     return get< Tag >();
   }
+
+  bool operator==( const LocalVTable& other ) const {
+    return thunks_ == other.thunks_;
+  }
+
+  bool operator!=( const LocalVTable& other ) const {
+    return thunks_ != other.thunks_;
+  }
 };
 
 }

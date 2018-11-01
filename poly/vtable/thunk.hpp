@@ -122,6 +122,14 @@ public:
 		   "Invoker cannot be called with supplied arguments" );
     return (*std::get< thunk_type< Signature, Transform > >(thunks_))( std::forward<Args>(args)... );
   }
+
+  bool operator==( const Thunk& other ) const {
+    return thunks_ == other.thunks_;
+  }
+
+  bool operator!=( const Thunk& other ) const {
+    return thunks_ != other.thunks_;
+  }
 };
   
 }
