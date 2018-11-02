@@ -22,7 +22,7 @@ namespace impl__{
 				    Return >::type
     thunk( typename Transform<Args>::type... args ) {
       static_assert( std::is_empty< Tag >::value, "Tags may have no data members" );
-      return invoke( Tag(), Transform<Args>::template Reverse<T>::apply
+      return invoke( Tag(), Transform<Args>::template reverse<T>
 		     ( static_cast<typename Transform<Args>::type&&>(args) )... );
     }
 

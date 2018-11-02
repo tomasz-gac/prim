@@ -7,18 +7,22 @@
 #include "maybe.hpp"
 #include <sstream>
 
-template< typename T, T... v >
-struct max;
+template <class T>
+constexpr T &constexpr_max(T &a, T &b) {
+    return a < b ? b : a;
+}
 
-template< typename T, T u, T u1, T... vs >
-struct max< T, u, u1, vs... >
-  : max< T, (u > u1 ? u : u1), vs... >
-{  };
+template <class T>
+constexpr T &arrayMax_impl(T *begin, T *end) {
+    return begin + 1 == end
+        ? *begin
+        : constexpr_max(*begin, arrayMax_impl(begin + 1, end));
+}
 
-template< typename T, T u >
-struct max< T, u >
-  : std::integral_constant< T, u >
-{  };
+template <class T, std::size_t N>
+constexpr T &arrayMax(T(&arr)[N]) {
+    return arrayMax_impl(arr, arr + N);
+}
 
 template< typename T, typename... Ts >
 class Variant{
@@ -67,9 +71,12 @@ private:
   , accept_
   > // TODO : move and copy depending on type interfaces
   {  };
+
+  static constexpr size_t sizes[] = { sizeof(T), sizeof(Ts)... };
+  static constexpr size_t alignments[] = { alignof(T), alignof(Ts)... };
   
-  static constexpr size_t size  = max< std::size_t, sizeof(T), sizeof(Ts)... >::value;
-  static constexpr size_t align = max< std::size_t,alignof(T), alignof(Ts)... >::value;
+  static constexpr size_t size  = arrayMax(sizes);
+  static constexpr size_t align = arrayMax(alignments);
   
   using variant_allocator_t = poly::StackAllocator< size, align >;
   using variant_vtable_t    = poly::JumpVT< IVariant, T, Ts... >;

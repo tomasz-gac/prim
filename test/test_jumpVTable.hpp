@@ -1,7 +1,7 @@
 #ifndef __TEST_JUMP_VTABLE_HPP__
 #define __TEST_JUMP_VTABLE_HPP__
 
-#include "../poly/view.hpp"
+#include "../poly/reference.hpp"
 #include "../poly/vtable/vtable.hpp"
 #include "../poly/builtins.hpp"
 #include "../helpers.hpp"
