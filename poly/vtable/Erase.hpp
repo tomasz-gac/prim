@@ -35,6 +35,7 @@ struct Erase< SignatureT, void* >{
   struct Reverse{ 
   private:
     using noref_T = std::remove_reference_t<SignatureT>;
+
   public:
     // Given ActualT unerase data and apply cv-ref qualifiers if SignatureT is a placeholder
     template< typename = std::enable_if_t< is_placeholder<SignatureT>::value> >

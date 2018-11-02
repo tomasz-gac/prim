@@ -6,10 +6,11 @@
 
 int main()
 {
-  test_variant();
-  test_maybe();
-  test_memory();
-  test_JumpVTable();
+  // test_variant();
+  // test_maybe();
+  // test_memory();
+  // test_JumpVTable();
+  using T = poly::Erase< int >::Reverse<int>::apply( 3 );
   std::cout << "passed" << std::endl;
 									 
   return 0;
