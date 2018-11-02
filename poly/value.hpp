@@ -245,7 +245,7 @@ private:
       auto info = storage::call( other );
       ptr = this->allocate( info );
       Operation::call( other, ptr );
-      this->data_ = { ptr };
+      this->value() = ptr;
     } catch ( const invalid_vtable_call& e ) {
       // other is valueless by exception
       if( ptr != nullptr ){
@@ -309,7 +309,7 @@ private:
   void reset(){
     try{
       destroy::call(*this);
-      this->Alloc::deallocate( this->data_.data );
+      this->Alloc::deallocate( this->value() );
     } catch ( const invalid_vtable_call& e ){
       //Object is valueless by exception
       //In that case - it contains object of type Invalid

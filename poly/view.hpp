@@ -193,9 +193,9 @@ public:
   using base::get;
   using base::call;
   
-  const implementation& vtable() const { return this->base::vtable(); }
+  const implementation& vtable()  const { return this->base::vtable(); }
   // No pointer reassignment
-  pointer_type          value()  const { return this->base::value(); }
+  pointer_type          address() const { return this->base::value(); }
 
 
   template< typename T, typename = disable_if_same_or_derived< Reference, T > >

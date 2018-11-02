@@ -93,10 +93,6 @@ public:
   static decltype(auto) get( Object&& obj ){
     return std::forward<Object>(obj).template get<Tag>();
   }
-  
-private:
-  // static assert_unique_elements< overloads >
-  //   assert_unique_signatures;
 };
 
 template< typename T >

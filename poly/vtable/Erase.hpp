@@ -15,36 +15,47 @@ struct Erased< Ptr* >
   pointer_type data;
 };
 
-template< typename SigT, typename Ptr >
-using erased_t =
-  std::conditional_t<
-    is_placeholder< SigT >::value
-  , copy_cv_ref_t< SigT, Erased<Ptr> >
-  , SigT>;
+template<
+  typename SignatureT,
+  typename Ptr,
+  bool isPlaceholder
+> struct Erase_impl;
 
 template< typename SignatureT, typename Ptr = void* >
-struct Erase;
+using Erase = Erase_impl< SignatureT, Ptr, is_placeholder<SignatureT>::value >;
 
+  // Version for placeholders
 template< typename SignatureT >
-struct Erase< SignatureT, void* >{
-
+struct Erase_impl< SignatureT, void*, true >{
   using pointer_type = void*;
-  using type = erased_t< SignatureT, pointer_type >;
+  using type = Erased< pointer_type >;
 
   template< typename ActualT >
   struct Reverse{ 
-  private:
-    using noref_T = std::remove_reference_t<SignatureT>;
-
   public:
-    // Given ActualT unerase data and apply cv-ref qualifiers if SignatureT is a placeholder
-    template< typename = std::enable_if_t< is_placeholder<SignatureT>::value> >
+    // Given ActualT unerase data and apply cv-ref qualifiers
     static decltype(auto) apply( Erased<pointer_type> data ){
+      using noref_T = std::remove_reference_t<SignatureT>;
       using cv_T = copy_cv_t< noref_T, std::decay_t<ActualT> >;
       using ref_T = copy_ref_t< SignatureT, cv_T >;
       return static_cast<ref_T&&>(*reinterpret_cast<cv_T*>(data.data));
     }
+  };
 
+  template< typename T >
+  static Erased<pointer_type> apply( T* ptr ){
+    return { reinterpret_cast<void*>(ptr) };
+  }
+};
+  // version for non-placeholders  
+template< typename SignatureT >
+struct Erase_impl< SignatureT, void*, false >{
+
+  using pointer_type = void*;
+  using type = SignatureT;
+
+  template< typename ActualT >
+  struct Reverse{ 
     // Forwards if data is not erased
     template< typename U >
     static decltype(auto) apply( U&& value ){
