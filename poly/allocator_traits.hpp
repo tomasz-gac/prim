@@ -3,10 +3,13 @@
 namespace poly{
   
 template< typename FromAlloc, typename ToAlloc >
-constexpr bool alloc_move_view( FromAlloc& from, ToAlloc& to ){ return false; }
-
-template< typename FromAlloc, typename ToAlloc >
-struct alloc_optimize_move : std::false_type {};
+struct allocator_traits{
+  // if set to true, then FromAlloc can be moved to ToAlloc
+  // Moving is done via FromAlloc's member function:
+  // bool FromAlloc::*move_to( ToAlloc& )
+  // Returns true if successful, false otherwise
+  static constexpr bool optimize_move = false;
+};
 
 }
 

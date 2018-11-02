@@ -10,6 +10,10 @@ namespace poly{
 
 struct HeapAllocator
 {
+public:
+  template< typename ToAlloc >
+  constexpr bool move_to( ToAlloc& other ){ return true; }
+
 protected:
   void* allocate( poly::storage_info storage ){
     auto buffer = std::malloc( storage.size );
@@ -22,12 +26,12 @@ protected:
   }
 };
 
-constexpr bool alloc_move_view( HeapAllocator& from, HeapAllocator& to ){ return true; }
-
 template<>
-struct alloc_optimize_move<HeapAllocator,HeapAllocator>
-  : std::true_type
-{  };
+struct allocator_traits<HeapAllocator,HeapAllocator>
+{
+  static constexpr bool optimize_move = true;
+};
+
 
   
 template< size_t Size, size_t Alignment = alignof(std::max_align_t) >
@@ -35,6 +39,7 @@ class StackAllocator{
 public:
   static constexpr size_t size = Size;
   static constexpr size_t alignment = Alignment;
+
 private:
   std::aligned_storage_t< size, alignment > buffer_;
 

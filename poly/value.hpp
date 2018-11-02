@@ -155,7 +155,7 @@ public:
   value_construct_impl( value_cast_tag, const value_construct_impl<Impl, Alloc_>& other  )
     : Alloc(), View_t(static_cast<const View<Impl>&>(other))
   {
-    this->construct_from<copy>( std::false_type(), other );
+    this->construct_from<copy>( other );
   }
 
   
@@ -165,16 +165,16 @@ public:
     : Alloc(), View_t( static_cast<View<Impl>&&>(other) )
   {
     using optimize_move =
-      std::integral_constant< bool, alloc_optimize_move<Alloc_, Alloc>::value >;
+      std::integral_constant< bool, allocator_traits<Alloc_t, Alloc_t>::optimize_move >;
 
-    this->construct_from<move_tag>( optimize_move(), std::move(other) );
+    optimized_move_construct( optimize_move(), std::move(other) );
   }
 
   ~value_construct_impl(){ this->reset(); }
-
+  
   template< typename Alloc_ >
   value_construct_impl& operator=( const value_construct_impl<Impl, Alloc_>& other ){
-    return this->assign_impl<copy>( std::false_type(), other );
+    return this->assign<copy>( other );
   }
 
   template< typename Alloc_ >
@@ -182,54 +182,63 @@ public:
     noexcept( move_is_noexcept )
   {
     using optimize_move =
-      std::integral_constant< bool, alloc_optimize_move<Alloc_, Alloc>::value >;
-    return this->assign_impl<move_tag>( optimize_move(), std::move(other) );    
+      std::integral_constant< bool, allocator_traits<Alloc_t, Alloc_t>::optimize_move >;
+    return optimized_move_assign( optimize_move(), std::move(other) );
   }
 
   value_construct_impl& operator=( const value_construct_impl& other ){
-    return this->assign_impl<copy>( std::false_type(), other );
+    return this->assign<copy>( other );
   }
 
   value_construct_impl& operator=( value_construct_impl&& other )
     noexcept( move_is_noexcept ) {
     using optimize_move =
-      std::integral_constant< bool, alloc_optimize_move<Alloc_t, Alloc_t>::value >;
-    return this->assign_impl<move_tag>( optimize_move(), std::move(other) );
+      std::integral_constant< bool, allocator_traits<Alloc_t, Alloc_t>::optimize_move >;
+    return optimized_move_assign( optimize_move(), std::move(other) );
   }
 
   template< typename I, typename A >
   friend class value_construct_impl;  //For Alloc casting
 
 private:
-  //Assigns from other
+  // Assigns from other
+  // calls operation (poly::move, poly::move_noexcept, poly::copy)
   template< typename operation, typename Other >
-  value_construct_impl& assign_impl( std::false_type /*optimize move*/ , Other&& other ){
+  value_construct_impl& assign( Other&& other ){
     this->reset();
     static_cast<View_t&>(*this) = std::forward<Other>(other); // copy or move the vtable
-    this->construct_from<operation>( std::false_type(), std::forward<Other>(other));
+    this->construct_from<operation>( std::forward<Other>(other));
     return *this;
   }
 
-  template< typename operation, typename Other >
-  value_construct_impl& assign_impl( std::true_type /*optimize move*/ , Other&& other ){
+  // Overload for move optimization
+  // Selected when allocator defines optimize_move trait
+  template< typename Other >
+  value_construct_impl& optimized_move_assign( std::true_type /*optimize move*/ , Other&& other ){
     Alloc_t& this_ = *this;
     typename Other::Alloc_t& other_ = other;
-    if( alloc_move_view( other_, this_ ) ){
+    if( other_.move_to( this_ ) ){
       this->reset();
       static_cast<View_t&>(*this) = std::move(other);
       other.invalidate();
       return *this;
     } else {
-      return this->assign_impl<move_tag>( std::false_type(), std::move(other) );
+      return this->optimized_move_assign( std::false_type(), std::move(other) );
     }
   }
-  
+
+  //No optimization
+  template< typename Other >
+  value_construct_impl& optimized_move_assign( std::false_type /*optimize move*/ , Other&& other ){
+    return this->assign<move_tag>( std::move(other) );
+  }
+
   //Allocates memory for object contained in other
   //Calls operation (copy or move) into allocated memory
   //In case of exception - sets the object into invalid state
   // WARNING : assumes the object to be empty
   template< typename Operation, typename Other >
-  void construct_from( std::false_type /*optimize move*/, Other&& other ){
+  void construct_from( Other&& other ){
     void* ptr = nullptr;
     try{
       auto info = storage::call( other );
@@ -252,19 +261,26 @@ private:
     }
   }
 
-  template< typename Operation, typename Other >
-  void construct_from( std::true_type /*optimize move*/, Other&& other ){
+  // Overload for move optimization
+  // Selected when allocator defines optimize_move trait
+  template< typename Other >
+  void optimized_move_construct( std::true_type /*optimize move*/, Other&& other ){
     Alloc_t& this_ = *this;
     typename Other::Alloc_t& other_ = other;
-    if( alloc_move_view( other_, this_ ) ){
+    if( other_.move_to( this_ ) ){
       // Other's view has already been moved from in initialization
       other.invalidate();
     } else {
-      this->construct_from<move_tag>( std::false_type(), std::move(other) );
+      this->optimized_move_construct( std::false_type(), std::move(other) );
     }
-
   }
 
+  // No optimization
+  template< typename Other >
+  void optimized_move_construct( std::false_type /*optimize move*/, Other&& other ){
+    this->template construct_from<move_tag>( std::move( other ) );
+  }
+  
   //Allocates memory for type T and constructs it using Args
   //In case the T's constructor, or Alloc throws
   //sets the object as invalid and propagates the exception
