@@ -14,17 +14,23 @@ namespace impl_{
   };
 }
 
+template< typename Interface, typename pointer_type, typename... Ts >
+class JumpVTable;
+  
+
 // VTable that holds thunks locally
-template< typename Interface, template< typename > class Transform, typename... Ts >
-class JumpVTable
+template< typename Interface, typename T__, typename... Ts >
+class JumpVTable< Interface, T__*, Ts... >
 {
 public:
   using interface = interface_t<Interface>;
+  using pointer_type = T__*;
 
   template< typename T >
   static constexpr int get_index = static_cast<int>(tl::index_of<T, tl::_<Invalid, Ts...> >::value)-1;
 
 private:
+  
   static tl::unique_typelist< Ts... > assert_unique_typelist__;
   
   template< typename T >
@@ -128,10 +134,10 @@ private:
   template< typename Invoker, typename T, typename... Args >
   static decltype(auto) call( Args&&... args )
   {
-    using Signature = unerase_signature< Invoker, Transform, Args&&... >;
+    using Signature = unerase_signature< Invoker, pointer_type, Args&&... >;
     static_assert( !std::is_same< Signature, invalid_arguments >::value,
 		   "Invoker cannot be called with supplied arguments" );
-    return (*get_thunk<Signature, Transform, T>())( std::forward<Args>(args)... );
+    return (*get_thunk<Signature, pointer_type, T>())( std::forward<Args>(args)... );
   }
 
 };

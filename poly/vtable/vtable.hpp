@@ -2,7 +2,6 @@
 #define __VTABLE_HPP__
 
 #include "../invoker.hpp"
-#include "EraseVoidPtr.hpp"
 #include "LocalVTable.hpp"
 #include "RemoteVTable.hpp"
 #include "JoinedVTable.hpp"
@@ -12,25 +11,25 @@ namespace poly{
 
 template< typename Tag >
 struct LocalVT
-  : Implementation< LocalVTable< Tag, EraseVoidPtr > >, Tag
-{ };
+  : Implementation< LocalVTable< Tag, void* > >, Tag
+{ using pointer_type = void*; };
 
 template< typename Tag >
 struct RemoteVT
-  : Implementation< RemoteVTable< Tag, EraseVoidPtr > >, Tag
-{ };
+  : Implementation< RemoteVTable< Tag, void* > >, Tag
+{ using pointer_type = void*; };
 
 template< typename... Tags >
 struct JoinedVT
   : Implementation< JoinedVTable< Tags... > >
   , join_t< interface_t<Tags>... >
-{  };
+{ using pointer_type = void*; };
 
 template< typename Tag, typename... Ts >
 struct JumpVT
-  : Implementation< JumpVTable< Tag, EraseVoidPtr, Ts... > >
+  : Implementation< JumpVTable< Tag, void*, Ts... > >
   , Tag
-{  };
+{ using pointer_type = void*; };
 
 template< typename Interface >
 LocalVT< Interface > localVT( Interface ){ return {}; };

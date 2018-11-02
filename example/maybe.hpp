@@ -64,4 +64,20 @@ private:
   Value_t value_;
 };
 
+void test_maybe(){
+  Maybe<int> mi = 3;
+  Maybe<int> mn;
+  mn = mi;
+  assert( mn.get() == mi.get() );
+  mn.get() = 2;
+  assert( !mn.empty() );
+  assert( mn.get() == 2 );
+  mn = {};
+  try{
+    std::cout << mn.get() << std::endl;
+  } catch ( const empty_maybe_access& a ) {
+  }
+  assert( mn.empty() );
+}
+
 #endif //__MAYBE_HPP__

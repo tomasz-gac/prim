@@ -4,16 +4,22 @@
 #include "LocalVTable.hpp"
 
 namespace poly{
+
+template< typename Interface, typename pointer_type = void* >
+class RemoteVTable;
+
   
 // VTable that holds thunks remotely
-template< typename Interface, template< typename > class Transform >
-class RemoteVTable{
+template< typename Interface, typename T__ >
+class RemoteVTable< Interface, T__* >{
 public:
   using interface = interface_t<Interface>;
+  using pointer_type = T__*;
 private:
-  using VTable = LocalVTable<Interface, Transform>;
+  
+  using VTable = LocalVTable<Interface, pointer_type>;
   template< typename Invoker >
-  using TThunk = Thunk< Invoker, Transform >;
+  using TThunk = Thunk< Invoker, pointer_type >;
   // Singleton reference
   VTable* vtable_;
 
@@ -31,8 +37,8 @@ public:
   }
 
   template< typename To >
-  explicit operator LocalVTable<To, Transform>() const
-  { return static_cast< LocalVTable<To, Transform>>( vtable_ ); }
+  explicit operator LocalVTable<To, pointer_type>() const
+  { return static_cast< LocalVTable<To, pointer_type>>( vtable_ ); }
 
 
   template< typename Tag >

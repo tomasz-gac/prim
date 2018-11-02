@@ -105,10 +105,10 @@ public:
 
 template< typename Impl, typename Alloc>
 class value_construct_impl
-  : public Alloc, public View< Impl >
+  : public Alloc, public Reference< Impl >
 {
 public:
-  using View_t = View< Impl >;
+  using Reference_t = Reference< Impl >;
   using Alloc_t = Alloc;
 
   static constexpr bool move_is_noexcept = 
@@ -132,13 +132,13 @@ public:
   void emplace( Args&&... args ){
     static_assert( !std::is_same<T,Invalid>::value, "Cannot construct objects of type Invalid" );
     this->reset();
-     static_cast<View_t&>(*this) = allocate_construct<T>( std::forward<Args>(args)... );
+    this->Reference_t::operator=( allocate_construct<T>( std::forward<Args>(args)... ) );
   }
   
   template< typename T, typename... Args >
   value_construct_impl( in_place<T>, Args&&... args )
     : Alloc()
-    , View_t( this->allocate_construct<T>( std::forward<Args>(args)... ) )
+    , Reference_t( this->allocate_construct<T>( std::forward<Args>(args)... ) )
   {  }
 
   value_construct_impl( value_construct_impl&& other ) noexcept( move_is_noexcept )
@@ -153,7 +153,7 @@ public:
 
   template< typename Alloc_ >
   value_construct_impl( value_cast_tag, const value_construct_impl<Impl, Alloc_>& other  )
-    : Alloc(), View_t(static_cast<const View<Impl>&>(other))
+    : Alloc(), Reference_t(static_cast<const Reference<Impl>&>(other))
   {
     this->construct_from<copy>( other );
   }
@@ -162,7 +162,7 @@ public:
   template< typename Alloc_ >
   value_construct_impl( value_cast_tag, value_construct_impl<Impl, Alloc_>&& other  )
     noexcept( move_is_noexcept )
-    : Alloc(), View_t( static_cast<View<Impl>&&>(other) )
+    : Alloc(), Reference_t( static_cast<Reference<Impl>&&>(other) )
   {
     using optimize_move =
       std::integral_constant< bool, allocator_traits<Alloc_t, Alloc_t>::optimize_move >;
@@ -206,7 +206,7 @@ private:
   template< typename operation, typename Other >
   value_construct_impl& assign( Other&& other ){
     this->reset();
-    static_cast<View_t&>(*this) = std::forward<Other>(other); // copy or move the vtable
+    this->Reference_t::operator=( std::forward<Other>(other) ); // copy or move the vtable
     this->construct_from<operation>( std::forward<Other>(other));
     return *this;
   }
@@ -219,7 +219,7 @@ private:
     typename Other::Alloc_t& other_ = other;
     if( other_.move_to( this_ ) ){
       this->reset();
-      static_cast<View_t&>(*this) = std::move(other);
+      this->Reference_t::operator=( std::move(other) );
       other.invalidate();
       return *this;
     } else {
@@ -236,6 +236,7 @@ private:
   //Allocates memory for object contained in other
   //Calls operation (copy or move) into allocated memory
   //In case of exception - sets the object into invalid state
+  //Does not handle the VTable
   // WARNING : assumes the object to be empty
   template< typename Operation, typename Other >
   void construct_from( Other&& other ){
@@ -284,14 +285,15 @@ private:
   //Allocates memory for type T and constructs it using Args
   //In case the T's constructor, or Alloc throws
   //sets the object as invalid and propagates the exception
+  //Does not handle the VTable
   // WARNING : assumes the object to be empty
   template< typename T, typename... Args >
-  View_t allocate_construct( Args&&... args ){
+  Reference_t allocate_construct( Args&&... args ){
     void* ptr = nullptr;
     try{
       ptr = this->allocate( storage_info::template get<T>() );
       new (ptr) T(std::forward<Args>(args)...);
-      return View_t( *reinterpret_cast<T*>(ptr) );
+      return Reference_t( *reinterpret_cast<T*>(ptr) );
     } catch(...) {
       if( ptr != nullptr ){
 	this->deallocate( ptr );
@@ -318,7 +320,7 @@ private:
   //Function sets the object in an invalid state
   // WARNING : assumes the object to be empty
   void invalidate(){
-    static_cast<View_t&>(*this) = { Invalid::get() };
+    this->Reference_t::operator=({ Invalid::get() });
   }
 };
 

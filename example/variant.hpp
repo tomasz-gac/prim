@@ -39,8 +39,8 @@ private:
 		     visit<std::add_const_t<Ts>>... >
   {  };
 
-  using Visitor       = poly::View< poly::LocalVT<IVisitor> >;
-  using Visitor_const = poly::View< poly::LocalVT<IVisitor_const> >;
+  using Visitor       = poly::Reference< poly::LocalVT<IVisitor> >;
+  using Visitor_const = poly::Reference< poly::LocalVT<IVisitor_const> >;
 
 
   struct accept_
@@ -91,7 +91,7 @@ public:
   template< typename F >
   void accept( F&& f ){
     Visitor v{ f };
-    accept_::call( value_, v);
+    accept_::call( value_, v );
   }
 
   template< typename F >

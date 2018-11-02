@@ -5,14 +5,20 @@
 
 namespace poly{
 
+template< typename Interface, typename ptr_t = void* >
+class LocalVTable;
+  
+
 // VTable that holds thunks locally
-template< typename Interface, template< typename > class Transform >
-class LocalVTable{
+template< typename Interface, typename T__ >
+class LocalVTable< Interface, T__* >{
 public:
   using interface = interface_t<Interface>;
+  using pointer_type = T__*;
 private:
+  
   template< typename Invoker >
-  using TThunk = Thunk< Invoker, Transform >;
+  using TThunk = Thunk< Invoker, pointer_type >;
   
   using thunk_tuple =
     tl::repack_t< tl::map_t< interface_t<Interface>, TThunk >, std::tuple<> >;
@@ -29,16 +35,16 @@ private:
   }
 
   template< typename To, typename... Tags >
-  LocalVTable<To, Transform> cast_impl( poly::Interface<Tags...>* ) const {
-    return LocalVTable<To, Transform>(std::make_tuple( std::get< TThunk<Tags> >(thunks_)... ) );
+  LocalVTable<To, pointer_type> cast_impl( poly::Interface<Tags...>* ) const {
+    return LocalVTable<To, pointer_type>(std::make_tuple( std::get< TThunk<Tags> >(thunks_)... ) );
   }
 
-  template< typename I, template< typename > class T >
+  template< typename I, typename ptr_t__ >
   friend class LocalVTable;
 public:
 
   template< typename To >
-  explicit operator LocalVTable< To, Transform >() const
+  explicit operator LocalVTable< To, pointer_type >() const
   { return cast_impl<To>( static_cast< interface_t<To>* >(nullptr) ); }
 
   template< typename T >
@@ -46,8 +52,8 @@ public:
     return make_impl<T>( static_cast< interface_t<Interface>* >(nullptr) );
   }
 
-  template< typename To, typename From, template< typename > class T >
-  friend LocalVTable<To,T> interface_cast( const LocalVTable<From,T>& vtbl );
+  template< typename To, typename From, typename ptr_t >
+  friend LocalVTable<To,ptr_t> interface_cast( const LocalVTable<From,ptr_t>& vtbl );
 
   // Get a thunk based on tag and signature
   template< typename Tag >

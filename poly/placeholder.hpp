@@ -12,7 +12,7 @@ struct is_T : std::false_type{  };
 template< size_t N >
 struct is_T< T_<N> > : std::true_type{  };
 
-#define DEFINE_T( N ) \
+#define DEFINE_T( N )				\
   using T ## N = T_< N >; 
 
 using T = T_<0>;
