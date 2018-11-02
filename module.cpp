@@ -4,7 +4,7 @@
 // #include "test/memory.hpp"
 // #include "test/test_jumpVTable.hpp"
 // #include "poly/vtable/vtable.hpp"
-#include "poly/view.hpp"
+#include "poly/pointer.hpp"
 #include "poly/vtable/vtable.hpp"
 
 struct addr : poly::Invoker< addr, void* ( poly::T&, poly::T& ) >{  };

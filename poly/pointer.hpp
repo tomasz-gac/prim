@@ -33,10 +33,6 @@ struct is_unwrap : std::false_type{};
 template< typename T >
 struct is_unwrap< unwrap_< T > > : std::true_type{};
 
-template< typename T > struct is_pointer : std::false_type{};
-template< typename Interface>
-struct is_pointer< Pointer<Interface> > : std::true_type{};
-
 template< typename VTable >
 class Pointer
 {
@@ -100,7 +96,7 @@ public:
   decltype(auto) call( Args&&... args ){
     return get<Invoker>()( std::forward<Args>(args)... );
   }
-  
+
   template< typename Invoker, typename... Args, typename = enable_if_supports< Invoker > >
   decltype(auto) call( Args&&... args ) const {
     return get<Invoker>()( std::forward<Args>(args)... );
@@ -170,60 +166,6 @@ DEFINE_UNWRAP__(       volatile Pointer<VTable>& )
 DEFINE_UNWRAP__( const volatile Pointer<VTable>& )  
 DEFINE_UNWRAP__(       volatile Pointer<VTable>&& )  
 DEFINE_UNWRAP__( const volatile Pointer<VTable>&& )  
-  
-
-template< typename VTable >
-class Reference
-  : protected Pointer<VTable>
-{
-private:
-  using base = Pointer<VTable>;
-protected:
-    // poly::Value can be implicitly cast to Reference& and we can't allow meddling with its insides
-  Reference& operator=( const Reference&  other )          = default;
-  Reference& operator=(       Reference&& other ) noexcept = default;
-  
-public:
-  using implementation = typename base::implementation;
-  using interface      = typename base::interface;
-  using pointer_type = typename base::pointer_type;
-
-
-  using base::operator[];
-  using base::get;
-  using base::call;
-  
-  const implementation& vtable()  const { return this->base::vtable(); }
-  // No pointer reassignment
-  pointer_type          address() const { return this->base::value(); }
-
-
-  template< typename T, typename = disable_if_same_or_derived< Reference, T > >
-  Reference( T& v )
-    : base( &v )
-  {  }
-
-  Reference( const Reference& ) = default;
-  Reference( Reference&& ) noexcept = default;
-
-  template< typename OtherImplementation >
-  Reference( const Reference< OtherImplementation >& other )
-    : base( static_cast<const Pointer<OtherImplementation>&>(other) )
-  {  }
-
-  template< typename OtherImpl >
-  friend class Reference;
-};
-
-DEFINE_UNWRAP__(                Reference<VTable>& )  
-DEFINE_UNWRAP__( const          Reference<VTable>& )  
-DEFINE_UNWRAP__(                Reference<VTable>&& )  
-DEFINE_UNWRAP__( const          Reference<VTable>&& )  
-DEFINE_UNWRAP__(       volatile Reference<VTable>& )  
-DEFINE_UNWRAP__( const volatile Reference<VTable>& )  
-DEFINE_UNWRAP__(       volatile Reference<VTable>&& )  
-DEFINE_UNWRAP__( const volatile Reference<VTable>&& )  
-
   
 }  
 

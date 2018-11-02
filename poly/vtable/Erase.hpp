@@ -31,14 +31,16 @@ struct Erase_impl< SignatureT, void*, true >{
   using type = Erased< pointer_type >;
 
   template< typename ActualT >
-  struct Reverse{ 
+  struct Reverse{
+  private:
+    using noref_SignatureT = std::remove_reference_t<SignatureT>;
+
   public:
     // Given ActualT unerase data and apply cv-ref qualifiers
     static decltype(auto) apply( Erased<pointer_type> data ){
-      using noref_T = std::remove_reference_t<SignatureT>;
-      using cv_T = copy_cv_t< noref_T, std::decay_t<ActualT> >;
-      using ref_T = copy_ref_t< SignatureT, cv_T >;
-      return static_cast<ref_T&&>(*reinterpret_cast<cv_T*>(data.data));
+      using cv_ActualT = copy_cv_t< noref_SignatureT, std::decay_t<ActualT> >;
+      using cv_ref_ActualT = copy_ref_t< SignatureT, cv_ActualT >;
+      return static_cast<cv_ref_ActualT&&>(*reinterpret_cast<cv_ActualT*>(data.data));
     }
   };
 

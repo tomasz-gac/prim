@@ -2,7 +2,7 @@
 #define __VALUE_HPP__
 
 #include "allocator.hpp" //TODO : usunac
-#include "view.hpp"
+#include "reference.hpp"
 #include "builtins.hpp"
 #include "allocator_traits.hpp"
 
