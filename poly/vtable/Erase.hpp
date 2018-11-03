@@ -27,7 +27,7 @@ struct Erase< SignatureT, void* >{
 
   template< typename T >
   static Erased<pointer_type> apply( T* ptr ){
-    return { reinterpret_cast<void*>(ptr) };
+    return { reinterpret_cast<pointer_type>(ptr) };
   }
 
   template< typename ActualT, typename T >

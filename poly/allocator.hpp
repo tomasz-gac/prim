@@ -14,7 +14,6 @@ public:
   template< typename ToAlloc >
   constexpr bool move_to( ToAlloc& other ){ return true; }
 
-protected:
   void* allocate( poly::storage_info storage ){
     auto buffer = std::malloc( storage.size );
     if( buffer == nullptr ) throw std::bad_alloc{};
@@ -40,12 +39,12 @@ public:
   static constexpr size_t size = Size;
   static constexpr size_t alignment = Alignment;
 
-private:
-  std::aligned_storage_t< size, alignment > buffer_;
+  static constexpr bool can_store( size_t size_, size_t align_ ){
+    return (size_ <= size && align_ <= alignment);
+  }
 
-protected:
   void* allocate( poly::storage_info storage ){
-    assert( storage.size <= size && storage.alignment <= alignment );
+    assert( can_store( storage.size, storage.alignment ) );
     return reinterpret_cast<void*>(&buffer_);
   }
 
@@ -53,6 +52,9 @@ protected:
     assert( data == reinterpret_cast<void*>(&buffer_) );
     //failure means that data was not allocated using this allocator
   };
+private:
+  std::aligned_storage_t< size, alignment > buffer_;
+
 };
 
 }

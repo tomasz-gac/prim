@@ -10,7 +10,6 @@ struct allocator_traits{
   // Returns true if successful, false otherwise
   static constexpr bool optimize_move = false;
 };
-
 }
 
 #endif // __ALLOCATOR_TRAITS_HPP__

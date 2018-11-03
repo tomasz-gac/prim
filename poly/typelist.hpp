@@ -218,6 +218,12 @@ template<class B1, class... Bn>
 struct disjunction<B1, Bn...> 
   : std::conditional<bool(B1::value), B1, disjunction<Bn...>>::type  { };
 
+template<class...> struct conjunction : std::true_type { };
+template<class B1> struct conjunction<B1> : B1 { };
+template<class B1, class... Bn>
+struct conjunction<B1, Bn...> 
+    : std::conditional_t<bool(B1::value), conjunction<Bn...>, B1> {};
+
 template< template< typename... > class typelist, typename... Ts >
 struct id< typelist<Ts...> >{
   template< typename... Us >

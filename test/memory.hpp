@@ -8,6 +8,8 @@
 #include "../poly/vtable/vtable.hpp"
 #include "../helpers.hpp"
 #include "tracker.hpp"
+#include "../poly/sbo_allocator.hpp"
+#include "../poly/allocator_traits.hpp"
 
 namespace memory_test {
 
@@ -94,8 +96,10 @@ void test_memory_vector( int n = 10000  ){
     auto b2 = p2.template call<cbegin<Guard<int>>>();
     auto e2 = p2.template call<cend<Guard<int>>>();
     assert( b == b2 && e == e2 );
-    if( std::is_same< Alloc, poly::HeapAllocator >::value ){
-      assert( ap == ap2 ); // no reassignment move
+    if( poly::allocator_traits< Alloc, Alloc >::optimize_move ){
+      if( std::is_same< Alloc, poly::HeapAllocator >::value ){
+	assert( ap == ap2 ); // no reassignment move
+      }
     } else {
       assert( ap != ap2 ); // move
     }
@@ -149,8 +153,10 @@ void test_memory_vector_poly( int n = 10000 ){
     p_move.resize(0, Value_t( in_place<Guard<int>>(), tracker, 0 ));
 
     std::move( p.begin(), p.end(), std::back_inserter(p_move) );
-    if( std::is_same< Alloc, poly::HeapAllocator >::value ){
-      assert( tracker.objects.count() == n );
+    if( poly::allocator_traits< Alloc, Alloc >::optimize_move ){
+      if( std::is_same< Alloc, poly::HeapAllocator >::value ){
+	assert( tracker.objects.count() == n );
+      }
     } else {
       assert( tracker.objects.count() == (p_move.size()+p.size()) );
     }
@@ -200,8 +206,10 @@ void test_memory_invalid()
     try{
       t = std::move(t2);
     } catch (std::logic_error e){    }
-    if( std::is_same< Alloc, poly::HeapAllocator >::value ){
-      assert( !t.valueless_by_exception() ); //No constructors called
+    if( poly::allocator_traits< Alloc, Alloc >::optimize_move ){
+      if( std::is_same< Alloc, poly::HeapAllocator >::value ){
+	assert( !t.valueless_by_exception() ); //No constructors called
+      }
     } else {
       assert( t.valueless_by_exception() );
     }
@@ -212,8 +220,10 @@ void test_memory_invalid()
     } catch ( const poly::invalid_vtable_call& e ){
       thrown = true;
     }
-    if( std::is_same< Alloc, poly::HeapAllocator >::value ){
-      assert( !thrown ); // No constructors called
+    if( poly::allocator_traits< Alloc, Alloc >::optimize_move ){
+      if( std::is_same< Alloc, poly::HeapAllocator >::value ){	      
+	assert( !thrown ); // No constructors called
+      }
     } else {
       assert( thrown );
     }
@@ -223,9 +233,11 @@ void test_memory_invalid()
     		   "Poly falsly assumed to be not nothrow copy constructible" );
     Value_t t3{ t };
     Value_t t4{ std::move(t3) };
-    if( std::is_same< Alloc, poly::HeapAllocator >::value ){
-      assert( t3.valueless_by_exception() );
-      assert( !t4.valueless_by_exception() );
+    if( poly::allocator_traits< Alloc, Alloc >::optimize_move ){
+      if( std::is_same< Alloc, poly::HeapAllocator >::value ){	      
+	assert( t3.valueless_by_exception() );
+	assert( !t4.valueless_by_exception() );
+      }
     } else {
       assert( t3.valueless_by_exception() );
       assert( t4.valueless_by_exception() );
@@ -239,6 +251,12 @@ using test_signature = void (*)( Args... );
 
 template< typename T >
 using stack_alloc = poly::StackAllocator< sizeof(T), alignof(T) >;
+
+template< typename T >
+using sbo_stack_alloc = poly::SboAllocator< sizeof(T), alignof(T) >;
+
+template< typename T >
+using sbo_heap_alloc = poly::SboAllocator< sizeof(T)-1, alignof(T) >;
 
 template< typename I >
 using test1_JVT = poly::JumpVT< I, std::vector<Guard<float>>, std::vector<Guard<int>> >;
@@ -260,9 +278,17 @@ void test_memory()
   test_memory_vector< LocalVT, stack_alloc<tested_t> > ();
   test_memory_vector< RemoteVT, stack_alloc<tested_t> >();
   test_memory_vector< test1_JVT, stack_alloc<tested_t> >();
+
+  test_memory_vector< LocalVT, sbo_stack_alloc<tested_t> > ();
+  test_memory_vector< RemoteVT, sbo_stack_alloc<tested_t> >();
+  test_memory_vector< test1_JVT, sbo_stack_alloc<tested_t> >();
   
+  test_memory_vector< LocalVT, sbo_heap_alloc<tested_t> > ();
+  test_memory_vector< RemoteVT, sbo_heap_alloc<tested_t> >();
+  test_memory_vector< test1_JVT, sbo_heap_alloc<tested_t> >();
+
   using tested_t2 = Guard<int>;
-  using stack_alloc2 = StackAllocator< sizeof(tested_t2), alignof(tested_t2) >;
+  using stack_alloc2 = stack_alloc<tested_t2>;
   test_memory_vector_poly< LocalVT, HeapAllocator >();
   test_memory_vector_poly< RemoteVT, HeapAllocator >();
   test_memory_vector_poly< test2_JVT, HeapAllocator >();
@@ -270,12 +296,30 @@ void test_memory()
   test_memory_vector_poly< RemoteVT, stack_alloc2 >();
   test_memory_vector_poly< test2_JVT, stack_alloc2 >();
 
+  test_memory_vector_poly< LocalVT, sbo_stack_alloc<tested_t2> > ();
+  test_memory_vector_poly< RemoteVT, sbo_stack_alloc<tested_t2> >();
+  test_memory_vector_poly< test2_JVT, sbo_stack_alloc<tested_t2> >();
+  test_memory_vector_poly< LocalVT, sbo_heap_alloc<tested_t2> > ();
+  test_memory_vector_poly< RemoteVT, sbo_heap_alloc<tested_t2> >();
+  test_memory_vector_poly< test2_JVT, sbo_heap_alloc<tested_t2> >();
+
   using tested_t3 = Guard<memory_test::A>;
   using stack_alloc3 = StackAllocator< sizeof(tested_t3), alignof(tested_t3) >;
   test_memory_invalid< LocalVT, HeapAllocator >();
   test_memory_invalid< RemoteVT, HeapAllocator >();
+  test_memory_invalid< test3_JVT, HeapAllocator >();
   test_memory_invalid< LocalVT, stack_alloc3 >();
-  test_memory_invalid< RemoteVT, stack_alloc3 >();
+  test_memory_invalid< LocalVT, stack_alloc3 >();
+  test_memory_invalid< test3_JVT, stack_alloc3 >();
+
+
+  test_memory_invalid< LocalVT, sbo_stack_alloc<tested_t3> > ();
+  test_memory_invalid< RemoteVT, sbo_stack_alloc<tested_t3> >();
+  test_memory_invalid< test3_JVT, sbo_stack_alloc<tested_t3> >();
+  
+  test_memory_invalid< LocalVT, sbo_heap_alloc<tested_t3> > ();
+  test_memory_invalid< RemoteVT, sbo_heap_alloc<tested_t3> >();
+  test_memory_invalid< test3_JVT, sbo_heap_alloc<tested_t3> >();
 }
 
 #endif //__MEMEORY_HPP__

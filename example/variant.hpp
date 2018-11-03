@@ -28,29 +28,30 @@ template< typename T, typename... Ts >
 class Variant{
 private:
   template< typename Type >
-  struct visit : poly::Invoker< visit<Type>, void ( poly::T&, Type& ) >{  };
+  struct visit : poly::Invoker< visit<Type>, void ( poly::T&, Type& ),
+				             void ( poly::T&, const Type& ) >
+  {  };
 
   template< typename T_, typename Type >
   friend void invoke( visit<Type>, T_& visitor, Type& visited ){
     visitor( visited );
   }
 
+  template< typename T_, typename Type >
+  friend void invoke( visit<Type>, T_& visitor, const Type& visited ){
+    visitor( visited );
+  }
+
   struct IVisitor       :
     poly::Interface< visit<T>, visit<Ts>... >
   {  };
-  struct IVisitor_const :
-    poly::Interface< visit<std::add_const_t<T>>,
-		     visit<std::add_const_t<Ts>>... >
-  {  };
 
-  using Visitor       = poly::Reference< poly::LocalVT<IVisitor> >;
-  using Visitor_const = poly::Reference< poly::LocalVT<IVisitor_const> >;
-
+  using Visitor       = const poly::Reference< poly::LocalVT<IVisitor> >;
 
   struct accept_
     : poly::Invoker< accept_,
 		     void ( poly::T&, Visitor& ),
-		     void ( const poly::T&, Visitor_const& )>
+		     void ( const poly::T&, Visitor& )>
   {  };
 
   template< typename T_ >
@@ -59,17 +60,28 @@ private:
  }
 
   template< typename T_ >
-  friend void invoke( accept_, const T_& visited, Visitor_const& visitor ){
+  friend void invoke( accept_, const T_& visited, Visitor& visitor ){
     visit<const T_>::call( visitor, visited);
   }
 
 private:
-  struct IVariant
-    : poly::Interface<
-    poly::storage, poly::copy
-  , poly::move, poly::destroy
-  , accept_
-  > // TODO : move and copy depending on type interfaces
+  static constexpr bool all_copyable =
+    poly::tl::conjunction< std::is_copy_constructible<T>, std::is_copy_constructible<Ts>... >::value;
+  static constexpr bool all_movable =
+    poly::tl::conjunction< std::is_move_constructible<T>, std::is_move_constructible<Ts>... >::value;
+  static constexpr bool all_movable_noexcept =
+    poly::tl::conjunction< std::is_nothrow_move_constructible<T>, std::is_nothrow_move_constructible<Ts>... >::value;
+
+  using copy_interface =
+    std::conditional_t< all_copyable, poly::copy, poly::Interface<> >;
+  using move_noexcept_interface =
+    std::conditional_t< all_movable_noexcept, poly::move_noexcept, poly::move >;
+  using move_interface =
+    std::conditional_t< all_movable, move_noexcept_interface, poly::Interface<> >;
+
+  struct IVariant :
+    decltype( poly::Interface< accept_, poly::storage, poly::destroy >() +
+              copy_interface() + move_interface() )
   {  };
 
   static constexpr size_t sizes[] = { sizeof(T), sizeof(Ts)... };
@@ -103,7 +115,7 @@ public:
 
   template< typename F >
   void accept( F&& f ) const {
-    Visitor_const v{ f };
+    Visitor v{ f };
     accept_::call( value_, v);
   }
 
@@ -124,7 +136,7 @@ public:
     auto v = [&result, &f]( auto&& visited  ){
       result.emplace( f( std::forward<decltype(visited)>(visited) ) );
     };
-    Visitor_const visitor{ v };
+    Visitor visitor{ v };
     accept_::call( value_, visitor);
     return result.get();
   }
@@ -133,7 +145,6 @@ private:
   variant_value_t value_;
 };
 
-
 void test_variant()
 {
   auto visitor = []( auto& v ){ };
@@ -141,6 +152,7 @@ void test_variant()
   std::cout << std::boolalpha;
 
   Variant< float, bool, int, std::string > v{ in_place<float>(), 3 };
+  static_assert( std::is_nothrow_move_constructible<decltype(v)>::value );		 
   const auto& cv = v;
   assert( v.index() == 0 );
   v.accept( visitor );

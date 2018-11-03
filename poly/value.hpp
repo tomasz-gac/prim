@@ -28,7 +28,7 @@ using value_base = value_construct< Impl, Alloc,
 
 template< typename Impl, typename Alloc = HeapAllocator >
 class Value
-  : private value_base< Impl, Alloc >
+  : public value_base< Impl, Alloc >
 {
 private:
   using base = value_base< Impl, Alloc >;
@@ -37,16 +37,10 @@ public:
   using implementation = impl_t<Impl>;
   using interface = interface_t<implementation>;
 
-  static constexpr bool nothrow_copy = std::is_nothrow_copy_constructible<base>::value;
-  static constexpr bool nothrow_move = std::is_nothrow_move_constructible<base>::value;
-  static constexpr bool nothrow_copy_assign = std::is_nothrow_copy_assignable<base>::value;
-  static constexpr bool nothrow_move_assign = std::is_nothrow_move_assignable<base>::value;
-
-  template< typename... Args >
-  static constexpr bool nothrow_constructs = std::is_nothrow_constructible<base, Args...>::value;
-
-  template< typename... Args >
-  static constexpr bool nothrow_assigns = std::is_nothrow_assignable<base, Args...>::value;
+  static constexpr bool nothrow_copy = base::nothrow_copy;
+  static constexpr bool nothrow_move =  base::nothrow_move;
+  static constexpr bool nothrow_copy_assign = base::nothrow_copy_assign;
+  static constexpr bool nothrow_move_assign = base::nothrow_move_assign;
 
   using base::operator[];
   using base::get;
@@ -67,13 +61,13 @@ public:
   
   template< typename Alloc_ >
   Value( const Value< Impl, Alloc_ >& other  )
-    noexcept(nothrow_constructs< const Value< Impl, Alloc_ >&>)
+    noexcept( nothrow_copy )    
     : base( value_cast_tag(), other )
   {  }
 
   template< typename Alloc_ >
   Value(       Value< Impl, Alloc_ >&& other )
-    noexcept(nothrow_constructs< Value< Impl, Alloc_ >&&>)
+    noexcept( nothrow_move )
     : base( value_cast_tag(), std::move(other) )
   {  }
 
@@ -85,7 +79,7 @@ public:
 
   template< typename Alloc_ >
   Value& operator=( const Value<Impl, Alloc_>& other )
-    noexcept(nothrow_assigns<const Value<Impl, Alloc_>&>)
+    noexcept( nothrow_copy_assign )
   {
     static_cast<base&>(*this) = static_cast<const typename Value<Impl,Alloc>::base&>(other);
     return *this;
@@ -93,10 +87,14 @@ public:
 
   template< typename Alloc_ >
   Value& operator=(        Value<Impl, Alloc_>&& other )
-    noexcept(nothrow_assigns<Value<Impl, Alloc_>&&>)
+    noexcept( nothrow_move_assign )
   {
     static_cast<base&>(*this) = static_cast<typename Value<Impl,Alloc>::base&&>(other);
     return *this;
+  }
+
+  explicit operator Pointer< Impl >() const {
+    return { static_cast<const Pointer<Impl>&>(*this) };
   }
 
   template< typename, typename >
@@ -116,15 +114,15 @@ public:
 
    using move_tag = typename std::conditional< move_is_noexcept, move_noexcept, move >::type;
 
-public:
+  static constexpr bool nothrow_copy = false;
+  static constexpr bool nothrow_move = move_is_noexcept;
+  static constexpr bool nothrow_copy_assign = false;
+  static constexpr bool nothrow_move_assign = move_is_noexcept;
+ 
+protected:
   // Check if object is in an invalid state
   bool valueless_by_exception() const {
-    try{
-      storage::call(*this);
-      return false;
-    } catch ( const invalid_vtable_call& e ){
-      return true;
-    }
+    return this->value() == reinterpret_cast<void*>( &Invalid::get() );
   }
 
   //Construct object of type T in-place
@@ -141,11 +139,11 @@ public:
     , Reference_t( this->allocate_construct<T>( std::forward<Args>(args)... ) )
   {  }
 
-  value_construct_impl( value_construct_impl&& other ) noexcept( move_is_noexcept )
+  value_construct_impl( value_construct_impl&& other ) noexcept( nothrow_move )
     : value_construct_impl( value_cast_tag(), std::move(other) )
   {  } 
 
-  value_construct_impl( const value_construct_impl& other )
+  value_construct_impl( const value_construct_impl& other ) noexcept( nothrow_copy )
     : value_construct_impl( value_cast_tag(), other)
   {  }
 
@@ -161,7 +159,7 @@ public:
   
   template< typename Alloc_ >
   value_construct_impl( value_cast_tag, value_construct_impl<Impl, Alloc_>&& other  )
-    noexcept( move_is_noexcept )
+    noexcept( nothrow_move )
     : Alloc(), Reference_t( static_cast<Reference<Impl>&&>(other) )
   {
     using optimize_move =
@@ -173,25 +171,30 @@ public:
   ~value_construct_impl(){ this->reset(); }
   
   template< typename Alloc_ >
-  value_construct_impl& operator=( const value_construct_impl<Impl, Alloc_>& other ){
+  value_construct_impl& operator=( const value_construct_impl<Impl, Alloc_>& other )
+    noexcept( nothrow_copy_assign )
+  {
     return this->assign<copy>( other );
   }
 
   template< typename Alloc_ >
   value_construct_impl& operator=(  value_construct_impl<Impl, Alloc_>&& other )
-    noexcept( move_is_noexcept )
+    noexcept( nothrow_move_assign )
   {
     using optimize_move =
       std::integral_constant< bool, allocator_traits<Alloc_t, Alloc_t>::optimize_move >;
     return optimized_move_assign( optimize_move(), std::move(other) );
   }
 
-  value_construct_impl& operator=( const value_construct_impl& other ){
+  value_construct_impl& operator=( const value_construct_impl& other )
+    noexcept( nothrow_copy_assign )
+  {
     return this->assign<copy>( other );
   }
 
   value_construct_impl& operator=( value_construct_impl&& other )
-    noexcept( move_is_noexcept ) {
+    noexcept( nothrow_move_assign )
+  {
     using optimize_move =
       std::integral_constant< bool, allocator_traits<Alloc_t, Alloc_t>::optimize_move >;
     return optimized_move_assign( optimize_move(), std::move(other) );
@@ -240,25 +243,23 @@ private:
   // WARNING : assumes the object to be empty
   template< typename Operation, typename Other >
   void construct_from( Other&& other ){
-    void* ptr = nullptr;
-    try{
-      auto info = storage::call( other );
-      ptr = this->allocate( info );
-      Operation::call( other, ptr );
-      this->value() = ptr;
-    } catch ( const invalid_vtable_call& e ) {
-      // other is valueless by exception
-      if( ptr != nullptr ){
-	this->deallocate( ptr );
+    if( !other.valueless_by_exception() ){
+      void* ptr = nullptr;
+      try{
+	auto info = storage::call( other );
+	ptr = this->allocate( info );
+	Operation::call( other, ptr );
+	this->value() = ptr;
+      } catch(...) {
+	// Constructor or Alloc throws
+	if( ptr != nullptr ){
+	  this->deallocate( ptr );
+	}
+	invalidate();
+	throw; // propagate the exception
       }
-      invalidate(); // set as invalid
-    } catch(...) {
-      // Constructor or Alloc throws
-      if( ptr != nullptr ){
-	this->deallocate( ptr );
-      }
-      invalidate();
-      throw; // propagate the exception
+    } else {
+      invalidate(); // other is valueless_by_exception
     }
   }
 
@@ -270,7 +271,7 @@ private:
     typename Other::Alloc_t& other_ = other;
     if( other_.move_to( this_ ) ){
       // Other's view has already been moved from in initialization
-      other.invalidate();
+      other.invalidate();      
     } else {
       this->optimized_move_construct( std::false_type(), std::move(other) );
     }
@@ -307,10 +308,10 @@ private:
   //The class invariant is not maintained after reset!
   //If the contained object's destructor throws - propagate the exception
   void reset(){
-    try{
+    if( !this->valueless_by_exception() ){
       destroy::call(*this);
       this->Alloc::deallocate( this->value() );
-    } catch ( const invalid_vtable_call& e ){
+    } else {
       //Object is valueless by exception
       //In that case - it contains object of type Invalid
       //Since the object is a singleton, there is no need to destroy it
@@ -331,8 +332,6 @@ struct value_construct< Impl, Alloc, true, true >
 private:
   using base = value_construct_impl< Impl, Alloc >;
   
-  template< typename Alloc_ >
-  using other_base = value_construct_impl< Impl, Alloc_ >;
 public:
   template< typename T, typename... Args >
   value_construct( in_place<T> p, Args&&... args )
@@ -340,23 +339,21 @@ public:
   {  }
  
   value_construct( const value_construct& other )
-    noexcept(std::is_nothrow_copy_constructible<base>::value) = default;
+    noexcept(base::nothrow_copy) = default;
   value_construct( value_construct&& other )
-    noexcept(std::is_nothrow_move_constructible<base>::value) = default;
+    noexcept(base::nothrow_move) = default;
   
   value_construct& operator=( const value_construct&  )
-    noexcept(std::is_nothrow_copy_assignable<base>::value) = default;
+    noexcept(base::nothrow_copy_assign) = default;
   value_construct& operator=(       value_construct&& )
-    noexcept(std::is_nothrow_move_assignable<base>::value) = default;
+    noexcept(base::nothrow_move_assign) = default;
   
   template< typename Alloc_ >
   value_construct( value_cast_tag, const value_construct< Impl, Alloc_, true, true >& other )
-    noexcept(std::is_nothrow_constructible<base, const other_base<Alloc_>& >::value)
     : base( value_cast_tag(), other )
   {  }
   template< typename Alloc_ >
   value_construct( value_cast_tag, value_construct< Impl, Alloc_, true, true >&& other )
-    noexcept(std::is_nothrow_constructible<base, other_base<Alloc_>&& >::value)
   : base( value_cast_tag(), std::move(other) )
   {  }
 };
@@ -368,8 +365,6 @@ struct value_construct< Impl, Alloc, false, true >
 private:
   using base = value_construct_impl< Impl, Alloc >;
 
-  template< typename Alloc_ >
-  using other_base = value_construct_impl< Impl, Alloc_ >;
 public:
   template< typename T, typename... Args >
   value_construct( in_place<T> p, Args&&... args )
@@ -377,18 +372,17 @@ public:
   {  }
  
   value_construct( const value_construct& other )
-    noexcept(std::is_nothrow_copy_constructible<base>::value) = delete;
+    noexcept(base::nothrow_copy) = delete;
   value_construct( value_construct&& other )
-    noexcept(std::is_nothrow_move_constructible<base>::value) = default;
-
-  value_construct& operator=( const value_construct&  )
-    noexcept(std::is_nothrow_copy_assignable<base>::value) = delete;
-  value_construct& operator=(       value_construct&& )
-    noexcept(std::is_nothrow_move_assignable<base>::value) = default;
+    noexcept(base::nothrow_move) = default;
   
+  value_construct& operator=( const value_construct&  )
+    noexcept(base::nothrow_copy_assign) = delete;
+  value_construct& operator=(       value_construct&& )
+    noexcept(base::nothrow_move_assign) = default;
+
   template< typename Alloc_ >
   value_construct( value_cast_tag, value_construct< Impl, Alloc_, false, true >&& other )
-    noexcept(std::is_nothrow_constructible<base, other_base<Alloc_>&& >::value)
     : base( value_cast_tag(), std::move(other) )
   {  }
 };
@@ -409,18 +403,17 @@ public:
   {  }
  
   value_construct( const value_construct& other )
-    noexcept(std::is_nothrow_copy_constructible<base>::value) = default;
+    noexcept(base::nothrow_copy) = default;
   value_construct( value_construct&& other )
-    noexcept(std::is_nothrow_move_constructible<base>::value) = delete;
+    noexcept(base::nothrow_move) = delete;
   
   value_construct& operator=( const value_construct&  )
-    noexcept(std::is_nothrow_copy_assignable<base>::value) = default;
+    noexcept(base::nothrow_copy_assign) = default;
   value_construct& operator=(       value_construct&& )
-    noexcept(std::is_nothrow_move_assignable<base>::value) = delete;
-  
+    noexcept(base::nothrow_move_assign) = delete;
+
   template< typename Alloc_ >
   value_construct( value_cast_tag, const value_construct< Impl, Alloc_, true, false >& other )
-    noexcept(std::is_nothrow_constructible<base, const other_base<Alloc_>& >::value)    
     : base( value_cast_tag(), other )
   {  }
 };
@@ -438,14 +431,14 @@ public:
   {  }
  
   value_construct( const value_construct& other )
-    noexcept(std::is_nothrow_copy_constructible<base>::value) = delete;
+    noexcept(base::nothrow_copy) = delete;
   value_construct( value_construct&& other )
-    noexcept(std::is_nothrow_move_constructible<base>::value) = delete;
-
+    noexcept(base::nothrow_move) = delete;
+  
   value_construct& operator=( const value_construct&  )
-    noexcept(std::is_nothrow_copy_assignable<base>::value) = delete;
+    noexcept(base::nothrow_copy_assign) = delete;
   value_construct& operator=(       value_construct&& )
-    noexcept(std::is_nothrow_move_assignable<base>::value) = delete;
+    noexcept(base::nothrow_move_assign) = delete;
 };
 
 }
