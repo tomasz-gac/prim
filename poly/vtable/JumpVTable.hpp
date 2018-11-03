@@ -136,7 +136,7 @@ private:
   {
     using Signature = unerase_signature< Invoker, pointer_type, Args&&... >;
     static_assert( !std::is_same< Signature, invalid_arguments >::value,
-		   "Invoker cannot be called with supplied arguments" );
+    		   "Invoker cannot be called with supplied arguments" );
     return (*get_thunk<Signature, pointer_type, T>())( std::forward<Args>(args)... );
   }
 

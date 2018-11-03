@@ -61,7 +61,12 @@ decltype(auto) erased_cast( Erased<PtrT> erased  ){
   return Erase<SigT, PtrT>::template reverse<T>( erased );
 }  
   
-  // #define __POLY_ERASED_STATIC_TEST__
+template< typename T, typename U >
+decltype(auto) erased_cast( U&& data ){
+  return std::forward<U>(data);
+}  
+
+// #define __POLY_ERASED_STATIC_TEST__
 #ifdef __POLY_ERASED_STATIC_TEST__
   namespace test__
   {

@@ -35,6 +35,8 @@ private:
 
   friend T& invoke( Get, T& value ){ return value; }
   friend T& invoke( Get, Empty& )  { throw empty_maybe_access(); }
+  template< typename U >
+  friend T& invoke( Get, U&& v ){ throw std::logic_error(); }
   
   struct Interface
     : poly::Interface< Get, poly::copy, poly::move, poly::destroy, poly::storage >
