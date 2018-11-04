@@ -6,10 +6,10 @@
 
 namespace poly{
 
-struct copy : Invoker< copy, void (const T&,  void*) >{  };
+struct copy : Invoker< copy, void (const poly::T&,  void*) >{ };
 
 template< bool is_noexcept >
-struct move_ : Invoker< move_<is_noexcept>, void (    T&,  void* ) >{  };
+struct move_ : Invoker< move_<is_noexcept>, void (    T&,  void* ) >{ };
 
 using move = move_<false>;
 using move_noexcept = move_<true>;

@@ -18,8 +18,7 @@ namespace impl__{
     using Transform = Erase< SignatureT, pointer_type >;
 
     template< typename T >
-    static typename std::enable_if< !std::is_same<T, Invalid>::value,
-				    Return >::type
+    static std::enable_if_t< !std::is_same<T, Invalid>::value, Return >
     thunk( typename Transform<Args>::type... args ) {
       static_assert( std::is_empty< Tag >::value, "Tags may have no data members" );
       return invoke( Tag(), Transform<Args>::template reverse<T>
@@ -27,11 +26,11 @@ namespace impl__{
     }
 
     template< typename T >
-    static typename std::enable_if< std::is_same<T, Invalid>::value,
-				    Return >::type
+    static std::enable_if_t< std::is_same<T, Invalid>::value, Return >
     thunk( typename Transform<Args>::type... args ) {
       throw invalid_vtable_call();
     }
+
   };
   
   template< typename Invoker, typename pointer_type >
