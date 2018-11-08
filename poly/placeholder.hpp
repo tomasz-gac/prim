@@ -4,7 +4,9 @@
 namespace poly{
 
 template< size_t N >
-struct T_{};
+struct T_{
+  static constexpr size_t index = N;
+};
 
 template< typename T >
 struct is_T : std::false_type{  };
