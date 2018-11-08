@@ -2,11 +2,9 @@
 #define __MULTI_HPP__
 
 #include <tuple>
+#include "wrapper_traits.hpp"
 
 namespace poly{
-
-template< typename T >
-struct is_multi_impl : std::false_type {  };
 
 template< typename... Ts >
 struct Multi{
@@ -14,13 +12,12 @@ struct Multi{
 };
 
 template< typename... Ts >
-struct is_multi_impl<Multi<Ts...>>
-  : std::false_type
-{  };
-
-template< typename T >
-static constexpr bool is_multi =
-  is_multi_impl<std::remove_const_t<std::decay_t<T>>>::value;
+struct wrapper_traits< Multi<Ts...> >{
+  template< size_t index, typename U >
+  static decltype(auto) get(U&& u){
+    return std::get<index>( u.data );
+  }
+};
   
 }
 
