@@ -43,7 +43,9 @@ const T* invoke( cend<T>, const std::vector<U>& vec ){ throw std::runtime_error(
 
 template< typename T >
 struct Iterable
-  : decltype( poly::address_of() + begin<T>() + cbegin<T>() + end<T>() + cend<T>() + poly::copy() + poly::move_noexcept() + poly::destroy() + poly::storage() )
+  : poly::Interface<
+  poly::address_of, poly::copy, poly::move_noexcept, poly::destroy,  poly::storage,
+  begin<T>, cbegin<T>, end<T>, cend<T> >
 {  };
 
 }
@@ -181,7 +183,7 @@ void test_memory_vector_poly( int n = 10000 ){
 namespace memory_test{
 
 struct Storable
-  : decltype( poly::copy() + poly::move() + poly::destroy() + poly::storage() )
+  : poly::Interface< poly::copy, poly::move, poly::destroy, poly::storage >
 {  };
 
 struct A{

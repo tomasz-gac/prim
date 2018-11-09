@@ -80,8 +80,8 @@ private:
     std::conditional_t< all_movable, move_noexcept_interface, poly::Interface<> >;
 
   struct IVariant :
-    decltype( poly::Interface< accept_, poly::storage, poly::destroy >() +
-              copy_interface() + move_interface() )
+    poly::Interface< accept_, poly::storage, poly::destroy >
+  ::template append<copy_interface, move_interface >
   {  };
 
   static constexpr size_t sizes[] = { sizeof(T), sizeof(Ts)... };

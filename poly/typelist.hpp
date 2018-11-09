@@ -131,86 +131,86 @@ constexpr bool contains( const unique_typelist<Ts...>& ){
   return unique_typelist<Ts...>::template contains<T>::value;
 }
 
-namespace impl__{
+// namespace impl__{
 
-template< typename T, typename... Ts >
-struct remove_duplicates;
+// template< typename T, typename... Ts >
+// struct remove_duplicates;
 
-template< typename... Us, typename T, typename... Ts >
-struct remove_duplicates< unique_typelist< Us... >, T, Ts... >
-  : std::conditional_t< !unique_typelist< Us... >::template contains<T>::value,
-                        remove_duplicates< unique_typelist< Us..., T >, Ts... >,
-  			remove_duplicates< unique_typelist< Us... >, Ts... > >
-{  };
+// template< typename... Us, typename T, typename... Ts >
+// struct remove_duplicates< unique_typelist< Us... >, T, Ts... >
+//   : std::conditional_t< !unique_typelist< Us... >::template contains<T>::value,
+//                         remove_duplicates< unique_typelist< Us..., T >, Ts... >,
+//   			remove_duplicates< unique_typelist< Us... >, Ts... > >
+// {  };
 					   
-template< typename... Us >
-struct remove_duplicates< unique_typelist< Us... > >{ using type = unique_typelist< Us... >; };
-};
+// template< typename... Us >
+// struct remove_duplicates< unique_typelist< Us... > >{ using type = unique_typelist< Us... >; };
+// };
 
-template< typename typelist >
-struct remove_duplicates;
+// template< typename typelist >
+// struct remove_duplicates;
 
-template< template< typename... > class typelist, typename... Ts >
-struct remove_duplicates< typelist<Ts...> >
-  : expand< typename impl__::remove_duplicates< unique_typelist<>, Ts... >::type, typelist >
-{  };
+// template< template< typename... > class typelist, typename... Ts >
+// struct remove_duplicates< typelist<Ts...> >
+//   : expand< typename impl__::remove_duplicates< unique_typelist<>, Ts... >::type, typelist >
+// {  };
 
-template< typename typelist  >
-using remove_duplicates_t = typename remove_duplicates< typelist >::type;
+// template< typename typelist  >
+// using remove_duplicates_t = typename remove_duplicates< typelist >::type;
 
-namespace impl__{
+// namespace impl__{
 
-template< typename rhs, typename result, typename... LHS >
-struct diff_unique;
+// template< typename rhs, typename result, typename... LHS >
+// struct diff_unique;
 
-template<
-  typename... RHS, typename... RESULTS,
-  typename L, typename... LHS >
-struct diff_unique< unique_typelist< RHS... >, unique_typelist< RESULTS... >, L, LHS... >
-  : std::conditional_t<
-  unique_typelist< RHS... >::template contains<L>::value,
-  diff_unique< unique_typelist< RHS... >, unique_typelist< RESULTS... >, LHS... >,
-  diff_unique< unique_typelist< RHS... >, unique_typelist< RESULTS..., L >, LHS... >
-  >
-{  };
+// template<
+//   typename... RHS, typename... RESULTS,
+//   typename L, typename... LHS >
+// struct diff_unique< unique_typelist< RHS... >, unique_typelist< RESULTS... >, L, LHS... >
+//   : std::conditional_t<
+//   unique_typelist< RHS... >::template contains<L>::value,
+//   diff_unique< unique_typelist< RHS... >, unique_typelist< RESULTS... >, LHS... >,
+//   diff_unique< unique_typelist< RHS... >, unique_typelist< RESULTS..., L >, LHS... >
+//   >
+// {  };
 
-template< typename... RHS, typename... RESULTS >
-struct diff_unique< unique_typelist< RHS... >, unique_typelist< RESULTS... > >
-{ using type = unique_typelist< RESULTS... >; };
+// template< typename... RHS, typename... RESULTS >
+// struct diff_unique< unique_typelist< RHS... >, unique_typelist< RESULTS... > >
+// { using type = unique_typelist< RESULTS... >; };
 
-};
+// };
 
-template< template< typename... > class typelist, typename... LHS, typename... RHS >
-struct diff_unique< typelist< LHS... >, typelist< RHS... > >
-{
-  using type = expand_t<
-    typename impl__::diff_unique< unique_typelist< RHS... >, unique_typelist<>, LHS... >::type,
-    typelist
-    >;
-};
+// template< template< typename... > class typelist, typename... LHS, typename... RHS >
+// struct diff_unique< typelist< LHS... >, typelist< RHS... > >
+// {
+//   using type = expand_t<
+//     typename impl__::diff_unique< unique_typelist< RHS... >, unique_typelist<>, LHS... >::type,
+//     typelist
+//     >;
+// };
 
-namespace impl__{
-  template< typename lhs, typename... RHS >
-  struct sum_unique;
+// namespace impl__{
+//   template< typename lhs, typename... RHS >
+//   struct sum_unique;
   
-  template< typename... LHS, typename R, typename... RHS >
-  struct sum_unique< unique_typelist< LHS... >, R, RHS... >
-    : std::conditional_t< unique_typelist< LHS... >::template contains<R>::value,
-			  sum_unique< unique_typelist< LHS... >, RHS... >,
-			  sum_unique< unique_typelist< LHS..., R >, RHS... > >
-  {  };
+//   template< typename... LHS, typename R, typename... RHS >
+//   struct sum_unique< unique_typelist< LHS... >, R, RHS... >
+//     : std::conditional_t< unique_typelist< LHS... >::template contains<R>::value,
+// 			  sum_unique< unique_typelist< LHS... >, RHS... >,
+// 			  sum_unique< unique_typelist< LHS..., R >, RHS... > >
+//   {  };
 			 
-  template< typename... LHS >
-  struct sum_unique< unique_typelist< LHS... > >
-  { using type = unique_typelist< LHS... >; };
-};
+//   template< typename... LHS >
+//   struct sum_unique< unique_typelist< LHS... > >
+//   { using type = unique_typelist< LHS... >; };
+// };
 
-template< template< typename... > class typelist, typename... LHS, typename... RHS >
-struct sum_unique< typelist< LHS... >, typelist< RHS... > >
-{
-  using type =
-    expand_t< typename impl__::sum_unique< unique_typelist<LHS...>, RHS... >::type, typelist >;
-};
+// template< template< typename... > class typelist, typename... LHS, typename... RHS >
+// struct sum_unique< typelist< LHS... >, typelist< RHS... > >
+// {
+//   using type =
+//     expand_t< typename impl__::sum_unique< unique_typelist<LHS...>, RHS... >::type, typelist >;
+// };
 
 template<class...> struct disjunction : std::false_type { };
 template<class B1> struct disjunction<B1> : B1 { };

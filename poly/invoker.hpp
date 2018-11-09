@@ -15,10 +15,8 @@ template< typename... Tags >
 struct Interface : tl::unique_typelist<Tags...>{
 public:
   using interface = Interface;
-
-// private:  
-//   static assert_unique_elements< Interface >
-//     assert_unique_tags;
+  template< typename... Ts >
+  using append = Interface< Tags..., Ts... >;
 };
 
 template< typename I >
@@ -26,14 +24,6 @@ using interface_t = typename I::interface;
 
 template< typename T >
 using overloads_t = typename T::overloads;
-
-template< typename... Ts >
-using join_t =
-  tl::remove_duplicates_t< tl::concat_t< Interface<>, interface_t< Ts >... > >;
-
-
-template< typename Interface, typename... Interfaces >
-join_t< Interface, Interfaces... > interface( Interface, Interfaces... ){ return {}; }
 
 template< typename Interface, typename Invoker, typename... Invokers >
 constexpr bool supports(){
@@ -211,15 +201,15 @@ public:
   , poly::overloads<>>;
 };
 
-template< typename... Tags1, typename... Tags2 >
-tl::sum_unique_t< Interface< Tags1...>, Interface<Tags2...> >
-operator+( const Interface< Tags1... >&, const Interface< Tags2... >& )
-{ return {}; }
+// template< typename... Tags1, typename... Tags2 >
+// tl::sum_unique_t< Interface< Tags1...>, Interface<Tags2...> >
+// operator+( const Interface< Tags1... >&, const Interface< Tags2... >& )
+// { return {}; }
 
-template< typename... Tags1, typename... Tags2 >
-tl::diff_unique_t< Interface< Tags1...>, Interface< Tags2... > >
-operator-( const Interface< Tags1... >&, const Interface< Tags2... >& )
-{ return {}; }
+// template< typename... Tags1, typename... Tags2 >
+// tl::diff_unique_t< Interface< Tags1...>, Interface< Tags2... > >
+// operator-( const Interface< Tags1... >&, const Interface< Tags2... >& )
+// { return {}; }
 
 }
 
