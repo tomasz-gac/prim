@@ -19,13 +19,25 @@ using disable_if_same_or_derived =
 
 namespace poly{
 
-template< typename T >
-struct unwrap_{
-  T value;
-};
-
 template< typename VTable >
 class Pointer;
+
+template< typename T >
+class unwrap_{
+public:
+  template< typename VTable >
+  friend class Pointer;
+
+  friend class call_impl;
+
+  template< typename U >
+  unwrap_( U&& v )
+    : value( std::forward<U>(v) )
+  {  }
+  
+private:
+  T value;
+};
 
 template< typename T >
 struct is_unwrap : std::false_type{};
@@ -33,6 +45,62 @@ struct is_unwrap : std::false_type{};
 template< typename T >
 struct is_unwrap< unwrap_< T > > : std::true_type{};
 
+
+  
+class call_impl{
+public:
+  template< typename Invoker, typename... Ts >
+  static decltype(auto) call( Ts&&... vs ){
+    auto& vtable = std::get<0>( get_vtable( std::forward<Ts>(vs)... ) );
+    return vtable.template get<Invoker>()( unwrap( std::forward<Ts>(vs) )... );
+  }
+  
+private:
+  template< typename... Us >
+  static auto get_vtable( Us&&... vs ) {
+    return std::tuple_cat( get_vtable_impl( is_unwrap< std::decay_t<Us> >(), std::forward<Us>(vs) )... );
+  }
+
+  template< typename U >
+  static std::tuple<> get_vtable_impl( std::false_type, U&& v ){
+    return {};
+  }
+
+  template< typename U >
+  static auto get_vtable_impl( std::true_type, U&& v ){
+    return std::tie( v.value.vtable() );
+  }
+  
+  
+  // unwraps the parameter if it is wrapped in unwrap_ struct
+  // If it is, the function returns its cv-reference-qualified erased_t data_ member
+  // Forwards the parameter otherwise
+  template< typename U >
+  static decltype(auto) unwrap( U&& value ) {
+    return unwrap_impl( is_unwrap< std::decay_t<U> >(), std::forward<U>(value) );
+  }
+  
+  template< typename U >
+  static decltype(auto)
+  unwrap_impl( std::false_type, U&& v ) {
+    return std::forward<U>(v);
+  }
+  
+  template< typename U >
+  static decltype(auto) //copy_cv_ref_t<U&&, erased_t >
+  unwrap_impl( std::true_type, U&& v )
+  {
+    using erased_t = decltype(v.value.data_);
+    using unwrapped_t = decltype( v.value );
+    return static_cast< copy_cv_ref_t<unwrapped_t, erased_t > >(v.value.data_);
+  }
+};
+
+template< typename Invoker, typename... Ts >
+decltype(auto) call( Ts&&... vs ){
+  return call_impl::template call<Invoker>( std::forward<Ts>(vs)... );
+}
+  
 template< typename VTable >
 class Pointer
 {
@@ -63,44 +131,46 @@ public:
   Pointer& operator=( const Pointer&  other ) = default;
   Pointer& operator=(       Pointer&& other ) noexcept = default;
 
-  template< typename Invoker, typename = enable_if_supports< Invoker > >
-  auto operator[]( const Invoker& )
-  { return get< Invoker >(); }
+  // template< typename Invoker, typename = enable_if_supports< Invoker > >
+  // auto operator[]( const Invoker& )
+  // { return get< Invoker >(); }
 
-  template< typename Invoker, typename = enable_if_supports< Invoker > >
-  auto operator[]( const Invoker& ) const
-  { return get< Invoker >(); }
+  // template< typename Invoker, typename = enable_if_supports< Invoker > >
+  // auto operator[]( const Invoker& ) const
+  // { return get< Invoker >(); }
 
+  unwrap_<       Pointer& > operator*()       { return { *this }; }
+  unwrap_< const Pointer& > operator*() const { return { *this }; }
   
-  template< typename Invoker, typename = enable_if_supports< Invoker > >
-  auto get()
-  {
-    return [this]( auto&&... args ) -> decltype(auto){
-      return
-	vtable_.template get<Invoker>()
-	  ( data_, unpack( std::forward<decltype(args)>(args) )... );
-    };
-  }
+  // template< typename Invoker, typename = enable_if_supports< Invoker > >
+  // auto get()
+  // {
+  //   return [this]( auto&&... args ) -> decltype(auto){
+  //     return
+  // 	vtable_.template get<Invoker>()
+  // 	  ( data_, unwrap( std::forward<decltype(args)>(args) )... );
+  //   };
+  // }
   
-  template< typename Invoker, typename = enable_if_supports< Invoker > >
-  auto get() const
-  {
-    return [this]( auto&&... args ) -> decltype(auto) {
-      return 
-	vtable_.template get<Invoker>()
-	  ( data_, unpack( std::forward<decltype(args)>(args) )... );
-    };
-  }
+  // template< typename Invoker, typename = enable_if_supports< Invoker > >
+  // auto get() const
+  // {
+  //   return [this]( auto&&... args ) -> decltype(auto) {
+  //     return 
+  // 	vtable_.template get<Invoker>()
+  // 	  ( data_, unwrap( std::forward<decltype(args)>(args) )... );
+  //   };
+  // }
 
-  template< typename Invoker, typename... Args, typename = enable_if_supports< Invoker > >
-  decltype(auto) call( Args&&... args ){
-    return get<Invoker>()( std::forward<Args>(args)... );
-  }
+  // template< typename Invoker, typename... Args, typename = enable_if_supports< Invoker > >
+  // decltype(auto) call( Args&&... args ){
+  //   return get<Invoker>()( std::forward<Args>(args)... );
+  // }
 
-  template< typename Invoker, typename... Args, typename = enable_if_supports< Invoker > >
-  decltype(auto) call( Args&&... args ) const {
-    return get<Invoker>()( std::forward<Args>(args)... );
-  }
+  // template< typename Invoker, typename... Args, typename = enable_if_supports< Invoker > >
+  // decltype(auto) call( Args&&... args ) const {
+  //   return get<Invoker>()( std::forward<Args>(args)... );
+  // }
 
         implementation& vtable()       { return vtable_; }
   const implementation& vtable() const { return vtable_; }
@@ -132,41 +202,9 @@ private:
   template< typename I >
   friend class Pointer;
 
-  // unwraps the parameter if it is wrapped in unwrap_ struct
-  // If it is, the function returns its cv-reference-qualified erased_t data_ member
-  // Forwards the parameter otherwise
-  template< typename U >
-  static decltype(auto) unpack( U&& value ){
-    return unpack_impl( is_unwrap< std::decay_t<U> >(), std::forward<U>(value) );
-  }
-  
-  template< typename U >
-  static decltype(auto)
-  unpack_impl( std::false_type, U&& v ){
-    return std::forward<U>(v);
-  }
-  
-  template< typename U >
-  static copy_cv_ref_t<U&&, erased_t >
-  unpack_impl( std::true_type, U&& v )
-  {
-    return static_cast< copy_cv_ref_t<U&&, erased_t > >(v.value.data_);
-  }
-  
+  friend class call_impl;
 };
-#define DEFINE_UNWRAP__( CLASS )				\
-  template< typename VTable >                                   \
-  auto unwrap( CLASS v ){ return unwrap_<CLASS>{static_cast<CLASS>(v)}; }
 
-DEFINE_UNWRAP__(                Pointer<VTable>& )  
-DEFINE_UNWRAP__( const          Pointer<VTable>& )  
-DEFINE_UNWRAP__(                Pointer<VTable>&& )  
-DEFINE_UNWRAP__( const          Pointer<VTable>&& )  
-DEFINE_UNWRAP__(       volatile Pointer<VTable>& )  
-DEFINE_UNWRAP__( const volatile Pointer<VTable>& )  
-DEFINE_UNWRAP__(       volatile Pointer<VTable>&& )  
-DEFINE_UNWRAP__( const volatile Pointer<VTable>&& )  
-  
 }  
 
   

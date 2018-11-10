@@ -56,12 +56,12 @@ private:
 
   template< typename T_ >
   friend void invoke( accept_, T_& visited, Visitor& visitor ){ 
-    visit<T_>::call( visitor, visited);
+    poly::call<visit<T_>>( *visitor, visited);
  }
 
   template< typename T_ >
   friend void invoke( accept_, const T_& visited, Visitor& visitor ){
-    visit<const T_>::call( visitor, visited);
+    poly::call<visit<const T_>>( *visitor, visited);
   }
 
 private:
@@ -110,13 +110,13 @@ public:
   template< typename F >
   void accept( F&& f ){
     Visitor v{ f };
-    accept_::call( value_, v );
+    poly::call<accept_>( *value_, v );
   }
 
   template< typename F >
   void accept( F&& f ) const {
     Visitor v{ f };
-    accept_::call( value_, v);
+    poly::call<accept_>( *value_, v);
   }
 
   template< typename Return, typename F >
@@ -126,7 +126,7 @@ public:
       result.emplace( f( std::forward<decltype(visited)>(visited) ) );
     };
     Visitor visitor{ v };
-    accept_::call( value_, visitor);
+    poly::call<accept_>( *value_, visitor);
     return result.get();
   }
 
@@ -137,7 +137,7 @@ public:
       result.emplace( f( std::forward<decltype(visited)>(visited) ) );
     };
     Visitor visitor{ v };
-    accept_::call( value_, visitor);
+    poly::call<accept_>( *value_, visitor);
     return result.get();
   }
 

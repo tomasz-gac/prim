@@ -8,6 +8,15 @@
 
 #include <chrono>
 
+struct Q : poly::declare< Q, void( poly::T&, poly::T& ) >
+{  };
+
+template< typename T >
+void invoke( Q, T& v, T& u ){
+  std::cout << v << std::endl;
+  std::cout << u << std::endl;
+}
+
 int main()
 {
   auto start = std::chrono::high_resolution_clock::now();

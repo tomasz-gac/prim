@@ -15,10 +15,10 @@ using JT = poly::JumpVT< JVT_test, int, float, double, int& >;
 
 template< typename C, typename I >
 void check_call( C&& c, const I& i ){
-  auto info = c.template call<poly::storage>();
+  auto info = poly::call<poly::storage>( *c );
   assert( sizeof(i) == info.size );
   assert( alignof(i) == info.alignment );
-  assert( c.template call<as<I>>() == i );
+  assert( poly::call<as<I>>( *c ) == i );
 }
 
 int test_JumpVTable()

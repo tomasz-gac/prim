@@ -6,26 +6,26 @@
 
 namespace poly{
 
-struct copy : Invoker< copy, void (const poly::T&,  void*) >{ };
+struct copy : declare< copy, void (const poly::T&,  void*) >{ };
 
 template< bool is_noexcept >
-struct move_ : Invoker< move_<is_noexcept>, void (    T&,  void* ) >{ };
+struct move_ : declare< move_<is_noexcept>, void (    T&,  void* ) >{ };
 
 using move = move_<false>;
 using move_noexcept = move_<true>;
 
-struct destroy : Invoker< destroy, void ( const T& ) >{  };
+struct destroy : declare< destroy, void ( const T& ) >{  };
 
-struct assign      : Invoker< assign     , void ( T&, forward<T> ) > {  };
-struct move_assign : Invoker< move_assign, void ( T&,       T&& ) > {  };
-struct copy_assign : Invoker< move_assign, void ( T&, const T&  ) > {  };
+struct assign      : declare< assign     , void ( T&, forward<T> ) > {  };
+struct move_assign : declare< move_assign, void ( T&,       T&& ) > {  };
+struct copy_assign : declare< move_assign, void ( T&, const T&  ) > {  };
 
-struct type_id : Invoker< type_id, const std::type_info& ( const T& ) >{  };
+struct type_id : declare< type_id, const std::type_info& ( const T& ) >{  };
 
 struct storage_info;
-struct storage : Invoker< storage, storage_info ( const T& ) >{  };
+struct storage : declare< storage, storage_info ( const T& ) >{  };
 
-struct address_of : Invoker< address_of, const void*( const T& )>{  };
+struct address_of : declare< address_of, const void*( const T& )>{  };
 
 template< typename T >
 void invoke( copy, const T& v, void* ptr ){ new (ptr) T( v ); }

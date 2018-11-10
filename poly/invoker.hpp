@@ -48,21 +48,10 @@ private:
 public:
   using overloads = typename generate_overloads::type;
 
-  template< typename Object, typename... Ts >
-  static decltype(auto) call( Object&& obj, Ts&&... vs ){
-    return std::forward<Object>(obj).template call<Tag>( std::forward<Ts>(vs)... );
-  }
-
-  template< typename Object >
-  static decltype(auto) get( Object&& obj ){
-    return std::forward<Object>(obj).template get<Tag>();
-  }
-
-  // template< typename... Ts >
-  // static Return invoke( Ts&&... args ){
-  //   return ::invoke( Tag(), std::forward<Ts>(args)... );
-  // }
 };
+
+template< typename Tag, typename... Ts >
+using declare = Invoker< Tag, Ts... >;
 
 // Type that encodes a set of overloaded operations
 template< typename Tag, typename Sig, typename... Sigs >
@@ -73,16 +62,6 @@ struct Invoker< Tag, Sig, Sigs... >
 public:
   using overloads = tl::concat_t<
     overloads_t< Invoker< Tag, Sig> >, overloads_t<Invoker< Tag, Sigs>>... >;
-
-  template< typename Object, typename... Ts >
-  static decltype(auto) call( Object&& obj, Ts&&... vs ){
-    return std::forward<Object>(obj).template call<Tag>( std::forward<Ts>(vs)... );
-  }
-
-  template< typename Object >
-  static decltype(auto) get( Object&& obj ){
-    return std::forward<Object>(obj).template get<Tag>();
-  }
 };
 
 template< typename T >
