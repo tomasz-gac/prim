@@ -17,15 +17,19 @@ public:
   { return "Attempted access to empty Maybe"; }
 };
 
-template< typename T__, typename Alloc = poly::StackAllocator< sizeof(T__), alignof(T__) > >
+template< typename T >
+using Maybe_ref_ =
+  std::conditional_t<
+    std::is_reference<T>::value,
+    std::reference_wrapper< std::decay_t<T> >,
+    std::decay_t<T>
+  >;
+
+template< typename T__, typename Alloc = poly::StackAllocator< sizeof(Maybe_ref_<T__>), alignof(Maybe_ref_<T__>) > >
 class Maybe{
 private:
   using Empty = impl__::Empty_maybe;
-  using T = std::conditional_t<
-    std::is_reference<T__>::value,
-    std::reference_wrapper< std::decay_t<T__> >,
-    std::decay_t<T__>
-    >;
+  using T = Maybe_ref_<T__>;
 
   struct Get :
     poly::Invoker< Get,
