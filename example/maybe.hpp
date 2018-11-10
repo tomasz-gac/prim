@@ -17,7 +17,7 @@ public:
   { return "Attempted access to empty Maybe"; }
 };
 
-template< typename T__ >
+template< typename T__, typename Alloc = poly::StackAllocator< sizeof(T__), alignof(T__) > >
 class Maybe{
 private:
   using Empty = impl__::Empty_maybe;
@@ -42,8 +42,7 @@ private:
     : poly::Interface< Get, poly::copy, poly::move, poly::destroy, poly::storage >
   {  };
   
-  using Value_t = poly::Value< poly::JumpVT< Interface, T, Empty >,
-			       poly::StackAllocator< sizeof(T), alignof(T) > >;
+  using Value_t = poly::Value< poly::JumpVT< Interface, T, Empty >, Alloc >;
 public:
   Maybe()
     : value_{ in_place<Empty>() }{  }
