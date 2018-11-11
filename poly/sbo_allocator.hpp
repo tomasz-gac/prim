@@ -70,7 +70,7 @@ public:
   
 
 private:
-  poly::Pointer< vtable_t > this_;
+  poly::pointer< vtable_t > this_;
 };
 
 template<size_t s1, size_t a1, size_t s2, size_t a2>

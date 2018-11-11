@@ -50,8 +50,8 @@ struct Iterable
 
 }
 
-template< typename T, typename Value_t >
-void test_values( const std::vector<T>& numbers, const Value_t& poly )
+template< typename T, typename value_t >
+void test_values( const std::vector<T>& numbers, const value_t& poly )
 {
   using namespace memory_test;
   
@@ -67,8 +67,8 @@ template< template< typename... > class VT_t, typename Alloc >
 void test_memory_vector( int n = 10000  ){
   using namespace memory_test;
 
-  using Value_t = poly::Value< VT_t<Iterable<Guard<int>>>, Alloc >;
-  static_assert( Value_t::nothrow_move,//std::is_nothrow_move_constructible<Value_t>::value,
+  using value_t = poly::value< VT_t<Iterable<Guard<int>>>, Alloc >;
+  static_assert( value_t::nothrow_move,//std::is_nothrow_move_constructible<value_t>::value,
    		 "Poly falsly assumed to be nothrow constructible" );
 
   Tracker tracker;
@@ -79,7 +79,7 @@ void test_memory_vector( int n = 10000  ){
       numbers.emplace_back( tracker, i );
     assert( tracker.objects.count() == n );
     
-    auto p = Value_t{ in_place<decltype(numbers)>(), numbers };
+    auto p = value_t{ in_place<decltype(numbers)>(), numbers };
     assert( tracker.objects.count() == 2*n );
     assert( tracker.copies.count() == n );
     assert( tracker.moves.count() == 0 );
@@ -90,7 +90,7 @@ void test_memory_vector( int n = 10000  ){
 
     test_values( numbers, p );
   
-    Value_t p2 = std::move(p);
+    value_t p2 = std::move(p);
     assert( tracker.objects.count() == 2*n );
     assert( tracker.copies.count() == n );
     assert( tracker.moves.count() == 0 );
@@ -135,11 +135,11 @@ void test_memory_vector_poly( int n = 10000 ){
 
   Tracker tracker;
   using convertible = convertible_to< int, float, double, bool >;
-  using Value_t = poly::Value< VT_t< convertible>, Alloc >;
-  static_assert( std::is_nothrow_move_constructible<Value_t>::value,
+  using value_t = poly::value< VT_t< convertible>, Alloc >;
+  static_assert( std::is_nothrow_move_constructible<value_t>::value,
   		 "Poly falsly assumed to be nothrow constructible" );
   {
-    std::vector< Value_t > p, p_move;
+    std::vector< value_t > p, p_move;
     p.reserve(n);
     for( int i = 0; i < n; ++i )
       p.emplace_back( in_place<Guard<int>>(), tracker, 1 );
@@ -147,12 +147,12 @@ void test_memory_vector_poly( int n = 10000 ){
     assert( tracker.copies.count() == 0 );
     assert( tracker.moves.count() == 0 );
 
-    p_move.resize( p.size(), Value_t( in_place<Guard<int>>(), tracker, 0 ) );
+    p_move.resize( p.size(), value_t( in_place<Guard<int>>(), tracker, 0 ) );
     assert( tracker.objects.count() == (p_move.size()+p.size()) );
     assert( tracker.copies.count() == n );
     assert( tracker.moves.count() == 0 );
     tracker.copies.reset();
-    p_move.resize(0, Value_t( in_place<Guard<int>>(), tracker, 0 ));
+    p_move.resize(0, value_t( in_place<Guard<int>>(), tracker, 0 ));
 
     std::move( p.begin(), p.end(), std::back_inserter(p_move) );
     if( poly::allocator_traits< Alloc, Alloc >::optimize_move ){
@@ -201,10 +201,10 @@ void test_memory_invalid()
   using namespace memory_test;
 
   Tracker tracker;
-  using Value_t = poly::Value< VT_t<Storable>, Alloc >;
+  using value_t = poly::value< VT_t<Storable>, Alloc >;
   {
-    Value_t t{ in_place<Guard<A>>(), tracker };
-    Value_t t2{ in_place<Guard<A>>(), tracker};
+    value_t t{ in_place<Guard<A>>(), tracker };
+    value_t t2{ in_place<Guard<A>>(), tracker};
     try{
       t = std::move(t2);
     } catch (std::logic_error e){    }
@@ -233,8 +233,8 @@ void test_memory_invalid()
     		   "Poly falsly assumed to be not nothrow copy constructible" );
     static_assert( !std::is_nothrow_copy_constructible<decltype(t)>::value,
     		   "Poly falsly assumed to be not nothrow copy constructible" );
-    Value_t t3{ t };
-    Value_t t4{ std::move(t3) };
+    value_t t3{ t };
+    value_t t4{ std::move(t3) };
     if( poly::allocator_traits< Alloc, Alloc >::optimize_move ){
       if( std::is_same< Alloc, poly::HeapAllocator >::value ){	      
 	assert( t3.valueless_by_exception() );

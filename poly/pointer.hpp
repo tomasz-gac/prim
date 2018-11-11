@@ -20,10 +20,10 @@ using disable_if_same_or_derived =
 namespace poly{
 
 template< typename VTable >
-class Pointer;
+class pointer;
   
 template< typename VTable >
-class Pointer
+class pointer
 {
 public:
   using implementation = impl_t<VTable>;
@@ -45,16 +45,12 @@ protected:
 public:
 
   template< typename T >
-  Pointer& operator=( T* v ){
-    return *this = Pointer( v );
+  pointer& operator=( T* v ){
+    return *this = pointer( v );
   }
   
-  Pointer& operator=( const Pointer&  other ) = default;
-  Pointer& operator=(       Pointer&& other ) noexcept = default;
-
-  // unwrap_<       Pointer&  > operator*()       { return { *this }; }
-  // unwrap_< const Pointer&  > operator*() const { return { *this }; }
-  // unwrap_<       Pointer&& > operator*() && { return { *this }; }
+  pointer& operator=( const pointer&  other ) = default;
+  pointer& operator=(       pointer&& other ) noexcept = default;
 
         implementation& vtable()       { return vtable_; }
   const implementation& vtable() const { return vtable_; }
@@ -62,29 +58,29 @@ public:
         pointer_type& value()       { return data_.data; }
   const pointer_type& value() const { return data_.data; }
 
-  Pointer()
+  pointer()
     : vtable_( implementation::template make< Invalid >() )
     , data_{ nullptr }
   {  }
 
   template< typename T >
-  Pointer( T* v )
+  pointer( T* v )
     : vtable_( implementation::template make< T >() )
     , data_{ Transform<poly::T>::apply(v) }
   {  }
 
-  Pointer( const Pointer& ) = default;
-  Pointer( Pointer&& ) noexcept = default;
+  pointer( const pointer& ) = default;
+  pointer( pointer&& ) noexcept = default;
 
   template< typename OtherImplementation >
-  Pointer( const Pointer< OtherImplementation >& other )
+  pointer( const pointer< OtherImplementation >& other )
     : vtable_( other.vtable_ )
     , data_( other.data_ )
   {  }
 
 private:
   template< typename I >
-  friend class Pointer;
+  friend class pointer;
 
   friend class call_impl;
 
@@ -167,23 +163,23 @@ decltype(auto) call( Ts&&... vs ){
 }
 
 
-  // Unary * operator for wrapping Pointers in unwrap_ with proper cv-ref qualification
+  // Unary * operator for wrapping pointers in unwrap_ with proper cv-ref qualification
 template< typename Impl >
-unwrap_<       Pointer<Impl>&  > operator*(       Pointer<Impl>& ptr ){ return {ptr}; }
+unwrap_<       pointer<Impl>&  > operator*(       pointer<Impl>& ptr ){ return {ptr}; }
 template< typename Impl >
-unwrap_< const Pointer<Impl>&  > operator*( const Pointer<Impl>& ptr ){ return {ptr}; }
+unwrap_< const pointer<Impl>&  > operator*( const pointer<Impl>& ptr ){ return {ptr}; }
 template< typename Impl >
-unwrap_<       Pointer<Impl>&& > operator*(       Pointer<Impl>&& ptr ){ return {std::move(ptr)}; }
+unwrap_<       pointer<Impl>&& > operator*(       pointer<Impl>&& ptr ){ return {std::move(ptr)}; }
 template< typename Impl >
-unwrap_< const Pointer<Impl>&& > operator*( const Pointer<Impl>&& ptr ){ return {std::move(ptr)}; }
+unwrap_< const pointer<Impl>&& > operator*( const pointer<Impl>&& ptr ){ return {std::move(ptr)}; }
 template< typename Impl >
-unwrap_< volatile Pointer<Impl>&  > operator*( volatile Pointer<Impl>& ptr ){ return {ptr}; }
+unwrap_< volatile pointer<Impl>&  > operator*( volatile pointer<Impl>& ptr ){ return {ptr}; }
 template< typename Impl >
-unwrap_< const volatile Pointer<Impl>&  > operator*( const volatile Pointer<Impl>& ptr ){ return {ptr}; }
+unwrap_< const volatile pointer<Impl>&  > operator*( const volatile pointer<Impl>& ptr ){ return {ptr}; }
 template< typename Impl >
-unwrap_< volatile Pointer<Impl>&& > operator*(       volatile Pointer<Impl>&& ptr ){ return {std::move(ptr)}; }
+unwrap_< volatile pointer<Impl>&& > operator*(       volatile pointer<Impl>&& ptr ){ return {std::move(ptr)}; }
 template< typename Impl >
-unwrap_< const volatile Pointer<Impl>&& >operator*( const volatile Pointer<Impl>&& ptr ){ return {std::move(ptr)}; }
+unwrap_< const volatile pointer<Impl>&& >operator*( const volatile pointer<Impl>&& ptr ){ return {std::move(ptr)}; }
   
 }  
 

@@ -46,7 +46,7 @@ private:
     poly::Interface< visit<T>, visit<Ts>... >
   {  };
 
-  using Visitor       = poly::Reference< poly::LocalVT<IVisitor> >;
+  using Visitor       = poly::reference< poly::LocalVT<IVisitor> >;
 
   struct accept_
     : poly::Invoker< accept_,
@@ -88,7 +88,7 @@ private:
   
   using variant_allocator_t = poly::StackAllocator< size, align >;
   using variant_vtable_t    = poly::JumpVT< IVariant, T, Ts... >;
-  using variant_value_t     = poly::Value< variant_vtable_t, variant_allocator_t >;
+  using variant_value_t     = poly::value< variant_vtable_t, variant_allocator_t >;
   
 public:
   template< typename U, typename... Args >

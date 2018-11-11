@@ -40,7 +40,7 @@ int test_JumpVTable()
   int& i_r = j;
   poly::Invalid& inv = poly::Invalid::get();
 
-  poly::Pointer< JT > v = &i;
+  poly::pointer< JT > v = &i;
   check_call( v, i );
   v = &f;
   check_call( v, f );

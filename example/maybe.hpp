@@ -46,7 +46,7 @@ private:
     : poly::Interface< Get, poly::copy, poly::move, poly::destroy, poly::storage >
   {  };
   
-  using Value_t = poly::Value< poly::JumpVT< Interface, T, Empty >, Alloc >;
+  using value_t = poly::value< poly::JumpVT< Interface, T, Empty >, Alloc >;
 public:
   Maybe()
     : value_{ in_place<Empty>() }{  }
@@ -66,7 +66,7 @@ public:
   bool empty(){ return value_.vtable().index() == 1; }
 
 private:
-  Value_t value_;
+  value_t value_;
 };
 
 void test_maybe(){

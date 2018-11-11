@@ -15,7 +15,7 @@ template< typename Implementation, typename Allocator, bool enable_copy, bool en
 struct value_construct;
 
 template< typename Impl, typename Alloc>
-class value_construct_impl;
+class value_impl;
 
 struct value_cast_tag {};
 
@@ -27,12 +27,12 @@ using value_base = value_construct< Impl, Alloc,
 
 
 template< typename Impl, typename Alloc = HeapAllocator >
-class Value
+class value
   : public value_base< Impl, Alloc >
 {
 private:
   using base = value_base< Impl, Alloc >;
-  using reference = Reference< Impl >;
+  using reference = reference< Impl >;
 
 public:
   using implementation = impl_t<Impl>;
@@ -48,65 +48,65 @@ public:
   using base::emplace;
 
   
-  Value( in_place<Invalid> ) = delete;
+  value( in_place<Invalid> ) = delete;
 
   template< typename T, typename... Args >
-  Value( in_place<T> p, Args&&... args )
+  value( in_place<T> p, Args&&... args )
     : base( p, std::forward<Args>(args)... )
   {  }
 
-  Value( const Value&  ) noexcept(nothrow_copy) = default;
-  Value(       Value&& ) noexcept(nothrow_move) = default;
+  value( const value&  ) noexcept(nothrow_copy) = default;
+  value(       value&& ) noexcept(nothrow_move) = default;
   
   template< typename Alloc_ >
-  Value( const Value< Impl, Alloc_ >& other  )
+  value( const value< Impl, Alloc_ >& other  )
     noexcept( nothrow_copy )    
     : base( value_cast_tag(), other )
   {  }
 
   template< typename Alloc_ >
-  Value(       Value< Impl, Alloc_ >&& other )
+  value(       value< Impl, Alloc_ >&& other )
     noexcept( nothrow_move )
     : base( value_cast_tag(), std::move(other) )
   {  }
 
-  Value& operator=( const Value& other )
+  value& operator=( const value& other )
     noexcept(nothrow_copy_assign) = default;
   
-  Value& operator=( Value&& other )
+  value& operator=( value&& other )
     noexcept(nothrow_move_assign) = default;
 
   template< typename Alloc_ >
-  Value& operator=( const Value<Impl, Alloc_>& other )
+  value& operator=( const value<Impl, Alloc_>& other )
     noexcept( nothrow_copy_assign )
   {
-    static_cast<base&>(*this) = static_cast<const typename Value<Impl,Alloc>::base&>(other);
+    static_cast<base&>(*this) = static_cast<const typename value<Impl,Alloc>::base&>(other);
     return *this;
   }
 
   template< typename Alloc_ >
-  Value& operator=(        Value<Impl, Alloc_>&& other )
+  value& operator=(        value<Impl, Alloc_>&& other )
     noexcept( nothrow_move_assign )
   {
-    static_cast<base&>(*this) = static_cast<typename Value<Impl,Alloc>::base&&>(other);
+    static_cast<base&>(*this) = static_cast<typename value<Impl,Alloc>::base&&>(other);
     return *this;
   }
 
-  explicit operator Pointer< Impl >() const {
-    return { static_cast<const Pointer<Impl>&>(*this) };
+  explicit operator pointer< Impl >() const {
+    return { static_cast<const pointer<Impl>&>(*this) };
   }
 
   template< typename, typename >
-  friend class Value;
+  friend class value;
 };
 
   
 template< typename Impl, typename Alloc>
-class value_construct_impl
-  : public Alloc, public Reference< Impl >
+class value_impl
+  : public Alloc, public reference< Impl >
 {
 public:
-  using Reference_t = Reference< Impl >;
+  using reference_t = reference< Impl >;
   using Alloc_t = Alloc;
 
   static constexpr bool move_is_noexcept = 
@@ -130,37 +130,37 @@ protected:
   void emplace( Args&&... args ){
     static_assert( !std::is_same<T,Invalid>::value, "Cannot construct objects of type Invalid" );
     this->reset();
-    this->Reference_t::operator=( allocate_construct<T>( std::forward<Args>(args)... ) );
+    this->reference_t::operator=( allocate_construct<T>( std::forward<Args>(args)... ) );
   }
   
   template< typename T, typename... Args >
-  value_construct_impl( in_place<T>, Args&&... args )
+  value_impl( in_place<T>, Args&&... args )
     : Alloc()
-    , Reference_t( this->allocate_construct<T>( std::forward<Args>(args)... ) )
+    , reference_t( this->allocate_construct<T>( std::forward<Args>(args)... ) )
   {  }
 
-  value_construct_impl( value_construct_impl&& other ) noexcept( nothrow_move )
-    : value_construct_impl( value_cast_tag(), std::move(other) )
+  value_impl( value_impl&& other ) noexcept( nothrow_move )
+    : value_impl( value_cast_tag(), std::move(other) )
   {  } 
 
-  value_construct_impl( const value_construct_impl& other ) noexcept( nothrow_copy )
-    : value_construct_impl( value_cast_tag(), other)
+  value_impl( const value_impl& other ) noexcept( nothrow_copy )
+    : value_impl( value_cast_tag(), other)
   {  }
 
   
 
   template< typename Alloc_ >
-  value_construct_impl( value_cast_tag, const value_construct_impl<Impl, Alloc_>& other  )
-    : Alloc(), Reference_t(static_cast<const Reference<Impl>&>(other))
+  value_impl( value_cast_tag, const value_impl<Impl, Alloc_>& other  )
+    : Alloc(), reference_t(static_cast<const reference<Impl>&>(other))
   {
     this->construct_from<copy>( other );
   }
 
   
   template< typename Alloc_ >
-  value_construct_impl( value_cast_tag, value_construct_impl<Impl, Alloc_>&& other  )
+  value_impl( value_cast_tag, value_impl<Impl, Alloc_>&& other  )
     noexcept( nothrow_move )
-    : Alloc(), Reference_t( static_cast<Reference<Impl>&&>(other) )
+    : Alloc(), reference_t( static_cast<reference<Impl>&&>(other) )
   {
     using optimize_move =
       std::integral_constant< bool, allocator_traits<Alloc_t, Alloc_t>::optimize_move >;
@@ -168,17 +168,17 @@ protected:
     optimized_move_construct( optimize_move(), std::move(other) );
   }
 
-  ~value_construct_impl(){ this->reset(); }
+  ~value_impl(){ this->reset(); }
   
   template< typename Alloc_ >
-  value_construct_impl& operator=( const value_construct_impl<Impl, Alloc_>& other )
+  value_impl& operator=( const value_impl<Impl, Alloc_>& other )
     noexcept( nothrow_copy_assign )
   {
     return this->assign<copy>( other );
   }
 
   template< typename Alloc_ >
-  value_construct_impl& operator=(  value_construct_impl<Impl, Alloc_>&& other )
+  value_impl& operator=(  value_impl<Impl, Alloc_>&& other )
     noexcept( nothrow_move_assign )
   {
     using optimize_move =
@@ -186,13 +186,13 @@ protected:
     return optimized_move_assign( optimize_move(), std::move(other) );
   }
 
-  value_construct_impl& operator=( const value_construct_impl& other )
+  value_impl& operator=( const value_impl& other )
     noexcept( nothrow_copy_assign )
   {
     return this->assign<copy>( other );
   }
 
-  value_construct_impl& operator=( value_construct_impl&& other )
+  value_impl& operator=( value_impl&& other )
     noexcept( nothrow_move_assign )
   {
     using optimize_move =
@@ -201,15 +201,15 @@ protected:
   }
 
   template< typename I, typename A >
-  friend class value_construct_impl;  //For Alloc casting
+  friend class value_impl;  //For Alloc casting
 
 private:
   // Assigns from other
   // calls operation (poly::move, poly::move_noexcept, poly::copy)
   template< typename operation, typename Other >
-  value_construct_impl& assign( Other&& other ){
+  value_impl& assign( Other&& other ){
     this->reset();
-    this->Reference_t::operator=( std::forward<Other>(other) ); // copy or move the vtable
+    this->reference_t::operator=( std::forward<Other>(other) ); // copy or move the vtable
     this->construct_from<operation>( std::forward<Other>(other));
     return *this;
   }
@@ -217,12 +217,12 @@ private:
   // Overload for move optimization
   // Selected when allocator defines optimize_move trait
   template< typename Other >
-  value_construct_impl& optimized_move_assign( std::true_type /*optimize move*/ , Other&& other ){
+  value_impl& optimized_move_assign( std::true_type /*optimize move*/ , Other&& other ){
     Alloc_t& this_ = *this;
     typename Other::Alloc_t& other_ = other;
     if( other_.move_to( this_ ) ){
       this->reset();
-      this->Reference_t::operator=( std::move(other) );
+      this->reference_t::operator=( std::move(other) );
       other.invalidate();
       return *this;
     } else {
@@ -232,7 +232,7 @@ private:
 
   //No optimization
   template< typename Other >
-  value_construct_impl& optimized_move_assign( std::false_type /*optimize move*/ , Other&& other ){
+  value_impl& optimized_move_assign( std::false_type /*optimize move*/ , Other&& other ){
     return this->assign<move_tag>( std::move(other) );
   }
 
@@ -289,12 +289,12 @@ private:
   //Does not handle the VTable
   // WARNING : assumes the object to be empty
   template< typename T, typename... Args >
-  Reference_t allocate_construct( Args&&... args ){
+  reference_t allocate_construct( Args&&... args ){
     void* ptr = nullptr;
     try{
       ptr = this->allocate( storage_info::template get<T>() );
       new (ptr) T(std::forward<Args>(args)...);
-      return Reference_t( *reinterpret_cast<T*>(ptr) );
+      return reference_t( *reinterpret_cast<T*>(ptr) );
     } catch(...) {
       if( ptr != nullptr ){
 	this->deallocate( ptr );
@@ -321,16 +321,16 @@ private:
   //Function sets the object in an invalid state
   // WARNING : assumes the object to be empty
   void invalidate(){
-    this->Reference_t::operator=({ Invalid::get() });
+    this->reference_t::operator=({ Invalid::get() });
   }
 };
 
 template< typename Impl, typename Alloc>
 struct value_construct< Impl, Alloc, true, true >
-  : value_construct_impl< Impl, Alloc >
+  : value_impl< Impl, Alloc >
 {
 private:
-  using base = value_construct_impl< Impl, Alloc >;
+  using base = value_impl< Impl, Alloc >;
   
 public:
   template< typename T, typename... Args >
@@ -360,10 +360,10 @@ public:
 
 template< typename Impl, typename Alloc>
 struct value_construct< Impl, Alloc, false, true >
-  : value_construct_impl< Impl, Alloc >
+  : value_impl< Impl, Alloc >
 {
 private:
-  using base = value_construct_impl< Impl, Alloc >;
+  using base = value_impl< Impl, Alloc >;
 
 public:
   template< typename T, typename... Args >
@@ -389,13 +389,13 @@ public:
 
 template< typename Impl, typename Alloc>
 struct value_construct< Impl, Alloc, true, false >
-  : value_construct_impl< Impl, Alloc >
+  : value_impl< Impl, Alloc >
 {
 private:
-  using base = value_construct_impl< Impl, Alloc >;
+  using base = value_impl< Impl, Alloc >;
 
   template< typename Alloc_ >
-  using other_base = value_construct_impl< Impl, Alloc_ >;
+  using other_base = value_impl< Impl, Alloc_ >;
 public:
   template< typename T, typename... Args >
   value_construct( in_place<T> p, Args&&... args )
@@ -420,10 +420,10 @@ public:
 
 template< typename Impl, typename Alloc>
 struct value_construct< Impl, Alloc, false, false >
-  : value_construct_impl< Impl, Alloc >
+  : value_impl< Impl, Alloc >
 {
 private:
-  using base = value_construct_impl< Impl, Alloc >;
+  using base = value_impl< Impl, Alloc >;
 public:
   template< typename T, typename... Args >
   value_construct( in_place<T> p, Args&&... args )
