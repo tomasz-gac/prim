@@ -6,32 +6,13 @@
 
 namespace poly{
 
-template< typename Ptr >
-struct Erased;
-
-template< typename Ptr >
-struct Erased< Ptr* >
-{
-  using pointer_type = Ptr*;
-  pointer_type data;
-};
-
-template< typename SignatureT, typename Ptr_t = void*>
-struct Erase;
-
-template< typename SignatureT >
-struct Erase< SignatureT, void* >{
+template< typename SignatureT, typename erased_t>
+struct Erase{
   static constexpr bool is_placeholder = is_placeholder< SignatureT >::value;  
-  using pointer_type = void*;
   // copy_cv_ref_t required for proper overload resolution of parameters
   using type = std::conditional_t< is_placeholder,
-				   copy_cv_ref_t< SignatureT, Erased< pointer_type > >,
+				   copy_cv_ref_t< SignatureT, erased_t >,
 				   SignatureT >;
-
-  template< typename T >
-  static Erased<pointer_type> apply( T* ptr ){
-    return { reinterpret_cast<pointer_type>(ptr) };
-  }
 
   template< typename ActualT, typename T >
   static decltype(auto) reverse( T&& data ){
@@ -44,7 +25,7 @@ private:
   // If SignatureT is placeholder:
   // Unerase data given ActualT and pass to unwrap
   template< typename ActualT >
-  static decltype(auto) reverse_impl( Erased<pointer_type> data, std::true_type /*is_placeholder*/ ){
+  static decltype(auto) reverse_impl( erased_t data, std::true_type /*is_placeholder*/ ){
     using cv_ActualT = copy_cv_t< noref_SignatureT, std::decay_t<ActualT> >;
     return unwrap( *reinterpret_cast<cv_ActualT*>(data.data) );
   }

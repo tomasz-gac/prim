@@ -26,21 +26,20 @@ template< typename VTable >
 class pointer
 {
 public:
-  using implementation = impl_t<VTable>;
+  using implementation = VTable;
   using interface = interface_t<implementation>;
-  using pointer_type = typename VTable::pointer_type;
+  using erased_type = typename VTable::erased_type;
 
 private:
   template< typename Invoker >
   using enable_if_supports = std::enable_if_t< supports<interface, Invoker>() >;
 
 protected:
-  using erased_t = Erased<pointer_type>;
   template< typename SignatureT >
-  using Transform = Erase<SignatureT, pointer_type>;
+  using Transform = Erase<SignatureT, erased_type>;
   
   implementation vtable_;
-  erased_t data_;
+  erased_type data_;
 
 public:
 
@@ -55,8 +54,8 @@ public:
         implementation& vtable()       { return vtable_; }
   const implementation& vtable() const { return vtable_; }
 
-        pointer_type& value()       { return data_.data; }
-  const pointer_type& value() const { return data_.data; }
+        erased_type& value()       { return data_; }
+  const erased_type& value() const { return data_; }
 
   pointer()
     : vtable_( implementation::template make< Invalid >() )
@@ -66,7 +65,7 @@ public:
   template< typename T >
   pointer( T* v )
     : vtable_( implementation::template make< T >() )
-    , data_{ Transform<poly::T>::apply(v) }
+    , data_{ v }
   {  }
 
   pointer( const pointer& ) = default;

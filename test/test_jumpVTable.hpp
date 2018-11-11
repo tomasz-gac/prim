@@ -23,10 +23,10 @@ void check_call( C&& c, const I& i ){
 
 int test_JumpVTable()
 {
-  auto j_int     = poly::impl_t<JT>::make<int>();
-  auto j_float   = poly::impl_t<JT>::make<float>();
-  auto j_double  = poly::impl_t<JT>::make<double>();
-  auto j_int_ref = poly::impl_t<JT>::make<int&>();
+  auto j_int     = JT::make<int>();
+  auto j_float   = JT::make<float>();
+  auto j_double  = JT::make<double>();
+  auto j_int_ref = JT::make<int&>();
 
   assert( j_int.index()     == 0 );
   assert( j_float.index()   == 1 );

@@ -35,7 +35,7 @@ private:
   using reference = reference< Impl >;
 
 public:
-  using implementation = impl_t<Impl>;
+  using implementation = Impl;
   using interface = interface_t<implementation>;
 
   static constexpr bool nothrow_copy = base::nothrow_copy;
@@ -120,19 +120,6 @@ public:
   static constexpr bool nothrow_move_assign = move_is_noexcept;
  
 protected:
-  // Check if object is in an invalid state
-  bool valueless_by_exception() const {
-    return this->value() == reinterpret_cast<void*>( &Invalid::get() );
-  }
-
-  //Construct object of type T in-place
-  template< typename T, typename... Args >
-  void emplace( Args&&... args ){
-    static_assert( !std::is_same<T,Invalid>::value, "Cannot construct objects of type Invalid" );
-    this->reset();
-    this->reference_t::operator=( allocate_construct<T>( std::forward<Args>(args)... ) );
-  }
-  
   template< typename T, typename... Args >
   value_impl( in_place<T>, Args&&... args )
     : Alloc()
@@ -146,8 +133,6 @@ protected:
   value_impl( const value_impl& other ) noexcept( nothrow_copy )
     : value_impl( value_cast_tag(), other)
   {  }
-
-  
 
   template< typename Alloc_ >
   value_impl( value_cast_tag, const value_impl<Impl, Alloc_>& other  )
@@ -202,7 +187,21 @@ protected:
 
   template< typename I, typename A >
   friend class value_impl;  //For Alloc casting
+  
+  // Check if object is in an invalid state
+  bool valueless_by_exception() const {
+    using erased_t = typename reference_t::erased_type;
+    return this->value() == erased_t( &Invalid::get() );
+  }
 
+  //Construct object of type T in-place
+  template< typename T, typename... Args >
+  void emplace( Args&&... args ){
+    static_assert( !std::is_same<T,Invalid>::value, "Cannot construct objects of type Invalid" );
+    this->reset();
+    this->reference_t::operator=( allocate_construct<T>( std::forward<Args>(args)... ) );
+  }
+  
 private:
   // Assigns from other
   // calls operation (poly::move, poly::move_noexcept, poly::copy)
@@ -310,7 +309,7 @@ private:
   void reset(){
     if( !this->valueless_by_exception() ){
       call<destroy>(**this);
-      this->Alloc::deallocate( this->value() );
+      this->Alloc::deallocate( this->value().data );
     } else {
       //Object is valueless by exception
       //In that case - it contains object of type Invalid

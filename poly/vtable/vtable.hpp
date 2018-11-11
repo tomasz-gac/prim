@@ -6,30 +6,19 @@
 #include "RemoteVTable.hpp"
 // #include "JoinedVTable.hpp"
 #include "JumpVTable.hpp"
+#include "erased.hpp"
 
 namespace poly{
 
 template< typename Tag >
-struct LocalVT
-  : Implementation< LocalVTable< Tag, void* > >, Tag
-{ using pointer_type = void*; };
+using LocalVT = LocalVTable< Tag, Erased<void*> >;
 
 template< typename Tag >
-struct RemoteVT
-  : Implementation< RemoteVTable< Tag, void* > >, Tag
-{ using pointer_type = void*; };
-
-// template< typename... Tags >
-// struct JoinedVT
-//   : Implementation< JoinedVTable< Tags... > >
-//   , join_t< interface_t<Tags>... >
-// { using pointer_type = void*; };
+using RemoteVT = RemoteVTable< Tag, Erased<void*> >;
 
 template< typename Tag, typename... Ts >
-struct JumpVT
-  : Implementation< JumpVTable< Tag, void*, Ts... > >
-  , Tag
-{ using pointer_type = void*; };
+using JumpVT = JumpVTable< Tag, Erased<void*>, Ts... >;
+  
 
 template< typename Interface >
 LocalVT< Interface > localVT( Interface ){ return {}; };
@@ -41,7 +30,7 @@ RemoteVT< Interface > remoteVT( Interface ){ return {}; };
 // JoinedVT< Tags... > joinVT( Tags... ){ return {}; };
 
 template< typename Interface, typename... Ts >
-JumpVT< Ts... > joinVT( Interface ){ return {}; };
+JumpVT< Interface, Ts... > joinVT( Interface ){ return {}; };
 
 }
   

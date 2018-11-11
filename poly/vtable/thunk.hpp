@@ -9,17 +9,14 @@
 namespace poly{
 
 // Thunk of a tag that contains function pointers for all overloads
-template< typename Tag, typename pointer_type >
-class Thunk;
-
-template< typename Tag, typename T__ >
-class Thunk< Tag, T__* >
+template< typename Tag, typename erased_t >
+class Thunk
 {
 public:
-  using pointer_type = T__*;
+  using erased_type = erased_t;
   
   template< typename Invoker >
-  using Tthunk_type = thunk_type< Invoker, pointer_type >;
+  using Tthunk_type = thunk_type< Invoker, erased_type >;
 
   using thunk_tuple = tl::repack_t< tl::map_t< overloads_t<Tag>, Tthunk_type >, std::tuple<> >;
 private:
@@ -31,7 +28,7 @@ private:
 
   template< typename T, typename... Overloads >
   static Thunk make_impl( overloads< Overloads... >* ){
-    return { std::make_tuple( get_thunk<Overloads, pointer_type, T>()... ) };
+    return { std::make_tuple( get_thunk<Overloads, erased_type, T>()... ) };
   };
   
 public:
@@ -47,10 +44,10 @@ public:
 
   template< typename... Args >
   decltype(auto) operator()( Args&&... args ) const {
-    using Signature = unerase_signature< Tag, pointer_type, Args&&... >;
+    using Signature = unerase_signature< Tag, erased_type, Args&&... >;
     static_assert( !std::is_same< Signature, invalid_arguments >::value,
 		   "Invoker cannot be called with supplied arguments" );
-    return (*std::get< thunk_type< Signature, pointer_type > >(thunks_))( std::forward<Args>(args)... );
+    return (*std::get< thunk_type< Signature, erased_type > >(thunks_))( std::forward<Args>(args)... );
   }
 
   bool operator==( const Thunk& other ) const {

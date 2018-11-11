@@ -20,7 +20,7 @@ protected:
 public:
   using implementation = typename base::implementation;
   using interface      = typename base::interface;
-  using pointer_type = typename base::pointer_type;
+  using erased_type    = typename base::erased_type;
 
 
   friend unwrap_<                base&  > operator*(                reference&  ref ){ return {static_cast<base&>(ref)}; }
@@ -38,7 +38,7 @@ public:
   
   const implementation& vtable()  const { return this->base::vtable(); }
   // No pointer reassignment
-  pointer_type          address() const { return this->base::value(); }
+  erased_type           address() const { return this->base::value(); }
 
 
   template< typename T, typename = disable_if_same_or_derived< reference, T > >

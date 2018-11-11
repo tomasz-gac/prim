@@ -5,21 +5,17 @@
 
 namespace poly{
 
-template< typename Interface, typename pointer_type = void* >
-class RemoteVTable;
-
-  
 // VTable that holds thunks remotely
-template< typename Interface, typename T__ >
-class RemoteVTable< Interface, T__* >{
+template< typename Interface, typename erased_t = Erased<void*> >
+class RemoteVTable{
 public:
   using interface = interface_t<Interface>;
-  using pointer_type = T__*;
+  using erased_type = erased_t;
 private:
   
-  using VTable = LocalVTable<Interface, pointer_type>;
+  using VTable = LocalVTable<Interface, erased_type>;
   template< typename Invoker >
-  using TThunk = Thunk< Invoker, pointer_type >;
+  using TThunk = Thunk< Invoker, erased_type >;
   // Singleton reference
   VTable* vtable_;
 
@@ -37,8 +33,8 @@ public:
   }
 
   template< typename To >
-  explicit operator LocalVTable<To, pointer_type>() const
-  { return static_cast< LocalVTable<To, pointer_type>>( vtable_ ); }
+  explicit operator LocalVTable<To, erased_type>() const
+  { return static_cast< LocalVTable<To, erased_type>>( vtable_ ); }
 
 
   template< typename Tag >

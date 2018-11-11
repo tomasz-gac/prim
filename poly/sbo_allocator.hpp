@@ -40,7 +40,7 @@ private:
   using stack_alloc_t = StackAllocator<size,align>;
   using heap_alloc_t  = HeapAllocator;
   using vtable_t = poly::JumpVT< sbo_interface, stack_alloc_t, heap_alloc_t >;
-  using vtable_impl_t = poly::impl_t<vtable_t>;
+  using vtable_impl_t = vtable_t;
   
 public:
   SboAllocator()

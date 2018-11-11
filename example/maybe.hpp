@@ -65,7 +65,7 @@ public:
 	    
   bool empty(){ return value_.vtable().index() == 1; }
 
-private:
+public:
   value_t value_;
 };
 
