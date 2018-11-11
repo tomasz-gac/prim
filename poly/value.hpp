@@ -43,19 +43,10 @@ public:
   static constexpr bool nothrow_copy_assign = base::nothrow_copy_assign;
   static constexpr bool nothrow_move_assign = base::nothrow_move_assign;
 
-  // using base::operator[];
-  // using base::operator*;
-  // using base::get;
-  // using base::call;
   using base::valueless_by_exception;
   using base::vtable;
   using base::emplace;
 
-  decltype(auto) operator*(       Value&  val ){ return *static_cast<reference&>(val); }
-  decltype(auto) operator*( const Value&  val ){ return *static_cast<reference&>(val); }
-  decltype(auto) operator*(       Value&& val ){ return *static_cast<reference&>(val); }
-  decltype(auto) operator*( const Value&& val ){ return *static_cast<reference&>(val); }
- 
   
   Value( in_place<Invalid> ) = delete;
 

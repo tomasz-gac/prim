@@ -23,10 +23,18 @@ public:
   using pointer_type = typename base::pointer_type;
 
 
-  friend unwrap_<       base&  > operator*(       Reference& ref ){ return {static_cast<base&>(ref)}; }
-  friend unwrap_< const base&  > operator*( const Reference& ref ){ return {static_cast<const base&>(ref)}; }
-  friend unwrap_<       base&& > operator*(       Reference&& ref ){ return {static_cast<base&&>(ref)}; }
-  friend unwrap_< const base&& > operator*( const Reference&& ref ){ return {static_cast<const base&&>(ref)}; }
+  friend unwrap_<                base&  > operator*(                Reference&  ref ){ return {static_cast<base&>(ref)}; }
+  friend unwrap_< const          base&  > operator*( const          Reference&  ref ){ return {static_cast<const base&>(ref)}; }
+  friend unwrap_<                base&& > operator*(                Reference&& ref ){ return {static_cast<base&&>(ref)}; }
+  friend unwrap_< const          base&& > operator*( const          Reference&& ref ){ return {static_cast<const base&&>(ref)}; }
+  friend unwrap_<       volatile base&  > operator*(       volatile Reference&  ref )
+  { return {static_cast<volatile base&>(ref)}; }
+  friend unwrap_< const volatile base&  > operator*( const volatile Reference&  ref )
+  { return {static_cast<const volatile base&>(ref)}; }
+  friend unwrap_<       volatile base&& > operator*(       volatile Reference&& ref )
+  { return {static_cast<volatile base&&>(ref)}; }
+  friend unwrap_< const volatile base&& > operator*( const volatile Reference&& ref )
+  { return {static_cast<const volatile base&&>(ref)}; }
   
   // using base::operator[];
   // using base::get;

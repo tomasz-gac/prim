@@ -21,6 +21,74 @@ namespace poly{
 
 template< typename VTable >
 class Pointer;
+  
+template< typename VTable >
+class Pointer
+{
+public:
+  using implementation = impl_t<VTable>;
+  using interface = interface_t<implementation>;
+  using pointer_type = typename VTable::pointer_type;
+
+private:
+  template< typename Invoker >
+  using enable_if_supports = std::enable_if_t< supports<interface, Invoker>() >;
+
+protected:
+  using erased_t = Erased<pointer_type>;
+  template< typename SignatureT >
+  using Transform = Erase<SignatureT, pointer_type>;
+  
+  implementation vtable_;
+  erased_t data_;
+
+public:
+
+  template< typename T >
+  Pointer& operator=( T* v ){
+    return *this = Pointer( v );
+  }
+  
+  Pointer& operator=( const Pointer&  other ) = default;
+  Pointer& operator=(       Pointer&& other ) noexcept = default;
+
+  // unwrap_<       Pointer&  > operator*()       { return { *this }; }
+  // unwrap_< const Pointer&  > operator*() const { return { *this }; }
+  // unwrap_<       Pointer&& > operator*() && { return { *this }; }
+
+        implementation& vtable()       { return vtable_; }
+  const implementation& vtable() const { return vtable_; }
+
+        pointer_type& value()       { return data_.data; }
+  const pointer_type& value() const { return data_.data; }
+
+  Pointer()
+    : vtable_( implementation::template make< Invalid >() )
+    , data_{ nullptr }
+  {  }
+
+  template< typename T >
+  Pointer( T* v )
+    : vtable_( implementation::template make< T >() )
+    , data_{ Transform<poly::T>::apply(v) }
+  {  }
+
+  Pointer( const Pointer& ) = default;
+  Pointer( Pointer&& ) noexcept = default;
+
+  template< typename OtherImplementation >
+  Pointer( const Pointer< OtherImplementation >& other )
+    : vtable_( other.vtable_ )
+    , data_( other.data_ )
+  {  }
+
+private:
+  template< typename I >
+  friend class Pointer;
+
+  friend class call_impl;
+
+};
 
 template< typename T >
 class unwrap_{
@@ -97,75 +165,9 @@ template< typename Invoker, typename... Ts >
 decltype(auto) call( Ts&&... vs ){
   return call_impl::template call<Invoker>( std::forward<Ts>(vs)... );
 }
-  
-template< typename VTable >
-class Pointer
-{
-public:
-  using implementation = impl_t<VTable>;
-  using interface = interface_t<implementation>;
-  using pointer_type = typename VTable::pointer_type;
 
-private:
-  template< typename Invoker >
-  using enable_if_supports = std::enable_if_t< supports<interface, Invoker>() >;
 
-protected:
-  using erased_t = Erased<pointer_type>;
-  template< typename SignatureT >
-  using Transform = Erase<SignatureT, pointer_type>;
-  
-  implementation vtable_;
-  erased_t data_;
-
-public:
-
-  template< typename T >
-  Pointer& operator=( T* v ){
-    return *this = Pointer( v );
-  }
-  
-  Pointer& operator=( const Pointer&  other ) = default;
-  Pointer& operator=(       Pointer&& other ) noexcept = default;
-
-  // unwrap_<       Pointer&  > operator*()       { return { *this }; }
-  // unwrap_< const Pointer&  > operator*() const { return { *this }; }
-  // unwrap_<       Pointer&& > operator*() && { return { *this }; }
-
-        implementation& vtable()       { return vtable_; }
-  const implementation& vtable() const { return vtable_; }
-
-        pointer_type& value()       { return data_.data; }
-  const pointer_type& value() const { return data_.data; }
-
-  Pointer()
-    : vtable_( implementation::template make< Invalid >() )
-    , data_{ nullptr }
-  {  }
-
-  template< typename T >
-  Pointer( T* v )
-    : vtable_( implementation::template make< T >() )
-    , data_{ Transform<poly::T>::apply(v) }
-  {  }
-
-  Pointer( const Pointer& ) = default;
-  Pointer( Pointer&& ) noexcept = default;
-
-  template< typename OtherImplementation >
-  Pointer( const Pointer< OtherImplementation >& other )
-    : vtable_( other.vtable_ )
-    , data_( other.data_ )
-  {  }
-
-private:
-  template< typename I >
-  friend class Pointer;
-
-  friend class call_impl;
-
-};
-
+  // Unary * operator for wrapping Pointers in unwrap_ with proper cv-ref qualification
 template< typename Impl >
 unwrap_<       Pointer<Impl>&  > operator*(       Pointer<Impl>& ptr ){ return {ptr}; }
 template< typename Impl >
@@ -174,6 +176,14 @@ template< typename Impl >
 unwrap_<       Pointer<Impl>&& > operator*(       Pointer<Impl>&& ptr ){ return {std::move(ptr)}; }
 template< typename Impl >
 unwrap_< const Pointer<Impl>&& > operator*( const Pointer<Impl>&& ptr ){ return {std::move(ptr)}; }
+template< typename Impl >
+unwrap_< volatile Pointer<Impl>&  > operator*( volatile Pointer<Impl>& ptr ){ return {ptr}; }
+template< typename Impl >
+unwrap_< const volatile Pointer<Impl>&  > operator*( const volatile Pointer<Impl>& ptr ){ return {ptr}; }
+template< typename Impl >
+unwrap_< volatile Pointer<Impl>&& > operator*(       volatile Pointer<Impl>&& ptr ){ return {std::move(ptr)}; }
+template< typename Impl >
+unwrap_< const volatile Pointer<Impl>&& >operator*( const volatile Pointer<Impl>&& ptr ){ return {std::move(ptr)}; }
   
 }  
 
