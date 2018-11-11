@@ -29,7 +29,7 @@ template< typename T__, typename Alloc = poly::StackAllocator< sizeof(Maybe_ref_
 class Maybe{
 private:
   using Empty = impl__::Empty_maybe;
-  using T = Maybe_ref_<T__>;
+  using T = Maybe_ref_< T__ >;
 
   struct Get :
     poly::Invoker< Get,
@@ -56,8 +56,8 @@ public:
     : value_( in_place<T>(), std::move(value) )
   {  }
 
-  const T& get() const { return Get::call( value_ ); }
-        T& get()       { return Get::call( value_ ); }
+  const T& get() const { return poly::call<Get>( *value_ ); }
+        T& get()       { return poly::call<Get>( *value_ ); }
 
   template< typename... Args >
   void emplace( Args&&... args ){ value_.template emplace<T>( std::forward<Args>(args)... ); }

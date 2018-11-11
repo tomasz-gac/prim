@@ -15,14 +15,14 @@ class Thunk;
 template< typename Tag, typename T__ >
 class Thunk< Tag, T__* >
 {
-private:
+public:
   using pointer_type = T__*;
   
   template< typename Invoker >
   using Tthunk_type = thunk_type< Invoker, pointer_type >;
 
   using thunk_tuple = tl::repack_t< tl::map_t< overloads_t<Tag>, Tthunk_type >, std::tuple<> >;
-
+private:
   Thunk( thunk_tuple thunks )
     : thunks_( std::move( thunks ) )
   {  }
@@ -41,6 +41,9 @@ public:
     // for Overloads... parameter pack
     return make_impl<T>(static_cast< overloads_t<Tag>* >(nullptr));
   };
+
+  template< typename... >
+  struct print_ts;
 
   template< typename... Args >
   decltype(auto) operator()( Args&&... args ) const {

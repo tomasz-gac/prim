@@ -55,8 +55,8 @@ void test_values( const std::vector<T>& numbers, const Value_t& poly )
 {
   using namespace memory_test;
   
-  auto b = poly.template call<cbegin<T>>();
-  auto e = poly.template call<cend<T>>();
+  auto b = poly::call<cbegin<T>>( *poly );
+  auto e = poly::call<cend<T>>( *poly );
   assert( numbers.size() == ( e - b ) );
   for( int i = 0; i < numbers.size(); ++i )
     assert( numbers[i].value == b[i].value );
@@ -84,9 +84,9 @@ void test_memory_vector( int n = 10000  ){
     assert( tracker.copies.count() == n );
     assert( tracker.moves.count() == 0 );
 
-    auto ap = p.template call<poly::address_of>();
-    auto b = p.template call<cbegin<Guard<int>>>();
-    auto e = p.template call<cend<Guard<int>>>();
+    auto ap = poly::call<poly::address_of>( *p );
+    auto b = poly::call<cbegin<Guard<int>>>( *p );
+    auto e = poly::call<cend<Guard<int>>>( *p );
 
     test_values( numbers, p );
   
@@ -94,9 +94,9 @@ void test_memory_vector( int n = 10000  ){
     assert( tracker.objects.count() == 2*n );
     assert( tracker.copies.count() == n );
     assert( tracker.moves.count() == 0 );
-    auto ap2 = p2.template call<poly::address_of>();
-    auto b2 = p2.template call<cbegin<Guard<int>>>();
-    auto e2 = p2.template call<cend<Guard<int>>>();
+    auto ap2 = poly::call<poly::address_of>( *p2 );
+    auto b2 = poly::call<cbegin<Guard<int>>>( *p2 );
+    auto e2 = poly::call<cend<Guard<int>>>( *p2 );
     assert( b == b2 && e == e2 );
     if( poly::allocator_traits< Alloc, Alloc >::optimize_move ){
       if( std::is_same< Alloc, poly::HeapAllocator >::value ){
@@ -107,8 +107,8 @@ void test_memory_vector( int n = 10000  ){
     }
     test_values( numbers, p2 );
 
-    auto nb2 = p2.template call<begin<Guard<int>>>();
-    auto ne2 = p2.template call<end<Guard<int>>>();
+    auto nb2 = poly::call<begin<Guard<int>>>( *p2 );
+    auto ne2 = poly::call<end<Guard<int>>>( *p2 );
     auto nb = numbers.begin();
     std::move( nb2, ne2, nb );
     assert( tracker.objects.count() == 2*n );
@@ -218,7 +218,7 @@ void test_memory_invalid()
     
     bool thrown = false;
     try{
-      t.template call<poly::storage>();
+      poly::call<poly::storage>( *t );
     } catch ( const poly::invalid_vtable_call& e ){
       thrown = true;
     }

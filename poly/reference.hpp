@@ -23,9 +23,15 @@ public:
   using pointer_type = typename base::pointer_type;
 
 
-  using base::operator[];
-  using base::get;
-  using base::call;
+  friend unwrap_<       base&  > operator*(       Reference& ref ){ return {static_cast<base&>(ref)}; }
+  friend unwrap_< const base&  > operator*( const Reference& ref ){ return {static_cast<const base&>(ref)}; }
+  friend unwrap_<       base&& > operator*(       Reference&& ref ){ return {static_cast<base&&>(ref)}; }
+  friend unwrap_< const base&& > operator*( const Reference&& ref ){ return {static_cast<const base&&>(ref)}; }
+  
+  // using base::operator[];
+  // using base::get;
+  // using base::call;
+  // using base::operator*;
   
   const implementation& vtable()  const { return this->base::vtable(); }
   // No pointer reassignment
@@ -49,14 +55,7 @@ public:
   friend class Reference;
 };
 
-DEFINE_UNWRAP__(                Reference<VTable>& )  
-DEFINE_UNWRAP__( const          Reference<VTable>& )  
-DEFINE_UNWRAP__(                Reference<VTable>&& )  
-DEFINE_UNWRAP__( const          Reference<VTable>&& )  
-DEFINE_UNWRAP__(       volatile Reference<VTable>& )  
-DEFINE_UNWRAP__( const volatile Reference<VTable>& )  
-DEFINE_UNWRAP__(       volatile Reference<VTable>&& )  
-DEFINE_UNWRAP__( const volatile Reference<VTable>&& )  
+
 
 }
 

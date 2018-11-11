@@ -46,7 +46,7 @@ private:
     poly::Interface< visit<T>, visit<Ts>... >
   {  };
 
-  using Visitor       = const poly::Reference< poly::LocalVT<IVisitor> >;
+  using Visitor       = poly::Reference< poly::LocalVT<IVisitor> >;
 
   struct accept_
     : poly::Invoker< accept_,
@@ -55,14 +55,10 @@ private:
   {  };
 
   template< typename T_ >
-  friend void invoke( accept_, T_& visited, Visitor& visitor ){ 
-    visit<T_>::call( visitor, visited);
+  friend void invoke( accept_, T_& visited, Visitor& visitor ){
+    using visited_t = std::remove_const_t<T_>; // const T_ causes duplicate member function signatures
+    poly::call<visit<visited_t>>( *visitor, visited);
  }
-
-  template< typename T_ >
-  friend void invoke( accept_, const T_& visited, Visitor& visitor ){
-    visit<const T_>::call( visitor, visited);
-  }
 
 private:
   static constexpr bool all_copyable =
@@ -110,13 +106,13 @@ public:
   template< typename F >
   void accept( F&& f ){
     Visitor v{ f };
-    accept_::call( value_, v );
+    poly::call<accept_>( *value_, v );
   }
 
   template< typename F >
   void accept( F&& f ) const {
     Visitor v{ f };
-    accept_::call( value_, v);
+    poly::call<accept_>( *value_, v);
   }
 
   template< typename Return, typename F >
@@ -126,7 +122,7 @@ public:
       result.emplace( f( std::forward<decltype(visited)>(visited) ) );
     };
     Visitor visitor{ v };
-    accept_::call( value_, visitor);
+    poly::call<accept_>( *value_, visitor);
     return result.get();
   }
 
@@ -137,7 +133,7 @@ public:
       result.emplace( f( std::forward<decltype(visited)>(visited) ) );
     };
     Visitor visitor{ v };
-    accept_::call( value_, visitor);
+    poly::call<accept_>( *value_, visitor);
     return result.get();
   }
 

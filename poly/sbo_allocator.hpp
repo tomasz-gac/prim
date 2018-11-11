@@ -53,11 +53,11 @@ public:
     } else {
       this_ = static_cast<heap_alloc_t*>(this);
     }
-    return this_.template call<allocate_>( info );
+    return poly::call<allocate_>( *this_, info );
   }
 
   void deallocate( void* ptr ){
-    this_.template call<deallocate_>(ptr);
+    poly::call<deallocate_>(*this_, ptr);
   }
 
   bool move_to( SboAllocator& other ){

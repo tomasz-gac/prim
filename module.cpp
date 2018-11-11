@@ -4,7 +4,6 @@
 #include "test/memory.hpp"
 #include "test/test_jumpVTable.hpp"
 #include "poly/vtable/vtable.hpp"
-#include "poly/vtable/multi.hpp"
 
 #include <chrono>
 

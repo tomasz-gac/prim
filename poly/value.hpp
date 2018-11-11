@@ -32,6 +32,7 @@ class Value
 {
 private:
   using base = value_base< Impl, Alloc >;
+  using reference = Reference< Impl >;
 
 public:
   using implementation = impl_t<Impl>;
@@ -42,13 +43,20 @@ public:
   static constexpr bool nothrow_copy_assign = base::nothrow_copy_assign;
   static constexpr bool nothrow_move_assign = base::nothrow_move_assign;
 
-  using base::operator[];
-  using base::get;
-  using base::call;
+  // using base::operator[];
+  // using base::operator*;
+  // using base::get;
+  // using base::call;
   using base::valueless_by_exception;
   using base::vtable;
   using base::emplace;
+
+  decltype(auto) operator*(       Value&  val ){ return *static_cast<reference&>(val); }
+  decltype(auto) operator*( const Value&  val ){ return *static_cast<reference&>(val); }
+  decltype(auto) operator*(       Value&& val ){ return *static_cast<reference&>(val); }
+  decltype(auto) operator*( const Value&& val ){ return *static_cast<reference&>(val); }
  
+  
   Value( in_place<Invalid> ) = delete;
 
   template< typename T, typename... Args >
@@ -101,6 +109,7 @@ public:
   friend class Value;
 };
 
+  
 template< typename Impl, typename Alloc>
 class value_construct_impl
   : public Alloc, public Reference< Impl >
@@ -246,9 +255,9 @@ private:
     if( !other.valueless_by_exception() ){
       void* ptr = nullptr;
       try{
-	auto info = storage::call( other );
+	auto info = call<storage>( *other );
 	ptr = this->allocate( info );
-	Operation::call( other, ptr );
+	call<Operation>( *other, ptr );
 	this->value() = ptr;
       } catch(...) {
 	// Constructor or Alloc throws
@@ -309,7 +318,7 @@ private:
   //If the contained object's destructor throws - propagate the exception
   void reset(){
     if( !this->valueless_by_exception() ){
-      destroy::call(*this);
+      call<destroy>(**this);
       this->Alloc::deallocate( this->value() );
     } else {
       //Object is valueless by exception
