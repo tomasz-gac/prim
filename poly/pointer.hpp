@@ -128,8 +128,9 @@ public:
   Pointer& operator=( const Pointer&  other ) = default;
   Pointer& operator=(       Pointer&& other ) noexcept = default;
 
-  unwrap_<       Pointer& > operator*()       { return { *this }; }
-  unwrap_< const Pointer& > operator*() const { return { *this }; }
+  // unwrap_<       Pointer&  > operator*()       { return { *this }; }
+  // unwrap_< const Pointer&  > operator*() const { return { *this }; }
+  // unwrap_<       Pointer&& > operator*() && { return { *this }; }
 
         implementation& vtable()       { return vtable_; }
   const implementation& vtable() const { return vtable_; }
@@ -165,6 +166,15 @@ private:
 
 };
 
+template< typename Impl >
+unwrap_<       Pointer<Impl>&  > operator*(       Pointer<Impl>& ptr ){ return {ptr}; }
+template< typename Impl >
+unwrap_< const Pointer<Impl>&  > operator*( const Pointer<Impl>& ptr ){ return {ptr}; }
+template< typename Impl >
+unwrap_<       Pointer<Impl>&& > operator*(       Pointer<Impl>&& ptr ){ return {std::move(ptr)}; }
+template< typename Impl >
+unwrap_< const Pointer<Impl>&& > operator*( const Pointer<Impl>&& ptr ){ return {std::move(ptr)}; }
+  
 }  
 
   

@@ -50,7 +50,6 @@ public:
     using Signature = unerase_signature< Tag, pointer_type, Args&&... >;
     static_assert( !std::is_same< Signature, invalid_arguments >::value,
 		   "Invoker cannot be called with supplied arguments" );
-    print_ts< Signature > q;
     return (*std::get< thunk_type< Signature, pointer_type > >(thunks_))( std::forward<Args>(args)... );
   }
 

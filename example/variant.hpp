@@ -46,7 +46,7 @@ private:
     poly::Interface< visit<T>, visit<Ts>... >
   {  };
 
-  using Visitor       = const poly::Reference< poly::LocalVT<IVisitor> >;
+  using Visitor       = poly::Reference< poly::LocalVT<IVisitor> >;
 
   struct accept_
     : poly::Invoker< accept_,
@@ -55,14 +55,10 @@ private:
   {  };
 
   template< typename T_ >
-  friend void invoke( accept_, T_& visited, Visitor& visitor ){ 
-    poly::call<visit<T_>>( *visitor, visited);
+  friend void invoke( accept_, T_& visited, Visitor& visitor ){
+    using visited_t = std::remove_const_t<T_>; // const T_ causes duplicate member function signatures
+    poly::call<visit<visited_t>>( *visitor, visited);
  }
-
-  template< typename T_ >
-  friend void invoke( accept_, const T_& visited, Visitor& visitor ){
-    poly::call<visit<const T_>>( *visitor, visited);
-  }
 
 private:
   static constexpr bool all_copyable =

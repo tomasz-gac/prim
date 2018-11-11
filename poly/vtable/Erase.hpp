@@ -23,7 +23,10 @@ template< typename SignatureT >
 struct Erase< SignatureT, void* >{
   static constexpr bool is_placeholder = is_placeholder< SignatureT >::value;  
   using pointer_type = void*;
-  using type = std::conditional_t< is_placeholder, Erased< pointer_type >, SignatureT >;
+  // copy_cv_ref_t required for proper overload resolution of parameters
+  using type = std::conditional_t< is_placeholder,
+				   copy_cv_ref_t< SignatureT, Erased< pointer_type > >,
+				   SignatureT >;
 
   template< typename T >
   static Erased<pointer_type> apply( T* ptr ){

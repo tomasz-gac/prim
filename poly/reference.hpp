@@ -23,10 +23,15 @@ public:
   using pointer_type = typename base::pointer_type;
 
 
+  friend unwrap_<       base&  > operator*(       Reference& ref ){ return {static_cast<base&>(ref)}; }
+  friend unwrap_< const base&  > operator*( const Reference& ref ){ return {static_cast<const base&>(ref)}; }
+  friend unwrap_<       base&& > operator*(       Reference&& ref ){ return {static_cast<base&&>(ref)}; }
+  friend unwrap_< const base&& > operator*( const Reference&& ref ){ return {static_cast<const base&&>(ref)}; }
+  
   // using base::operator[];
   // using base::get;
   // using base::call;
-  using base::operator*;
+  // using base::operator*;
   
   const implementation& vtable()  const { return this->base::vtable(); }
   // No pointer reassignment
@@ -49,6 +54,8 @@ public:
   template< typename OtherImpl >
   friend class Reference;
 };
+
+
 
 }
 

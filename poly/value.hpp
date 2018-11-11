@@ -32,6 +32,7 @@ class Value
 {
 private:
   using base = value_base< Impl, Alloc >;
+  using reference = Reference< Impl >;
 
 public:
   using implementation = impl_t<Impl>;
@@ -49,7 +50,13 @@ public:
   using base::valueless_by_exception;
   using base::vtable;
   using base::emplace;
+
+  decltype(auto) operator*(       Value&  val ){ return *static_cast<reference&>(val); }
+  decltype(auto) operator*( const Value&  val ){ return *static_cast<reference&>(val); }
+  decltype(auto) operator*(       Value&& val ){ return *static_cast<reference&>(val); }
+  decltype(auto) operator*( const Value&& val ){ return *static_cast<reference&>(val); }
  
+  
   Value( in_place<Invalid> ) = delete;
 
   template< typename T, typename... Args >
@@ -102,6 +109,7 @@ public:
   friend class Value;
 };
 
+  
 template< typename Impl, typename Alloc>
 class value_construct_impl
   : public Alloc, public Reference< Impl >
