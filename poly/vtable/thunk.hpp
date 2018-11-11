@@ -15,14 +15,14 @@ class Thunk;
 template< typename Tag, typename T__ >
 class Thunk< Tag, T__* >
 {
-private:
+public:
   using pointer_type = T__*;
   
   template< typename Invoker >
   using Tthunk_type = thunk_type< Invoker, pointer_type >;
 
   using thunk_tuple = tl::repack_t< tl::map_t< overloads_t<Tag>, Tthunk_type >, std::tuple<> >;
-
+private:
   Thunk( thunk_tuple thunks )
     : thunks_( std::move( thunks ) )
   {  }
@@ -42,11 +42,15 @@ public:
     return make_impl<T>(static_cast< overloads_t<Tag>* >(nullptr));
   };
 
+  template< typename... >
+  struct print_ts;
+
   template< typename... Args >
   decltype(auto) operator()( Args&&... args ) const {
     using Signature = unerase_signature< Tag, pointer_type, Args&&... >;
     static_assert( !std::is_same< Signature, invalid_arguments >::value,
 		   "Invoker cannot be called with supplied arguments" );
+    print_ts< Signature > q;
     return (*std::get< thunk_type< Signature, pointer_type > >(thunks_))( std::forward<Args>(args)... );
   }
 

@@ -25,9 +25,6 @@ class Pointer;
 template< typename T >
 class unwrap_{
 public:
-  template< typename VTable >
-  friend class Pointer;
-
   friend class call_impl;
 
   template< typename U >
@@ -44,30 +41,29 @@ struct is_unwrap : std::false_type{};
 
 template< typename T >
 struct is_unwrap< unwrap_< T > > : std::true_type{};
-
-
   
 class call_impl{
 public:
-  template< typename Invoker, typename... Ts >
+  template< typename Invoker, std::size_t index = 0, typename... Ts >
   static decltype(auto) call( Ts&&... vs ){
-    auto& vtable = std::get<0>( get_vtable( std::forward<Ts>(vs)... ) );
+    auto& vtable = std::get<index>( get_vtables( std::forward<Ts>(vs)... ) );
     return vtable.template get<Invoker>()( unwrap( std::forward<Ts>(vs) )... );
   }
   
 private:
+  // Collects vtables of vs into an std::tuple
   template< typename... Us >
-  static auto get_vtable( Us&&... vs ) {
-    return std::tuple_cat( get_vtable_impl( is_unwrap< std::decay_t<Us> >(), std::forward<Us>(vs) )... );
+  static auto get_vtables( Us&&... vs ) {
+    return std::tuple_cat( get_vtables_impl( is_unwrap< std::decay_t<Us> >(), std::forward<Us>(vs) )... );
   }
 
   template< typename U >
-  static std::tuple<> get_vtable_impl( std::false_type, U&& v ){
+  static std::tuple<> get_vtables_impl( std::false_type, U&& v ){
     return {};
   }
 
   template< typename U >
-  static auto get_vtable_impl( std::true_type, U&& v ){
+  static auto get_vtables_impl( std::true_type, U&& v ){
     return std::tie( v.value.vtable() );
   }
   
@@ -85,14 +81,15 @@ private:
   unwrap_impl( std::false_type, U&& v ) {
     return std::forward<U>(v);
   }
-  
+
   template< typename U >
   static decltype(auto) //copy_cv_ref_t<U&&, erased_t >
   unwrap_impl( std::true_type, U&& v )
   {
     using erased_t = decltype(v.value.data_);
     using unwrapped_t = decltype( v.value );
-    return static_cast< copy_cv_ref_t<unwrapped_t, erased_t > >(v.value.data_);
+    using erased_t_cv_ref = copy_cv_ref_t<unwrapped_t, erased_t >;
+    return static_cast< erased_t_cv_ref >(v.value.data_);
   }
 };
 
@@ -131,46 +128,8 @@ public:
   Pointer& operator=( const Pointer&  other ) = default;
   Pointer& operator=(       Pointer&& other ) noexcept = default;
 
-  // template< typename Invoker, typename = enable_if_supports< Invoker > >
-  // auto operator[]( const Invoker& )
-  // { return get< Invoker >(); }
-
-  // template< typename Invoker, typename = enable_if_supports< Invoker > >
-  // auto operator[]( const Invoker& ) const
-  // { return get< Invoker >(); }
-
   unwrap_<       Pointer& > operator*()       { return { *this }; }
   unwrap_< const Pointer& > operator*() const { return { *this }; }
-  
-  // template< typename Invoker, typename = enable_if_supports< Invoker > >
-  // auto get()
-  // {
-  //   return [this]( auto&&... args ) -> decltype(auto){
-  //     return
-  // 	vtable_.template get<Invoker>()
-  // 	  ( data_, unwrap( std::forward<decltype(args)>(args) )... );
-  //   };
-  // }
-  
-  // template< typename Invoker, typename = enable_if_supports< Invoker > >
-  // auto get() const
-  // {
-  //   return [this]( auto&&... args ) -> decltype(auto) {
-  //     return 
-  // 	vtable_.template get<Invoker>()
-  // 	  ( data_, unwrap( std::forward<decltype(args)>(args) )... );
-  //   };
-  // }
-
-  // template< typename Invoker, typename... Args, typename = enable_if_supports< Invoker > >
-  // decltype(auto) call( Args&&... args ){
-  //   return get<Invoker>()( std::forward<Args>(args)... );
-  // }
-
-  // template< typename Invoker, typename... Args, typename = enable_if_supports< Invoker > >
-  // decltype(auto) call( Args&&... args ) const {
-  //   return get<Invoker>()( std::forward<Args>(args)... );
-  // }
 
         implementation& vtable()       { return vtable_; }
   const implementation& vtable() const { return vtable_; }
@@ -203,6 +162,7 @@ private:
   friend class Pointer;
 
   friend class call_impl;
+
 };
 
 }  
