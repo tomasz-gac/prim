@@ -8,8 +8,13 @@ struct T_{
   static constexpr size_t index = N;
 };
 
+struct wrapper{  };
+
 template< typename T >
 struct is_T : std::false_type{  };
+
+template<>
+struct is_T<wrapper> : std::true_type{  };
 
 template< size_t N >
 struct is_T< T_<N> > : std::true_type{  };

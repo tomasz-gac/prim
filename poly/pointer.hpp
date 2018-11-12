@@ -4,7 +4,6 @@
 #include <memory>
 #include <tuple>
 #include "invoker.hpp"
-#include "./vtable/implementation.hpp"
 #include "./vtable/invalid.hpp"
 #include "./vtable/Erase.hpp"
 

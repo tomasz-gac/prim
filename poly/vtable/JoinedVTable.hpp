@@ -1,8 +1,6 @@
 #ifndef __JOINED_VTABLE_HPP__
 #define __JOINED_VTABLE_HPP__
 
-#include "implementation.hpp"
-
 namespace poly{
 
 template< typename... Tags >

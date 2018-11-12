@@ -19,7 +19,10 @@ using RemoteVT = RemoteVTable< Tag, Erased<void*> >;
 template< typename Tag, typename... Ts >
 using JumpVT = JumpVTable< Tag, Erased<void*>, Ts... >;
   
+// template< typename... Tags >
+// using JoinVT = JoinedVTable< Tags... >;
 
+  
 template< typename Interface >
 LocalVT< Interface > localVT( Interface ){ return {}; };
 
