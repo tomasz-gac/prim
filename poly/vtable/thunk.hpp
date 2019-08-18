@@ -39,9 +39,6 @@ public:
     return make_impl<T>(static_cast< overloads_t<Tag>* >(nullptr));
   };
 
-  template< typename... >
-  struct print_ts;
-
   template< typename... Args >
   decltype(auto) operator()( Args&&... args ) const {
     using Signature = unerase_signature< Tag, erased_type, Args&&... >;

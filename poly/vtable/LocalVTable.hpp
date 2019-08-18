@@ -52,7 +52,7 @@ public:
   template< typename To, typename From, typename ptr_t >
   friend LocalVTable<To,ptr_t> interface_cast( const LocalVTable<From,ptr_t>& vtbl );
 
-  // Get a thunk based on tag and signature
+  // Get a thunk based on tag
   template< typename Tag >
   const TThunk< Tag >& get() const {
     return std::get< TThunk<Tag> >( thunks_ );

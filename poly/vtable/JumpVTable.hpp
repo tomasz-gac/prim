@@ -42,7 +42,7 @@ public:
     return { impl_::type_<T>() };
   }
 
-  // Get a thunk based on tag and signature
+  // Get the thunk based on tag
   template< typename Invoker >
   auto get() const {
     return [this]( auto&&... args ) -> decltype(auto){

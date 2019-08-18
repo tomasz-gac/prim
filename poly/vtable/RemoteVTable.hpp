@@ -24,7 +24,7 @@ private:
   {  };
   
 public:
-  // Makes the VTable for type T using a singleton pattern
+  // Makes the VTable for type T using the singleton pattern
   template< typename T = void >
   static RemoteVTable make(){
     static VTable instance = VTable::template make<T>();

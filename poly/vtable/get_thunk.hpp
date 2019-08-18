@@ -48,11 +48,11 @@ namespace impl__{
   };
 }
 
-// returns a type of thunk given Invoker and Transform
-template< typename S, typename erased_type >
+// returns a type of thunk given Invoker
+template < typename S, typename erased_type >
 using thunk_type = typename impl__::thunk_type<S, erased_type>::type;
 
-// returns a Thunk given Invoker, Transform and a seed type T
+// returns a Thunk given Invoker and the seed type T
 template< typename Invoker, typename erased_type, typename T >
 constexpr thunk_type<Invoker, erased_type > get_thunk() {
   return impl__::thunk_type<Invoker, erased_type >::template get_thunk<T>();
@@ -85,7 +85,7 @@ namespace impl__{
   };
 }
 
-// Selects Invoker unerased signature that matches erased Args given supplied Transform
+// Selects Invoker unerased signature that matches erased Args
 template< typename Invoker, typename erased_type, typename... Args >
 using unerase_signature =
   decltype( impl__::unerase_signature< erased_type, overloads_t<Invoker> >::get( std::declval<Args>()... ) );
