@@ -1,7 +1,7 @@
 #ifndef __ERASED_HPP__
 #define __ERASED_HPP__
 
-namespace poly{
+namespace prim{
 
 template< typename Ptr >
 struct Erased;

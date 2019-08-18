@@ -3,7 +3,7 @@
 
 #include "LocalVTable.hpp"
 
-namespace poly{
+namespace prim{
 
 // VTable that holds thunks remotely
 template< typename Interface, typename erased_t = Erased<void*> >

@@ -1,12 +1,12 @@
-#ifndef __POLY_ALLOCATOR_HPP__
-#define __POLY_ALLOCATOR_HPP__
+#ifndef __PRIM_ALLOCATOR_HPP__
+#define __PRIM_ALLOCATOR_HPP__
 
 #include <cstddef>
 #include <cassert>
 #include "builtins.hpp"
 #include "allocator_traits.hpp"
 
-namespace poly{
+namespace prim{
 
 struct HeapAllocator
 {
@@ -14,7 +14,7 @@ public:
   template< typename ToAlloc >
   constexpr bool move_to( ToAlloc& other ){ return true; }
 
-  void* allocate( poly::storage_info storage ){
+  void* allocate( prim::storage_info storage ){
     auto buffer = std::malloc( storage.size );
     if( buffer == nullptr ) throw std::bad_alloc{};
     return buffer;
@@ -43,7 +43,7 @@ public:
     return (size_ <= size && align_ <= alignment);
   }
 
-  void* allocate( poly::storage_info storage ){
+  void* allocate( prim::storage_info storage ){
     assert( can_store( storage.size, storage.alignment ) );
     return reinterpret_cast<void*>(&buffer_);
   }
@@ -59,5 +59,5 @@ private:
 
 }
 
-#endif // __POLY_ALLOCATOR_HPP__
+#endif // __PRIM_ALLOCATOR_HPP__
 

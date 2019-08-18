@@ -1,7 +1,7 @@
 #ifndef __WRAPPER_TRAITS_HPP__
 #define  __WRAPPER_TRAITS_HPP__
 
-namespace poly{
+namespace prim{
 
 template< typename T >
 struct wrapper_traits{

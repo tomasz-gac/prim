@@ -16,10 +16,10 @@ void print_type( T&& value ){
   std::cout << T2Str( std::forward<T>(value) ) <<" == " << value << std::endl;
 }
 
-struct print  : poly::Invoker< print, void (const poly::T&) >{  };
+struct print  : prim::Invoker< print, void (const prim::T&) >{  };
 
 template< typename T >
-struct as : poly::Invoker< as<T>, T( poly::T& ) >{  };
+struct as : prim::Invoker< as<T>, T( prim::T& ) >{  };
 
 template< typename T >
 void invoke( print, const T& value ){

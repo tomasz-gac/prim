@@ -9,7 +9,7 @@
 #include "vtable/JumpVTable.hpp"
 #include "builtins.hpp"
 
-namespace poly{
+namespace prim{
 
 
 
@@ -20,11 +20,11 @@ class SboAllocator :
   private HeapAllocator
 {
 private:
-  struct allocate_   : poly::Invoker< allocate_,   void* ( poly::T&, const poly::storage_info& ) >{  };
-  struct deallocate_ : poly::Invoker< deallocate_, void ( poly::T&, void* ) >{  };
+  struct allocate_   : prim::Invoker< allocate_,   void* ( prim::T&, const prim::storage_info& ) >{  };
+  struct deallocate_ : prim::Invoker< deallocate_, void ( prim::T&, void* ) >{  };
 
   template< typename Alloc >
-  friend void* invoke( allocate_, Alloc& alloc, const poly::storage_info& info ){
+  friend void* invoke( allocate_, Alloc& alloc, const prim::storage_info& info ){
     return alloc.allocate( info );
   }
 
@@ -34,12 +34,12 @@ private:
   }
 
   struct sbo_interface
-    : poly::Interface< allocate_, deallocate_ >
+    : prim::Interface< allocate_, deallocate_ >
   {  };
 
   using stack_alloc_t = StackAllocator<size,align>;
   using heap_alloc_t  = HeapAllocator;
-  using vtable_t = poly::JumpVT< sbo_interface, stack_alloc_t, heap_alloc_t >;
+  using vtable_t = prim::JumpVT< sbo_interface, stack_alloc_t, heap_alloc_t >;
   using vtable_impl_t = vtable_t;
   
 public:
@@ -47,17 +47,17 @@ public:
     : this_( static_cast<stack_alloc_t*>(this) )
   {  }
 
-  void* allocate( poly::storage_info info ){
+  void* allocate( prim::storage_info info ){
     if( stack_alloc_t::can_store( info.size, info.alignment ) ){
       this_ = static_cast<stack_alloc_t*>(this);
     } else {
       this_ = static_cast<heap_alloc_t*>(this);
     }
-    return poly::call<allocate_>( *this_, info );
+    return prim::call<allocate_>( *this_, info );
   }
 
   void deallocate( void* ptr ){
-    poly::call<deallocate_>(*this_, ptr);
+    prim::call<deallocate_>(*this_, ptr);
   }
 
   bool move_to( SboAllocator& other ){
@@ -70,7 +70,7 @@ public:
   
 
 private:
-  poly::pointer< vtable_t > this_;
+  prim::pointer< vtable_t > this_;
 };
 
 template<size_t s1, size_t a1, size_t s2, size_t a2>

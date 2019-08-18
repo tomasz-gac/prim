@@ -1,7 +1,7 @@
 #ifndef __CONVERTIBLE_TO_HPP__
 #define __CONVERTIBLE_TO_HPP__
 
-#include "poly/poly.hpp"
+#include "poly/value.hpp"
 #include <sstream>
 #include <string>
 

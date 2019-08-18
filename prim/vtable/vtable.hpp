@@ -8,7 +8,7 @@
 #include "JumpVTable.hpp"
 #include "erased.hpp"
 
-namespace poly{
+namespace prim{
 
 template< typename Tag >
 using LocalVT = LocalVTable< Tag, Erased<void*> >;

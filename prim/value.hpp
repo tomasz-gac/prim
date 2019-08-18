@@ -1,7 +1,6 @@
 #ifndef __VALUE_HPP__
 #define __VALUE_HPP__
 
-#include "allocator.hpp" //TODO : usunac
 #include "reference.hpp"
 #include "builtins.hpp"
 #include "allocator_traits.hpp"
@@ -9,7 +8,7 @@
 template< typename T >
 struct in_place{  };
 
-namespace poly{
+namespace prim{
 
 template< typename Implementation, typename Allocator, bool enable_copy, bool enable_move >
 struct value_construct;
@@ -26,7 +25,7 @@ using value_base = value_construct< Impl, Alloc,
 				  supports< interface_t<Impl>, move_noexcept>()>;
 
 
-template< typename Impl, typename Alloc = HeapAllocator >
+template< typename Impl, typename Alloc >
 class value
   : public value_base< Impl, Alloc >
 {
@@ -204,7 +203,7 @@ protected:
   
 private:
   // Assigns from other
-  // calls operation (poly::move, poly::move_noexcept, poly::copy)
+  // calls operation (prim::move, prim::move_noexcept, prim::copy)
   template< typename operation, typename Other >
   value_impl& assign( Other&& other ){
     this->reset();

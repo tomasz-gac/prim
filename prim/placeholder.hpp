@@ -1,7 +1,7 @@
 #ifndef __PLACEHOLDER_HPP__
 #define __PLACEHOLDER_HPP__
 
-namespace poly{
+namespace prim{
 
 template< size_t N >
 struct T_{

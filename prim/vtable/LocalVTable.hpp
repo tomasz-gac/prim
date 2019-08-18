@@ -4,7 +4,7 @@
 #include "thunk.hpp"
 #include "erased.hpp"
 
-namespace poly{
+namespace prim{
 
 // VTable that holds thunks locally
 template< typename Interface, typename erased_t = Erased<void*> >
@@ -27,12 +27,12 @@ private:
   {  }
 
   template< typename T, typename... Tags >
-  static LocalVTable make_impl( poly::Interface<Tags...>*  ){
+  static LocalVTable make_impl( prim::Interface<Tags...>*  ){
     return { std::make_tuple( TThunk<Tags>::template make<T>() ... ) };
   }
 
   template< typename To, typename... Tags >
-  LocalVTable<To, erased_type> cast_impl( poly::Interface<Tags...>* ) const {
+  LocalVTable<To, erased_type> cast_impl( prim::Interface<Tags...>* ) const {
     return LocalVTable<To, erased_type>(std::make_tuple( std::get< TThunk<Tags> >(thunks_)... ) );
   }
 

@@ -4,9 +4,9 @@
 #include "invoker.hpp"
 #include "vtable/Invalid.hpp"
 
-namespace poly{
+namespace prim{
 
-struct copy : declare< copy, void (const poly::T&,  void*) >{ };
+struct copy : declare< copy, void (const prim::T&,  void*) >{ };
 
 template< bool is_noexcept >
 struct move_ : declare< move_<is_noexcept>, void (    T&,  void* ) >{ };
@@ -32,7 +32,7 @@ void invoke( move, T& v, void* ptr ){ new (ptr) T( std::move(v) ); }
 template< typename T >
 void invoke( move_noexcept, T& v, void* ptr ) noexcept {
   static_assert( std::is_nothrow_move_constructible<T>::value,
-  		 "Class provided for Poly is not nothrow move constructible" );
+  		 "Class provided for Prim is not nothrow move constructible" );
   new (ptr) T( std::move(v) );
 }
 

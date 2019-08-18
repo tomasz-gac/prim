@@ -4,7 +4,7 @@
 #include "../invoker.hpp"
 #include "invalid.hpp"
 
-namespace poly{
+namespace prim{
 
 namespace impl__{
   template< typename Invoker, typename erased_type >

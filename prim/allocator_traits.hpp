@@ -1,6 +1,6 @@
 #ifndef __ALLOCATOR_TRAITS_HPP__
 #define __ALLOCATOR_TRAITS_HPP__
-namespace poly{
+namespace prim{
   
 template< typename FromAlloc, typename ToAlloc >
 struct allocator_traits{

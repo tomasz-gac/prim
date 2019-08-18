@@ -3,7 +3,7 @@
 
 #include <exception>
 
-namespace poly{
+namespace prim{
 
 class Invalid{
 private:

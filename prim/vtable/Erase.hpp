@@ -4,7 +4,7 @@
 #include "../placeholder.hpp"
 #include "wrapper_traits.hpp"
 
-namespace poly{
+namespace prim{
 
 template< typename SignatureT, typename erased_t>
 struct Erase{
@@ -47,7 +47,7 @@ private:
   // Apply cv qualifiers and forward reference from SignatureT to T
   template< typename T >
   static decltype(auto) apply_cv_ref( T&& v ){
-    using cv_ref_ActualT = copy_cv_ref_t< SignatureT, std::decay_t<T&&> >;    
+    using cv_ref_ActualT = copy_cv_ref_t< SignatureT, std::decay_t<T&&> >;
     return static_cast< cv_ref_ActualT >( v );
   }
 };

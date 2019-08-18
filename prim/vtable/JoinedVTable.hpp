@@ -1,7 +1,7 @@
 #ifndef __JOINED_VTABLE_HPP__
 #define __JOINED_VTABLE_HPP__
 
-namespace poly{
+namespace prim{
 
 template< typename... Tags >
 class JoinedVTable

@@ -16,7 +16,7 @@ using disable_if_same_or_derived =
     >::type;
 
 
-namespace poly{
+namespace prim{
 
 template< typename VTable >
 class pointer;

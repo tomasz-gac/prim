@@ -5,7 +5,7 @@
 #include "typelist.hpp"
 #include "placeholder.hpp"
 
-namespace poly{
+namespace prim{
 
 struct Invalid;
 
@@ -156,13 +156,13 @@ private:
   // number of types that need to be forked
   static constexpr auto N = tl::count< args, tl::Not<dont_overload>::template type >::value;
 
-  #ifndef POLY_MAX_FORWARDED_ARGS
-  #define POLY_MAX_FORWARDED_ARGS 3
+  #ifndef PRIM_MAX_FORWARDED_ARGS
+  #define PRIM_MAX_FORWARDED_ARGS 3
 
-  static_assert( N <= POLY_MAX_FORWARDED_ARGS,
+  static_assert( N <= PRIM_MAX_FORWARDED_ARGS,
   		 "Signature of the invoker exceeds maximum arguments to be forwarded" );
 
-  #undef POLY_MAX_FORWARDED_ARGS
+  #undef PRIM_MAX_FORWARDED_ARGS
   #endif
   
   // helper template to apply a bound Op
@@ -177,7 +177,7 @@ public:
 	tl::foldr_t< tl::repeat_t< N, tl::bind<1,  fork_values > >, apply, tl::id_t<args, args> >
 	, decltype(tl::curry< make_signature_t, Tag, Return >())::template type
       >
-  , poly::overloads<>>;
+  , prim::overloads<>>;
 };
 
 // template< typename... Tags1, typename... Tags2 >

@@ -3,9 +3,9 @@
 
 #include <exception>
 
-#include "../poly/value.hpp"
-#include "../poly/vtable/vtable.hpp"
-#include "../poly/allocator.hpp"
+#include "../prim/value.hpp"
+#include "../prim/vtable/vtable.hpp"
+#include "../prim/allocator.hpp"
 
 namespace impl__{ struct Empty_maybe{  }; }
 
@@ -25,16 +25,16 @@ using Maybe_ref_ =
     std::decay_t<T>
   >;
 
-template< typename T__, typename Alloc = poly::StackAllocator< sizeof(Maybe_ref_<T__>), alignof(Maybe_ref_<T__>) > >
+template< typename T__, typename Alloc = prim::StackAllocator< sizeof(Maybe_ref_<T__>), alignof(Maybe_ref_<T__>) > >
 class Maybe{
 private:
   using Empty = impl__::Empty_maybe;
   using T = Maybe_ref_< T__ >;
 
   struct Get :
-    poly::Invoker< Get,
-		   T& (poly::T& ),
-		   const T& (const poly::T&) >
+    prim::Invoker< Get,
+		   T& (prim::T& ),
+		   const T& (const prim::T&) >
   {  };
 
   friend T& invoke( Get, T& value ){ return value; }
@@ -43,10 +43,10 @@ private:
   friend T& invoke( Get, U&& v ){ throw std::logic_error(); }
   
   struct Interface
-    : poly::Interface< Get, poly::copy, poly::move, poly::destroy, poly::storage >
+    : prim::Interface< Get, prim::copy, prim::move, prim::destroy, prim::storage >
   {  };
   
-  using value_t = poly::value< poly::JumpVT< Interface, T, Empty >, Alloc >;
+  using value_t = prim::value< prim::JumpVT< Interface, T, Empty >, Alloc >;
 public:
   Maybe()
     : value_{ in_place<Empty>() }{  }
@@ -56,8 +56,8 @@ public:
     : value_( in_place<T>(), std::move(value) )
   {  }
 
-  const T& get() const { return poly::call<Get>( *value_ ); }
-        T& get()       { return poly::call<Get>( *value_ ); }
+  const T& get() const { return prim::call<Get>( *value_ ); }
+        T& get()       { return prim::call<Get>( *value_ ); }
 
   template< typename... Args >
   void emplace( Args&&... args ){ value_.template emplace<T>( std::forward<Args>(args)... ); }

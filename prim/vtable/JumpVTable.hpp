@@ -5,7 +5,7 @@
 
 #include "thunk.hpp"
 
-namespace poly{
+namespace prim{
 
 namespace impl_{
   template< typename T >

@@ -6,7 +6,7 @@
 #include "get_thunk.hpp"
 
 
-namespace poly{
+namespace prim{
 
 // Thunk of a tag that contains function pointers for all overloads
 template< typename Tag, typename erased_t >

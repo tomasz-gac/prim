@@ -1,9 +1,9 @@
 #ifndef __VARIANT_HPP__
 #define __VARIANT_HPP__
 
-#include "../poly/value.hpp"
-#include "../poly/vtable/vtable.hpp"
-#include "../poly/allocator.hpp"
+#include "../prim/value.hpp"
+#include "../prim/vtable/vtable.hpp"
+#include "../prim/allocator.hpp"
 #include "maybe.hpp"
 #include <sstream>
 
@@ -28,8 +28,8 @@ template< typename T, typename... Ts >
 class Variant{
 private:
   template< typename Type >
-  struct visit : poly::Invoker< visit<Type>, void ( poly::T&, Type& ),
-				             void ( poly::T&, const Type& ) >
+  struct visit : prim::Invoker< visit<Type>, void ( prim::T&, Type& ),
+				             void ( prim::T&, const Type& ) >
   {  };
 
   template< typename T_, typename Type >
@@ -43,41 +43,41 @@ private:
   }
 
   struct IVisitor       :
-    poly::Interface< visit<T>, visit<Ts>... >
+    prim::Interface< visit<T>, visit<Ts>... >
   {  };
 
-  using Visitor       = poly::reference< poly::LocalVT<IVisitor> >;
+  using Visitor       = prim::reference< prim::LocalVT<IVisitor> >;
 
   struct accept_
-    : poly::Invoker< accept_,
-		     void ( poly::T&, Visitor& ),
-		     void ( const poly::T&, Visitor& )>
+    : prim::Invoker< accept_,
+		     void ( prim::T&, Visitor& ),
+		     void ( const prim::T&, Visitor& )>
   {  };
 
   template< typename T_ >
   friend void invoke( accept_, T_& visited, Visitor& visitor ){
     using visited_t = std::remove_const_t<T_>; // const T_ causes duplicate member function signatures
-    poly::call<visit<visited_t>>( *visitor, visited);
+    prim::call<visit<visited_t>>( *visitor, visited);
  }
 
 private:
   static constexpr bool all_copyable =
-    poly::tl::conjunction< std::is_copy_constructible<T>, std::is_copy_constructible<Ts>... >::value;
+    prim::tl::conjunction< std::is_copy_constructible<T>, std::is_copy_constructible<Ts>... >::value;
   static constexpr bool all_movable =
-    poly::tl::conjunction< std::is_move_constructible<T>, std::is_move_constructible<Ts>... >::value;
+    prim::tl::conjunction< std::is_move_constructible<T>, std::is_move_constructible<Ts>... >::value;
   static constexpr bool all_movable_noexcept =
-    poly::tl::conjunction< std::is_nothrow_move_constructible<T>, std::is_nothrow_move_constructible<Ts>... >::value;
+    prim::tl::conjunction< std::is_nothrow_move_constructible<T>, std::is_nothrow_move_constructible<Ts>... >::value;
 
   using copy_interface =
-    std::conditional_t< all_copyable, poly::copy, poly::Interface<> >;
+    std::conditional_t< all_copyable, prim::copy, prim::Interface<> >;
   using move_noexcept_interface =
-    std::conditional_t< all_movable_noexcept, poly::move_noexcept, poly::move >;
+    std::conditional_t< all_movable_noexcept, prim::move_noexcept, prim::move >;
   using move_interface =
-    std::conditional_t< all_movable, move_noexcept_interface, poly::Interface<> >;
+    std::conditional_t< all_movable, move_noexcept_interface, prim::Interface<> >;
 
   struct IVariant :
-    poly::Interface< accept_, poly::storage, poly::destroy >
-  ::template append<copy_interface, move_interface >
+    prim::Interface< accept_, prim::storage, prim::destroy >
+      ::template append<copy_interface, move_interface >
   {  };
 
   static constexpr size_t sizes[] = { sizeof(T), sizeof(Ts)... };
@@ -86,9 +86,9 @@ private:
   static constexpr size_t size  = arrayMax(sizes);
   static constexpr size_t align = arrayMax(alignments);
   
-  using variant_allocator_t = poly::StackAllocator< size, align >;
-  using variant_vtable_t    = poly::JumpVT< IVariant, T, Ts... >;
-  using variant_value_t     = poly::value< variant_vtable_t, variant_allocator_t >;
+  using variant_allocator_t = prim::StackAllocator< size, align >;
+  using variant_vtable_t    = prim::JumpVT< IVariant, T, Ts... >;
+  using variant_value_t     = prim::value< variant_vtable_t, variant_allocator_t >;
   
 public:
   template< typename U, typename... Args >
@@ -106,13 +106,13 @@ public:
   template< typename F >
   void accept( F&& f ){
     Visitor v{ f };
-    poly::call<accept_>( *value_, v );
+    prim::call<accept_>( *value_, v );
   }
 
   template< typename F >
   void accept( F&& f ) const {
     Visitor v{ f };
-    poly::call<accept_>( *value_, v);
+    prim::call<accept_>( *value_, v);
   }
 
   template< typename Return, typename F >
@@ -122,7 +122,7 @@ public:
       result.emplace( f( std::forward<decltype(visited)>(visited) ) );
     };
     Visitor visitor{ v };
-    poly::call<accept_>( *value_, visitor);
+    prim::call<accept_>( *value_, visitor);
     return result.get();
   }
 
@@ -133,7 +133,7 @@ public:
       result.emplace( f( std::forward<decltype(visited)>(visited) ) );
     };
     Visitor visitor{ v };
-    poly::call<accept_>( *value_, visitor);
+    prim::call<accept_>( *value_, visitor);
     return result.get();
   }
 
