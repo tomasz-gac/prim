@@ -86,7 +86,7 @@ private:
   static constexpr size_t size  = arrayMax(sizes);
   static constexpr size_t align = arrayMax(alignments);
   
-  using variant_allocator_t = prim::StackAllocator< size, align >;
+  using variant_allocator_t = prim::HeapAllocator;// prim::StackAllocator< size, align >;
   using variant_vtable_t    = prim::JumpVT< IVariant, T, Ts... >;
   using variant_value_t     = prim::value< variant_vtable_t, variant_allocator_t >;
   
