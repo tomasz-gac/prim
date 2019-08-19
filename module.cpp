@@ -15,15 +15,7 @@ struct node_holder{
   node_holder( T v, Children c = Children() )
     : value(v), children( std::move(c) )
   {  }
-
-  ~node_holder(){ std::cout << "~node_holder : " << this << std::endl; }
 };
-
-template< typename T, typename Children >
-std::ostream& operator<<( std::ostream& str, const node_holder<T,Children>& h ){
-  str << h.value << ", children: " << h.children.size();
-  return str;
-}
 
 template< typename T, typename C >
 struct prim::wrapper_traits< node_holder<T,C> > {
@@ -33,61 +25,75 @@ struct prim::wrapper_traits< node_holder<T,C> > {
   }
 };
 
-//struct print : prim::declare< print, void( prim::T& ) >{  };
-struct DFW : prim::declare< DFW, void( prim::T1&, prim::T2& ) >{  };
 
-template< typename... Ts >
-struct print_ts;
-
-template< typename T >
-void invoke( print, T* v ){
-  if( v == nullptr ){    
-    std::cout << "nullptr" << std::endl;
-  } else {
-    print_type(*v);
+class Rule
+{
+private:
+  struct compile_ :
+    prim::declare< compile_, void (const prim::T&, const std::vector<Rule>&) >
+  {  };
+  
+  template< typename T >
+  friend void invoke( compile_, const T& value, const std::vector<Rule>& c ){
+    value.compile(c);
   }
-}
+  
+  struct Rule_
+    : prim::Interface< compile_, prim::move_noexcept, prim::copy, prim::destroy, prim::storage >
+  {  };
 
-template< typename T, typename U >
-void invoke( DFW, T& v, U& children ){
-  for( auto& c : children )
-    prim::call< DFW >( *c, *c );
-  invoke( print(), v );
-}
+  using value_type = prim::value< prim::RemoteVT<Rule_>, prim::HeapAllocator >;
 
-struct Node : prim::Interface< print, DFW, prim::copy, prim::move, prim::destroy, prim::storage >{  };
+public:
+  void compile() const {
+    prim::call<compile_>(*value_, children_);
+  }
+
+  Rule( const Rule&  )          = default;
+  Rule(       Rule&& ) noexcept = default;
+
+  template< typename T, typename... Children, typename = std::enable_if_t<!std::is_same<T, Rule>::value> >
+  Rule( T& node, Children&&... children )
+    : value_( in_place<T>(), node )
+    , children_( { Rule( std::forward<Children>(children)  )... } )
+  {  }
+
+private:
+  value_type value_;
+  std::vector< Rule > children_;
+};
+
+
+struct A{
+  void compile( const std::vector<Rule>& v ) const {
+    std::cout << "compile A" << std::endl;
+  }
+};
+struct B{
+  void compile( const std::vector<Rule>& v ) const {
+    std::cout << "compile B" << std::endl;
+  }
+};
+struct C{
+  void compile( const std::vector<Rule>& v ) const {
+    std::cout << "compile C" << std::endl;
+  }
+};
+
 
 int main()
 {
   auto start = std::chrono::high_resolution_clock::now();
-  using ptr_t = prim::pointer< prim::RemoteVT<Node> >;
-  using val_t = prim::value< prim::RemoteVT<Node>, prim::HeapAllocator >;
-  using holder_t = node_holder< int, std::vector< val_t > >;
-  {
-    val_t holder{ in_place<holder_t>(), 0 };
-    val_t holder2{ in_place<holder_t>(), 2 };
-    std::vector<val_t> children;
-    children.push_back(holder);
-    children.push_back(holder2);  
-    val_t holder3{ in_place<holder_t>(), 3, std::move(children) };
-
-    prim::call<print>( *holder3 );
-    prim::call<DFW>( *holder3, *holder3 );
-  }
-  
-  std::cout << "ptr test" << std::endl;
-  using ptr2_t = prim::pointer< prim::RemoteVT< print > >;
-  int i = 0;
-  int* pi = nullptr;
-  ptr2_t p = { &pi };
-  prim::call<print>( *p );
-  pi = &i;
-  prim::call<print>( *p );
-  i = 2;
-  prim::call<print>( *p );
   
   auto finish = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = finish - start;
+
+  A a; B b; C c;
+  Rule r( a, b, c );
+  r.compile();
+  Rule q(r);
+  std::cout << "Constructed" << std::endl;
+  q.compile();
 
   std::cout << "Passed : " << elapsed.count() << "s" << std::endl;
   return 0;

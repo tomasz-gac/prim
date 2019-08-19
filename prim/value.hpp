@@ -48,7 +48,7 @@ public:
 
   
   value( in_place<Invalid> ) = delete;
-
+  
   template< typename T, typename... Args >
   value( in_place<T> p, Args&&... args )
     : base( p, std::forward<Args>(args)... )

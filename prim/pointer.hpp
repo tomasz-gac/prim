@@ -108,7 +108,10 @@ class call_impl{
 public:
   template< typename Invoker, std::size_t index = 0, typename... Ts >
   static decltype(auto) call( Ts&&... vs ){
-    auto& vtable = std::get<index>( get_vtables( std::forward<Ts>(vs)... ) );
+    auto vtables = get_vtables( std::forward<Ts>(vs)... );
+    static_assert( std::tuple_size<decltype(vtables)>::value > 0,
+		   "The call does not contain any vtables, perhaps you forgot to unwrap a prim with a *?");
+    auto& vtable = std::get<index>( vtables );
     return vtable.template get<Invoker>()( unwrap( std::forward<Ts>(vs) )... );
   }
   
