@@ -24,6 +24,13 @@ constexpr T &arrayMax(T(&arr)[N]) {
     return arrayMax_impl(arr, arr + N);
 }
 
+enum class except{
+  OFF = 0,
+  ON  = 1,
+  NOEXCEPT = 2
+};
+
+
 template< typename T, typename... Ts >
 class Variant{
 private:

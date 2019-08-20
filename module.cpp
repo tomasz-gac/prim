@@ -22,8 +22,6 @@ class Rule : public rule_base{
   using rule_base::rule_base;
 };
 
-
-
 int main()
 {
   auto start = std::chrono::high_resolution_clock::now();

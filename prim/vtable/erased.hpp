@@ -36,7 +36,7 @@ bool operator==( const Erased<impl_t>& lhs, const Erased<impl_t>& rhs ){
 
 template< typename impl_t >
 bool operator!=( const Erased<impl_t>& lhs, const Erased<impl_t>& rhs ){
-  return lhs != rhs;
+  return lhs.data != rhs.data;
 }
 
 }

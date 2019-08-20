@@ -20,49 +20,29 @@ class SboAllocator :
   private HeapAllocator
 {
 private:
-  struct allocate_   : prim::Invoker< allocate_,   void* ( prim::T&, const prim::storage_info& ) >{  };
-  struct deallocate_ : prim::Invoker< deallocate_, void ( prim::T&, void* ) >{  };
-
-  template< typename Alloc >
-  friend void* invoke( allocate_, Alloc& alloc, const prim::storage_info& info ){
-    return alloc.allocate( info );
-  }
-
-  template< typename Alloc >
-  friend void invoke( deallocate_, Alloc& alloc, void* ptr ){
-    alloc.deallocate( ptr );
-  }
-
-  struct sbo_interface
-    : prim::Interface< allocate_, deallocate_ >
-  {  };
-
   using stack_alloc_t = StackAllocator<size,align>;
   using heap_alloc_t  = HeapAllocator;
-  using vtable_t = prim::JumpVT< sbo_interface, stack_alloc_t, heap_alloc_t >;
-  using vtable_impl_t = vtable_t;
   
 public:
-  SboAllocator()
-    : this_( static_cast<stack_alloc_t*>(this) )
-  {  }
+  SboAllocator(){  }
 
   void* allocate( prim::storage_info info ){
-    if( stack_alloc_t::can_store( info.size, info.alignment ) ){
-      this_ = static_cast<stack_alloc_t*>(this);
-    } else {
-      this_ = static_cast<heap_alloc_t*>(this);
+    if( void* ptr = this->stack_alloc_t::allocate_unsafe( info ) ){
+      on_heap_ = false;
+      return ptr;
     }
-    return prim::call<allocate_>( *this_, info );
+    on_heap_ = true;
+    return this->heap_alloc_t::allocate( info );
   }
 
   void deallocate( void* ptr ){
-    prim::call<deallocate_>(*this_, ptr);
+    if( on_heap_ ) this->heap_alloc_t::deallocate( ptr );
+    else this->stack_alloc_t::deallocate( ptr );
   }
 
   bool move_to( SboAllocator& other ){
-    if( this_.vtable().index() == 1 ){ 
-      other.this_ = this_;
+    if( on_heap_ ){ 
+      other.on_heap_ = true;
       return true;
     }
     return false;
@@ -70,7 +50,7 @@ public:
   
 
 private:
-  prim::pointer< vtable_t > this_;
+  bool on_heap_ = false;
 };
 
 template<size_t s1, size_t a1, size_t s2, size_t a2>

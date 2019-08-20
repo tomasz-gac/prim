@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cassert>
+#include <memory>
 #include "builtins.hpp"
 #include "allocator_traits.hpp"
 
@@ -39,17 +40,24 @@ protected:
   static constexpr size_t size = Size;
   static constexpr size_t alignment = Alignment;
 
-  static constexpr bool can_store( size_t size_, size_t align_ ){
-    return (size_ <= size && align_ <= alignment);
+  void* allocate_unsafe( prim::storage_info storage ){
+    void* ptr = reinterpret_cast<void*>(&buffer_);
+    size_t sz = size;
+    std::align(storage.alignment, storage.size, ptr, sz );
+    assert( ptr );
+    return ptr;
   }
 
   void* allocate( prim::storage_info storage ){
-    assert( can_store( storage.size, storage.alignment ) );
-    return reinterpret_cast<void*>(&buffer_);
+    void* ptr = allocate_unsafe( storage );
+    assert( ptr );
+    return ptr;
   }
 
   void deallocate( void* data ){
-    assert( data == reinterpret_cast<void*>(&buffer_) );
+    const void* begin = reinterpret_cast<void*>(&buffer_);
+    const void* end   = reinterpret_cast<void*>(&buffer_+1);
+    assert( begin <= data && data < end  );
     //failure means that data was not allocated using this allocator
   };
 private:
