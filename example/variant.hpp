@@ -60,24 +60,25 @@ private:
     prim::call<visit<visited_t>>( *visitor, visited);
  }
 
-private:
-  static constexpr bool all_copyable =
+public:
+  static constexpr bool all_copyable = 
     prim::tl::conjunction< std::is_copy_constructible<T>, std::is_copy_constructible<Ts>... >::value;
   static constexpr bool all_movable =
     prim::tl::conjunction< std::is_move_constructible<T>, std::is_move_constructible<Ts>... >::value;
   static constexpr bool all_movable_noexcept =
     prim::tl::conjunction< std::is_nothrow_move_constructible<T>, std::is_nothrow_move_constructible<Ts>... >::value;
 
-  using copy_interface =
-    std::conditional_t< all_copyable, prim::copy, prim::Interface<> >;
-  using move_noexcept_interface =
-    std::conditional_t< all_movable_noexcept, prim::move_noexcept, prim::move >;
-  using move_interface =
-    std::conditional_t< all_movable, move_noexcept_interface, prim::Interface<> >;
-
+  using IVariant_interface =
+    std::conditional_t< all_copyable,
+      std::conditional_t< all_movable_noexcept,
+        prim::Interface< accept_, prim::copy, prim::move_noexcept, prim::storage, prim::destroy >,					    
+        std::conditional_t< all_movable,
+			    prim::Interface< accept_, prim::copy, prim::move, prim::storage, prim::destroy >,
+			    prim::Interface< accept_, prim::copy, prim::storage, prim::destroy > > >,
+			prim::Interface< accept_, prim::storage, prim::destroy > >;
+  
   struct IVariant :
-    prim::Interface< accept_, prim::storage, prim::destroy >
-      ::template append<copy_interface, move_interface >
+    IVariant_interface
   {  };
 
   static constexpr size_t sizes[] = { sizeof(T), sizeof(Ts)... };
@@ -86,7 +87,7 @@ private:
   static constexpr size_t size  = arrayMax(sizes);
   static constexpr size_t align = arrayMax(alignments);
   
-  using variant_allocator_t = prim::HeapAllocator;// prim::StackAllocator< size, align >;
+  using variant_allocator_t = prim::StackAllocator< size, align >;
   using variant_vtable_t    = prim::JumpVT< IVariant, T, Ts... >;
   using variant_value_t     = prim::value< variant_vtable_t, variant_allocator_t >;
   
@@ -149,6 +150,7 @@ void test_variant()
 
   Variant< float, bool, int, std::string > v{ in_place<float>(), 3 };
   static_assert( std::is_nothrow_move_constructible<decltype(v)>::value );		 
+  static_assert( std::is_copy_constructible<decltype(v)>::value );		 
   const auto& cv = v;
   assert( v.index() == 0 );
   v.accept( visitor );

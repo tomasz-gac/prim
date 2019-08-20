@@ -5,15 +5,6 @@
 #include <chrono>
 #include <vector>
 
-using rule_base = Variant< class Terminal, class Handle, class Not,
-			   class Optional, class Alternative, class Sequence,
-			   class Repeat, class Push >;
-
-class Rule : public rule_base{
-  using rule_base::rule_base;
-};
-
-
 class Terminal{};
 class Handle{};
 class Not{};
@@ -22,6 +13,14 @@ class Alternative{};
 class Sequence{};
 class Repeat{};
 class Push{};
+
+using rule_base = Variant< class Terminal, class Handle, class Not,
+			   class Optional, class Alternative, class Sequence,
+			   class Repeat, class Push >;
+
+class Rule : public rule_base{
+  using rule_base::rule_base;
+};
 
 
 
