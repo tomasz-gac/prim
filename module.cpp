@@ -34,7 +34,7 @@ int main()
   auto print = []( auto& v ){ std::cout << T2Str(v) << std::endl; };
 
   Terminal t; Handle h; Optional o;
-  Rule r{ in_place<Handle>(), h};
+  Rule r{ in_place<Recursive<Handle>>(), h};
   r.accept(print);
   Rule q(r);
   std::cout << "Constructed" << std::endl;

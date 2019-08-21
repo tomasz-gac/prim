@@ -55,22 +55,20 @@ private:
   }
 
   template< typename T_, typename Type, bool c, bool m, bool m_n >
-  friend void invoke( visit<Type>, T_& visitor, Recursive<Type,c,m,m_n>& visited ){
-    std::cout << "recursive" << std::endl;
+  friend void invoke( visit<Recursive<Type,c,m,m_n>>, T_& visitor, Recursive<Type,c,m,m_n>& visited ){
     visitor( visited.value_.get() );
   }
 
   template< typename T_, typename Type, bool c, bool m, bool m_n >
-  friend void invoke( visit<Type>, T_& visitor, const Recursive<Type,c,m,m_n>& visited ){
-    std::cout << "const recursive" << std::endl;
+  friend void invoke( visit<Recursive<Type,c,m,m_n>>, T_& visitor, const Recursive<Type,c,m,m_n>& visited ){
     visitor( visited.value_.get() );
   }
 
-  struct IVisitor       :
-    prim::Interface< visit<T>, visit<Ts>... >
+  struct IVisitor
+    : prim::Interface< visit<T>, visit<Ts>... >
   {  };
 
-  using Visitor       = prim::reference< prim::LocalVT<IVisitor> >;
+  using Visitor = prim::reference< prim::LocalVT<IVisitor> >;
 
   struct accept_
     : prim::Invoker< accept_,
