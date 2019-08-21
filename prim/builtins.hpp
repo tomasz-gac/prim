@@ -16,10 +16,8 @@ using move_noexcept = move_<true>;
 
 struct destroy : declare< destroy, void ( const T& ) >{  };
 
-struct type_id : declare< type_id, const std::type_info& ( const T& ) >{  };
-
-struct storage_info;
-struct storage : declare< storage, storage_info ( const T& ) >{  };
+struct type_info;
+struct type : declare< type, type_info ( const T& ) >{  };
 
 struct address_of : declare< address_of, const void*( const T& )>{  };
 
@@ -44,25 +42,23 @@ void invoke( destroy, Invalid& ){
   static_assert( AlwaysFalse, "Cannot destroy object of type Invalid" );
 }
 
-template< typename T >
-const std::type_info& invoke( type_id, const T& ){ return typeid(T); }
-
-struct storage_info{
+struct type_info{
 private:
-  storage_info( size_t s, size_t a )
-    : size(s), alignment(a) {  }
+  type_info( size_t s, size_t a, const std::type_info& i )
+    : size(s), alignment(a), info(i) {  }
 public:
   template< typename T >
-  static storage_info get()
-  { return { sizeof(T), alignof(T) }; }
+  static type_info get()
+  { return { sizeof(T), alignof(T), typeid(T) }; }
   
   const std::size_t size;
   const std::size_t alignment;
+  const std::type_info& info;
 };
 
 
 template< typename T >
-storage_info invoke( storage, const T& ){ return storage_info::get<T>(); }
+type_info invoke( type, const T& ){ return type_info::get<T>(); }
 
 template< typename T >
 const void* invoke( address_of, const T& v ){ return reinterpret_cast<const void*>(&v); }

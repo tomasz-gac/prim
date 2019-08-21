@@ -43,7 +43,7 @@ private:
   friend T& invoke( Get, U&& v ){ throw std::logic_error(); }
   
   struct Interface
-    : prim::Interface< Get, prim::copy, prim::move, prim::destroy, prim::storage >
+    : prim::Interface< Get, prim::copy, prim::move, prim::destroy, prim::type >
   {  };
   
   using value_t = prim::value< prim::JumpVT< Interface, T, Empty >, Alloc >;

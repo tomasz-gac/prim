@@ -15,7 +15,7 @@ protected:
   template< typename ToAlloc >
   constexpr bool move_to( ToAlloc& other ){ return true; }
 
-  void* allocate( prim::storage_info storage ){
+  void* allocate( prim::type_info storage ){
     auto buffer = std::malloc( storage.size );
     if( buffer == nullptr ) throw std::bad_alloc{};
     return buffer;
@@ -40,7 +40,7 @@ protected:
   static constexpr size_t size = Size;
   static constexpr size_t alignment = Alignment;
 
-  void* allocate_unsafe( prim::storage_info storage ){
+  void* allocate_unsafe( prim::type_info storage ){
     void* ptr = reinterpret_cast<void*>(&buffer_);
     size_t sz = size;
     std::align(storage.alignment, storage.size, ptr, sz );
@@ -48,7 +48,7 @@ protected:
     return ptr;
   }
 
-  void* allocate( prim::storage_info storage ){
+  void* allocate( prim::type_info storage ){
     void* ptr = allocate_unsafe( storage );
     assert( ptr );
     return ptr;

@@ -75,18 +75,19 @@ public:
   static constexpr bool all_movable_noexcept =
     prim::tl::conjunction< std::is_nothrow_move_constructible<T>, std::is_nothrow_move_constructible<Ts>... >::value;
 
-  using IVariant_interface =
+  using IVariant__ = 
+    prim::Interface< accept_, prim::type, prim::destroy >;
+
+  using IVariant_copy__ =
     std::conditional_t< all_copyable,
-      std::conditional_t< all_movable_noexcept,
-        prim::Interface< accept_, prim::copy, prim::move_noexcept, prim::storage, prim::destroy >,					    
-        std::conditional_t< all_movable,
-			    prim::Interface< accept_, prim::copy, prim::move, prim::storage, prim::destroy >,
-			    prim::Interface< accept_, prim::copy, prim::storage, prim::destroy > > >,
-			prim::Interface< accept_, prim::storage, prim::destroy > >;
+			typename IVariant__::template append<prim::copy>, IVariant__ >;
+
+  using IVariant_move__ =
+    std::conditional_t< all_movable,
+			typename IVariant_copy__::template append<prim::move_<all_movable_noexcept>>,
+			IVariant_copy__ >;
   
-  struct IVariant :
-    IVariant_interface
-  {  };
+  struct IVariant : IVariant_move__ {  };
 
   static constexpr size_t sizes[] = { sizeof(T), sizeof(Ts)... };
   static constexpr size_t alignments[] = { alignof(T), alignof(Ts)... };

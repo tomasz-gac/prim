@@ -1,4 +1,5 @@
 #include <iostream>
+#include "prim/identity.hpp"
 #include "example/variant.hpp"
 #include "helpers.hpp"
 
@@ -21,6 +22,28 @@ using rule_base = Variant< class Terminal, class Handle, class Not,
 class Rule : public rule_base{
   using rule_base::rule_base;
 };
+
+template< typename T >
+struct interface_of{
+  using interface__ = 
+    prim::Interface< prim::type, prim::destroy >;
+
+  using interface_copy__ =
+    std::conditional_t< std::is_copy_constructible<T>::value,
+			typename interface__::template append<prim::copy>, interface__ >;
+
+  using interface_move__ =
+    std::conditional_t< std::is_move_constructible<T>::value,
+			typename interface_copy__::template append<
+			  prim::move_<std::is_nothrow_move_constructible<T>::value>
+			  >,
+			interface_copy__ >;
+			
+			
+
+  using type = interface_move__;
+};
+
 
 int main()
 {

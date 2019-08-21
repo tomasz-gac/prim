@@ -4,8 +4,8 @@
 #include "../invoker.hpp"
 #include "LocalVTable.hpp"
 #include "RemoteVTable.hpp"
-// #include "JoinedVTable.hpp"
 #include "JumpVTable.hpp"
+#include "NoVTable.hpp"
 #include "erased.hpp"
 
 namespace prim{
@@ -19,21 +19,20 @@ using RemoteVT = RemoteVTable< Tag, Erased<void*> >;
 template< typename Tag, typename... Ts >
 using JumpVT = JumpVTable< Tag, Erased<void*>, Ts... >;
   
-// template< typename... Tags >
-// using JoinVT = JoinedVTable< Tags... >;
+template< typename Tag, typename T >
+using NoVT = NoVTable< Tag, Erased<void*>, T >;
 
-  
 template< typename Interface >
 LocalVT< Interface > localVT( Interface ){ return {}; };
 
 template< typename Interface >
 RemoteVT< Interface > remoteVT( Interface ){ return {}; };
 
-// template< typename... Tags >
-// JoinedVT< Tags... > joinVT( Tags... ){ return {}; };
-
 template< typename Interface, typename... Ts >
-JumpVT< Interface, Ts... > joinVT( Interface ){ return {}; };
+JumpVT< Interface, Ts... > jumpVT( Interface ){ return {}; };
+
+template< typename Interface, typename T >
+NoVT< Interface, T > noVT( Interface ){ return {}; };
 
 }
   

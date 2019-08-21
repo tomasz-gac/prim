@@ -244,7 +244,7 @@ private:
     if( !other.valueless_by_exception() ){
       void* ptr = nullptr;
       try{
-	auto info = call<storage>( *other );
+	auto info = call<type>( *other );
 	ptr = this->allocate( info );
 	call<Operation>( *other, ptr );
 	this->value() = ptr;
@@ -290,7 +290,7 @@ private:
   reference_t allocate_construct( Args&&... args ){
     void* ptr = nullptr;
     try{
-      ptr = this->allocate( storage_info::template get<T>() );
+      ptr = this->allocate( type_info::template get<T>() );
       new (ptr) T(std::forward<Args>(args)...);
       return reference_t( *reinterpret_cast<T*>(ptr) );
     } catch(...) {
