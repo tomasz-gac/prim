@@ -24,10 +24,15 @@ constexpr T &arrayMax(T(&arr)[N]) {
     return arrayMax_impl(arr, arr + N);
 }
 
-enum class except{
-  OFF = 0,
-  ON  = 1,
-  NOEXCEPT = 2
+template< typename T, bool copyable = true, bool moveable = true, bool move_noexcept = true >
+struct Recursive{
+  using interface_type = prim::basic_t<copyable, moveable, move_noexcept >;
+
+  prim::identity<T, interface_type, prim::HeapAllocator > value_;
+  template< typename... Args >
+  Recursive( Args&&... args )
+    : value_(std::forward<Args>(args)...)
+  {  }
 };
 
 
@@ -49,6 +54,18 @@ private:
     visitor( visited );
   }
 
+  template< typename T_, typename Type, bool c, bool m, bool m_n >
+  friend void invoke( visit<Type>, T_& visitor, Recursive<Type,c,m,m_n>& visited ){
+    std::cout << "recursive" << std::endl;
+    visitor( visited.value_.get() );
+  }
+
+  template< typename T_, typename Type, bool c, bool m, bool m_n >
+  friend void invoke( visit<Type>, T_& visitor, const Recursive<Type,c,m,m_n>& visited ){
+    std::cout << "const recursive" << std::endl;
+    visitor( visited.value_.get() );
+  }
+
   struct IVisitor       :
     prim::Interface< visit<T>, visit<Ts>... >
   {  };
@@ -68,26 +85,9 @@ private:
  }
 
 public:
-  static constexpr bool all_copyable = 
-    prim::tl::conjunction< std::is_copy_constructible<T>, std::is_copy_constructible<Ts>... >::value;
-  static constexpr bool all_movable =
-    prim::tl::conjunction< std::is_move_constructible<T>, std::is_move_constructible<Ts>... >::value;
-  static constexpr bool all_movable_noexcept =
-    prim::tl::conjunction< std::is_nothrow_move_constructible<T>, std::is_nothrow_move_constructible<Ts>... >::value;
-
-  using IVariant__ = 
-    prim::Interface< accept_, prim::type, prim::destroy >;
-
-  using IVariant_copy__ =
-    std::conditional_t< all_copyable,
-			typename IVariant__::template append<prim::copy>, IVariant__ >;
-
-  using IVariant_move__ =
-    std::conditional_t< all_movable,
-			typename IVariant_copy__::template append<prim::move_<all_movable_noexcept>>,
-			IVariant_copy__ >;
-  
-  struct IVariant : IVariant_move__ {  };
+  struct IVariant :
+    prim::common_basic_t<T,Ts...>::template append<accept_>
+  {  };
 
   static constexpr size_t sizes[] = { sizeof(T), sizeof(Ts)... };
   static constexpr size_t alignments[] = { alignof(T), alignof(Ts)... };

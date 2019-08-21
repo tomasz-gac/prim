@@ -21,7 +21,7 @@ private:
 public:
   template< typename U >
   static NoVTable make(){
-    static_assert( !std::is_same<T,U>::value || std::is_same<T, Invalid>::value,
+    static_assert( std::is_same<T,U>::value || !std::is_same<T, Invalid>::value,
 		   "Requested type is not supported by NoVTable.");
     
     return {};

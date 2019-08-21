@@ -14,7 +14,7 @@ class empty_maybe_access :
 {
 public:
   virtual const char* what() const noexcept override
-  { return "Attempted access to empty Maybe"; }
+  { return "Attempted access empty Maybe"; }
 };
 
 template< typename T >
@@ -43,7 +43,7 @@ private:
   friend T& invoke( Get, U&& v ){ throw std::logic_error(); }
   
   struct Interface
-    : prim::Interface< Get, prim::copy, prim::move, prim::destroy, prim::type >
+    : prim::common_basic_t< Maybe_ref_<T__> >::template append<Get>
   {  };
   
   using value_t = prim::value< prim::JumpVT< Interface, T, Empty >, Alloc >;

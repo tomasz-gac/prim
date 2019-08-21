@@ -11,7 +11,6 @@ namespace prim{
 
 struct HeapAllocator
 {
-protected:
   template< typename ToAlloc >
   constexpr bool move_to( ToAlloc& other ){ return true; }
 
@@ -36,7 +35,7 @@ struct allocator_traits<HeapAllocator,HeapAllocator>
   
 template< size_t Size, size_t Alignment = alignof(std::max_align_t) >
 class StackAllocator{
-protected:
+public:
   static constexpr size_t size = Size;
   static constexpr size_t alignment = Alignment;
 

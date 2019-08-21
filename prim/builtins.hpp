@@ -63,5 +63,40 @@ type_info invoke( type, const T& ){ return type_info::get<T>(); }
 template< typename T >
 const void* invoke( address_of, const T& v ){ return reinterpret_cast<const void*>(&v); }
 
+template< bool copyable=true, bool movable=true, bool move_noexcept=true >
+struct basic{
+  using interface__ = prim::Interface< type, destroy >;
+
+  using interface_copy__ =
+    std::conditional_t< copyable,
+			typename interface__::template append<copy>, interface__ >;
+
+  using interface_move__ =
+    std::conditional_t< movable,
+			typename interface_copy__::template append< move_<move_noexcept> >,
+			interface_copy__ >;
+
+  using type = interface_move__;
+};
+
+template< bool copy=true, bool move=true, bool move_noexcept=true >
+using basic_t = typename basic<copy,move,move_noexcept>::type;
+
+template< typename T, typename... Ts >
+struct common_basic{
+  static constexpr bool all_copyable = 
+    prim::tl::conjunction< std::is_copy_constructible<T>, std::is_copy_constructible<Ts>... >::value;
+  static constexpr bool all_movable =
+    prim::tl::conjunction< std::is_move_constructible<T>, std::is_move_constructible<Ts>... >::value;
+  static constexpr bool all_movable_noexcept =
+    prim::tl::conjunction< std::is_nothrow_move_constructible<T>, std::is_nothrow_move_constructible<Ts>... >::value;
+  
+  using type = basic_t< all_copyable, all_movable, all_movable_noexcept >;
+};
+
+template< typename T, typename... Ts >
+using common_basic_t = typename common_basic<T, Ts...>::type;
+
+  
 }
 #endif // __BUILTINS_HPP__
